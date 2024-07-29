@@ -10,7 +10,7 @@ struct Ray{
 };
 
 
-float solve_quadratic(float b, float c){
+float solveQuadratic(float b, float c){
     float discriminant = pow(b, 2) - 4 * c;
     if (discriminant < 0){
         return -1.0;
@@ -29,6 +29,16 @@ float solve_quadratic(float b, float c){
     }
     return -1.0;
 
+}
+
+
+vec3 sampleSpherical(){
+    float r1 = ((float) rand() / (RAND_MAX));
+    float r2 = ((float) rand() / (RAND_MAX));
+    float r3 = ((float) rand() / (RAND_MAX));
+    vec3 sample = vec3(r1, r2, r3);
+    sample = normalizeVector(sample);
+    return sample;
 }
 
 

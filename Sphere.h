@@ -20,7 +20,7 @@ class Object{
     public:
         vec3 position;
         Material material;
-        Object(): position(vec3(0,0,0)), material(Material()){}
+        Object(){}
         Object(vec3 _position, Material _material){
             position = _position;
             material = _material;
@@ -35,20 +35,14 @@ class Object{
             vec3 vec;
             return vec;
         }
-
-        virtual void testing(){
-            std::clog << "Inside Object class";
-        }
 };
 
 
 class Sphere: public Object{
     public:
-        vec3 position;
         float radius;
-        Material material;
-        Sphere(): position(vec3(0,0,0)), radius(1), material(Material()){}
-        Sphere(vec3 _position, float _radius, Material _material=Material()){
+        Sphere(){}
+        Sphere(vec3 _position, float _radius, Material _material){
             position = _position;
             radius = _radius;
             material = _material;
@@ -60,7 +54,7 @@ class Sphere: public Object{
             float b = 2 * (dotProduct - dotVectors(ray.directionVector, position));
             vec3 difference_in_positions = subtractVectors(position, ray.startingPosition);
             float c = dotVectors(difference_in_positions, difference_in_positions) - pow(radius, 2);
-            float distance = solve_quadratic(b, c);
+            float distance = solveQuadratic(b, c);
             Hit hit;
             hit.objectID = 0;
             hit.distance = distance;
@@ -69,10 +63,6 @@ class Sphere: public Object{
 
         vec3 getNormalVector(Hit hit) override{
             return subtractVectors(position, hit.intersectionPoint);
-        }
-
-        virtual void testing() override{
-            std::clog << "Inside Sphere class";
         }
 };
 

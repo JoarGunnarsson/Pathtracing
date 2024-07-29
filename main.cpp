@@ -4,7 +4,6 @@
 #include <vector>
 #include <cmath>
 #include <chrono>
-#include "BMP.h"
 #include "vec3.h"
 #include "Sphere.h"
 #include "utils.h"
@@ -12,20 +11,12 @@
 
 int WIDTH = 1000;
 int HEIGHT = 1000;
-std::shared_ptr<Object> s1 = std::make_shared<Sphere>(vec3(5,1,-1), 1);
-std::shared_ptr<Object> s2 = std::make_shared<Sphere>(vec3(4,1,1), 0.5);
-std::shared_ptr<Object> s3 = std::make_shared<Sphere>(vec3(4, 4, 4), 1);
-
+std::shared_ptr<Sphere> s1 = std::make_shared<Sphere>(vec3(5,1,-1), 1, Material(BLUE));
+std::shared_ptr<Sphere> s2 = std::make_shared<Sphere>(vec3(4,1,1), 0.5, Material(RED));
+std::shared_ptr<Sphere> s3 = std::make_shared<Sphere>(vec3(4, 4, 4), 1, Material(GREEN));
 std::vector<std::shared_ptr<Object>> objectPtrList = {s1, s2, s3};
 
 // TODO: Add classes etc for camera, screen etc. 
-
-
-void writeRGBToArray(std::vector<float> rgb, std::vector<float>& colorArray, int startIndex){
-    for (int i = 0; i < 3; i++){
-        colorArray[startIndex+i] = rgb[i];
-    }
-}
 
 
 vec3 indexToPosition(int x, int y){
@@ -77,19 +68,18 @@ Hit findClosestDistance(Ray ray, std::vector<std::shared_ptr<Object>> objects){
  }
 
 vec3 raytrace(Ray ray){
-    // TODO: Start by assuming radius of 1, change later.
-    vec3 color = vec3(1, 1, 1);
     Hit rayHit = findClosestDistance(ray, objectPtrList);
     if (rayHit.distance <= 0){
-        return vec3(0.0, 0.0, 0.0);
+        return BLACK;
     }
-    Object intersectedObject = *objectPtrList[rayHit.intersectedObjectIndex];
-    return intersectedObject.material.diffuseColor;
+
+    //displayVector((*objectPtrList[0]).material.diffuseColor);
+    return (*objectPtrList[rayHit.intersectedObjectIndex]).material.diffuseColor;
 
  }
 
 vec3 computePixelColor(int x, int y){
-    // TODO: Add raytracing logic.
+
     int mcIterations = 1;
     vec3 pixelColor = vec3(0, 0, 0);
     vec3 cameraPosition = vec3(0, 0, 0);
@@ -114,7 +104,6 @@ void printPixelColor(vec3 rgb){
 
 
 int main() {
-    //(*objectPtrList[0]).testing();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::cout << "P3\n" << WIDTH << ' ' << HEIGHT << "\n255\n";
     std::vector<float> colorArray(WIDTH * HEIGHT * 3, 0);
