@@ -1,4 +1,5 @@
 .vscode
 main
 *.DS_Store
-Images/*
+*.ppm
+*.png
