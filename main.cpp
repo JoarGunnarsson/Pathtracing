@@ -8,97 +8,141 @@
 #include "Sphere.h"
 #include "utils.h"
 
-
+const double EPSILON = 0.0001;
+int mcIterations = 100;
 int WIDTH = 1000;
 int HEIGHT = 1000;
-std::shared_ptr<Sphere> s1 = std::make_shared<Sphere>(vec3(5,1,-1), 1, Material(BLUE));
-std::shared_ptr<Sphere> s2 = std::make_shared<Sphere>(vec3(4,1,1), 0.5, Material(RED));
-std::shared_ptr<Sphere> s3 = std::make_shared<Sphere>(vec3(4, 4, 4), 1, Material(GREEN));
-std::vector<std::shared_ptr<Object>> objectPtrList = {s1, s2, s3};
-
+std::shared_ptr<Sphere> thisFloor = std::make_shared<Sphere>(vec3(0,-0.1-100000,0), 100000, Material(WHITE));
+std::shared_ptr<Sphere> roof = std::make_shared<Sphere>(vec3(0,0.35 + 100000,0), 100000, Material(WHITE));
+std::shared_ptr<Sphere> leftWall = std::make_shared<Sphere>(vec3(0,0,-0.35 -100000), 100000, Material(RED));
+std::shared_ptr<Sphere> rightWall = std::make_shared<Sphere>(vec3(0,0,0.35 + 100000), 100000, Material(GREEN));
+std::shared_ptr<Sphere> backWall = std::make_shared<Sphere>(vec3(1 + 100000,0,0), 100000, Material(WHITE));
+std::shared_ptr<Sphere> frontWall = std::make_shared<Sphere>(vec3(-2 -100000,0,0), 100000, Material(WHITE));
+std::shared_ptr<Sphere> blueBall = std::make_shared<Sphere>(vec3(1,0.1,0), 0.1, Material(WHITE));
+std::shared_ptr<Sphere> lightSource = std::make_shared<Sphere>(vec3(1, 0.35, 0), 0.1, Material(WHITE, 1, 1, 1, WHITE, WHITE, 10));
+std::vector<std::shared_ptr<Object>> objectPtrList = {thisFloor, roof, leftWall, rightWall, backWall, frontWall, blueBall, lightSource};
+vec3 cameraPosition = vec3(0, 0.1, 0);
+vec3 screenPosition = vec3(1, 0.1, 0);
+vec3 screenNormalVector = vec3(-1, 0, 0);
+vec3 screenYVector = vec3(0, 1, 0);
 // TODO: Add classes etc for camera, screen etc. 
+
+
+vec3 raytrace(Ray& ray, int depth, vec3 throughput);
 
 
 vec3 indexToPosition(int x, int y){
     // TODO: Move to a camera/screen class
-    float screenWidth = 1;
-    float screenHeight = screenWidth * (float) HEIGHT / (float) WIDTH; 
-    vec3 screenNormalVector = vec3(-1, 0, 0);
-    vec3 screenYVector = vec3(0, 1, 0);
+    double screenWidth = 1;
+    double screenHeight = screenWidth * (double) HEIGHT / (double) WIDTH; 
     vec3 screenXVector = crossVectors(screenNormalVector, screenYVector);
 
-    vec3 screenPosition = vec3(1, 0, 0);
-
-    float localXCoordinate = (float) x * screenWidth / (float) WIDTH - (float) screenWidth / (float) 2;
+    double localXCoordinate = (double) x * screenWidth / (double) WIDTH - (double) screenWidth / (double) 2;
     vec3 localX = multiplyVector(screenXVector, localXCoordinate);
 
-    float localYCoordinate = (float) y * screenHeight / (float) HEIGHT - (float) screenHeight / (float) 2.0;
+    double localYCoordinate = (double) y * screenHeight / (double) HEIGHT - (double) screenHeight / (double) 2.0;
+
     vec3 localY = multiplyVector(screenYVector, localYCoordinate);
-    return addVectors(addVectors(localX, localY), screenPosition);
+    vec3 xPlusY = addVectors(localX, localY);
+    return addVectors(xPlusY, screenPosition);
 }
 
 
  vec3 getStartingDirections(int x, int y){
     vec3 pixelVector = indexToPosition(x, y);
-    vec3 cameraPosition = vec3(0, 0, 0);
     vec3  directionVector = subtractVectors(pixelVector, cameraPosition);
     return normalizeVector(directionVector);
  }
 
 
-Hit findClosestDistance(Ray ray, std::vector<std::shared_ptr<Object>> objects){
+Hit findClosestDistance(Ray& ray, std::vector<std::shared_ptr<Object>>& objects){
     // TODO: Ask object for the actual intersected object. Is better for object unions.
     Hit closestHit;
     closestHit.distance = -1;
 
     for (int i = 0; i < objects.size(); i++){
         Hit hit = (*objects[i]).findClosestHit(ray);
-        if (hit.distance > 0 && (hit.distance < closestHit.distance || closestHit.distance == -1)){
+        if (hit.distance > EPSILON && (hit.distance < closestHit.distance || closestHit.distance == -1)){
             hit.intersectedObjectIndex = i;
             closestHit = hit;
         }
     }
-    if (closestHit.distance < 0){
+    if (closestHit.distance < EPSILON){
         return closestHit;
     }
 
-    closestHit.intersectionPoint = addVectors(ray.startingPosition, multiplyVector(ray.directionVector, closestHit.distance));
+    vec3 scaledDirectionVector = multiplyVector(ray.directionVector, closestHit.distance);
+    closestHit.intersectionPoint = addVectors(ray.startingPosition, scaledDirectionVector);
     closestHit.normalVector = (*(objects[closestHit.intersectedObjectIndex])).getNormalVector(closestHit);
     return closestHit;
  }
 
-vec3 raytrace(Ray ray){
+vec3 indirectLighting(Ray& ray, Hit& hit, int depth, vec3 throughput, double randomThreshold){
+    Material objectMaterial = (*objectPtrList[hit.intersectedObjectIndex]).material;
+    brdfData brdfResult = objectMaterial.sample(hit);
+
+    throughput = multiplyVectorElementwise(throughput, brdfResult.brdfMultiplier);
+    throughput = divideVector(throughput, randomThreshold);
+    Ray newRay;
+    newRay.startingPosition = hit.intersectionPoint;
+    newRay.directionVector = brdfResult.outgoingVector;
+    vec3 recursiveColor = raytrace(newRay, depth+1, throughput);
+    return multiplyVectorElementwise(recursiveColor, brdfResult.brdfMultiplier);
+}
+
+vec3 raytrace(Ray& ray, int depth, vec3 throughput){
+    int forceRecusionLimit = 3;
     Hit rayHit = findClosestDistance(ray, objectPtrList);
-    if (rayHit.distance <= 0){
+    if (rayHit.distance <= EPSILON){
         return BLACK;
     }
 
-    //displayVector((*objectPtrList[0]).material.diffuseColor);
-    return (*objectPtrList[rayHit.intersectedObjectIndex]).material.diffuseColor;
+    Material objectMaterial = (*objectPtrList[rayHit.intersectedObjectIndex]).material;
+
+    vec3 color = multiplyVector(objectMaterial.emmissionColor, objectMaterial.lightIntensity);
+
+    bool allowRecusion;
+    double randomThreshold;
+
+    if (depth < forceRecusionLimit){
+        randomThreshold = 1;
+        allowRecusion = true;
+    }
+    else{
+        randomThreshold = std::min(throughput.max(), 0.9);
+        double randomValue = ((double) rand() / (RAND_MAX));
+        allowRecusion = randomValue < randomThreshold;
+    }
+    
+    if (!allowRecusion){
+        return color;
+    }   
+
+    vec3 indirect = indirectLighting(ray, rayHit, depth, throughput, randomThreshold);
+    vec3 tempColor = divideVector(indirect, randomThreshold);
+    color = addVectors(color, tempColor);
+    return color;
 
  }
 
 vec3 computePixelColor(int x, int y){
-
-    int mcIterations = 1;
-    vec3 pixelColor = vec3(0, 0, 0);
-    vec3 cameraPosition = vec3(0, 0, 0);
+    vec3 pixelColor = BLACK;
     Ray ray;
     ray.directionVector = getStartingDirections(x, y);
     ray.startingPosition = cameraPosition;
-
     for (int iter = 0; iter < mcIterations; iter++){
-        vec3 sampledColor = raytrace(ray);
+        vec3 throughput = vec3(1,1,1);
+        vec3 sampledColor = raytrace(ray, 0, throughput);
         pixelColor = addVectors(pixelColor, sampledColor);
     }
-    return divideVector(pixelColor, mcIterations);
+    return divideVector(pixelColor, (double)mcIterations);
 }
 
 
 void printPixelColor(vec3 rgb){
-    int r = int(rgb.x() * (float) 255);
-    int g = int(rgb.y() * (float) 255);
-    int b = int(rgb.z() * (float) 255);
+    int r = int(rgb.x() * (double) 255);
+    int g = int(rgb.y() * (double) 255);
+    int b = int(rgb.z() * (double) 255);
     std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 
@@ -106,12 +150,13 @@ void printPixelColor(vec3 rgb){
 int main() {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::cout << "P3\n" << WIDTH << ' ' << HEIGHT << "\n255\n";
-    std::vector<float> colorArray(WIDTH * HEIGHT * 3, 0);
+    std::vector<double> colorArray(WIDTH * HEIGHT * 3, 0);
     // Write pixel data (BGR format)
     for (int y = HEIGHT-1; y >= 0; y--) {
         for (int x = WIDTH-1; x >= 0; x--) {
             vec3 rgb = computePixelColor(x, y);
-            printPixelColor(rgb);
+
+            printPixelColor(colorClip(rgb));
         }
     }
 

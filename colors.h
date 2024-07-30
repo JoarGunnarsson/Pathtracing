@@ -17,4 +17,8 @@ namespace colors{
     vec3 const WARM_WHITE = vec3(0.9922, 0.9569, 0.8627);
 }
 
+vec3 colorClip(vec3 rgb){
+    return divideVector(rgb, std::max(std::max(rgb[0], rgb[1]), rgb[2])+1);
+}
+
 #endif
