@@ -11,15 +11,15 @@ class vec3 {
         vec3() : e{0,0,0} {}
         vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
 
-        double x() const {
+        inline double x() const {
             return e[0]; 
         }
 
-        double y() const { 
+        inline double y() const { 
             return e[1]; 
         }
         
-        double z() const { 
+        inline double z() const { 
             return e[2];
         }
 
@@ -27,50 +27,50 @@ class vec3 {
             return vec3(-e[0], -e[1], -e[2]); 
         }
 
-        double operator[](int i) const { 
+        inline double operator[](int i) const { 
             return e[i]; 
         }
 
-        double length() const {
+        inline double length() const {
             return std::sqrt(length_squared());
         }
 
-        double length_squared() const {
+        inline double length_squared() const {
             return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
         }
 
-        double max() const{
+        inline double max() const{
             return std::max(std::max(e[0], e[1]), e[2]);
         }
 };
 
 
-vec3 addVectors(vec3& v1, vec3& v2){
+inline vec3 addVectors(vec3& v1, vec3& v2){
     return vec3(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
 }
 
 
-vec3 subtractVectors(vec3& v1, vec3& v2){
+inline vec3 subtractVectors(vec3& v1, vec3& v2){
     return vec3(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
 }
 
 
-vec3 multiplyVector(vec3 v, double value){
+inline vec3 multiplyVector(vec3 v, double value){
     return vec3(v[0] * value, v[1] * value, v[2] * value);
 }
 
-vec3 multiplyVectorElementwise(vec3& v1, vec3& v2){
+inline vec3 multiplyVectorElementwise(vec3& v1, vec3& v2){
     return vec3(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
 }
 
 
-vec3 divideVector(vec3 v, double value){
+inline vec3 divideVector(vec3 v, double value){
     return multiplyVector(v, 1/value);
 }
 
 
 
-double dotVectors(vec3& v1, vec3& v2){
+inline double dotVectors(vec3& v1, vec3& v2){
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
@@ -80,7 +80,7 @@ vec3 crossVectors(vec3& v1, vec3& v2){
 }
 
 
-vec3 normalizeVector(vec3& v){
+inline vec3 normalizeVector(vec3& v){
     double norm = v.length();
     return divideVector(v, norm);
 }

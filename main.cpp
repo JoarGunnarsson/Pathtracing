@@ -9,7 +9,7 @@
 #include "utils.h"
 
 const double EPSILON = 0.0001;
-int mcIterations = 100;
+int mcIterations = 10;
 int WIDTH = 1000;
 int HEIGHT = 1000;
 std::shared_ptr<Sphere> thisFloor = std::make_shared<Sphere>(vec3(0,-0.1-100000,0), 100000, Material(WHITE));
@@ -145,7 +145,6 @@ void printPixelColor(vec3 rgb){
     int b = int(rgb.z() * (double) 255);
     std::cout << r << ' ' << g << ' ' << b << '\n';
 }
-
 
 int main() {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
