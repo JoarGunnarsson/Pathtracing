@@ -1,8 +1,12 @@
 #ifndef utils
 #define utils
 #include "vec3.h"
-#include "Sphere.h"
 #include <random>
+
+
+std::default_random_engine normal_generator;
+std::normal_distribution<double> normal_distribution(0, 1);
+
 
 struct Hit{
     int intersectedObjectIndex;
@@ -17,6 +21,7 @@ struct Hit{
 struct Ray{
     vec3 startingPosition;
     vec3 directionVector;
+    bool specular = false;
 };
 
 
@@ -28,7 +33,6 @@ double solveQuadratic(double b, double c){
     double root_discriminant = sqrt(discriminant);
     double maximum_solution = - 1.0 / 2.0 * (b - root_discriminant);
     double minimum_solution = - 1.0 / 2.0 * (b + root_discriminant);
-
 
     if (minimum_solution > 0){
         return minimum_solution;
@@ -43,12 +47,9 @@ double solveQuadratic(double b, double c){
 
 
 vec3 sampleSpherical(){
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine generator(seed);
-    std::normal_distribution<double> distribution(0, 1);
-    double r1 = distribution(generator);
-    double r2 = distribution(generator);
-    double r3 = distribution(generator);
+    double r1 = normal_distribution(normal_generator);
+    double r2 = normal_distribution(normal_generator);
+    double r3 = normal_distribution(normal_generator);
     vec3 sample = vec3(r1, r2, r3);
     sample = normalizeVector(sample);
     return sample;
@@ -66,10 +67,10 @@ vec3 sampleHemisphere(vec3 normal){
 
 vec3 sampleCosineHemisphere(vec3& normalVector){
     vec3 nonParallelVector = vec3(1.0, 0.0, 0.0);
-    if (dotVectors(nonParallelVector, normalVector) == 1.0){
+    if (std::abs(dotVectors(nonParallelVector, normalVector)) == 1.0){
         nonParallelVector = vec3(0.0, 1.0, 0.0);
     }
-
+    
     vec3 xHat = crossVectors(normalVector, nonParallelVector);
     xHat = normalizeVector(xHat);
     vec3 yHat = crossVectors(normalVector, xHat);

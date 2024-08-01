@@ -5,4 +5,4 @@ echo "Compiling."
 g++ -std=c++11 main.cpp -o main -O3 -ffast-math
 echo "Finished compiling."
 echo "Running program."
-./main > Images/result.ppm
+./main | python to_png.py

@@ -24,7 +24,7 @@ class Material{
             absorptionColor(WHITE),
             emmissionColor(WHITE),
             lightIntensity(0.0f) {}
-        Material(vec3 _diffuseColor, double _diffuseCoefficient=1, double _refractiveIndex=1, double _attenuationCoefficient=0, vec3 _absorptionColor=WHITE,
+        Material(vec3 _diffuseColor, double _diffuseCoefficient=0.6, double _refractiveIndex=1, double _attenuationCoefficient=0, vec3 _absorptionColor=WHITE,
         vec3 _emmissionColor=WHITE, double _lightIntensity=0){
             albedo = multiplyVector(_diffuseColor, _diffuseCoefficient);
             refractiveIndex = _refractiveIndex;

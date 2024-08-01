@@ -45,42 +45,42 @@ class vec3 {
 };
 
 
-inline vec3 addVectors(vec3& v1, vec3& v2){
+inline vec3 addVectors(const vec3& v1, const vec3& v2){
     return vec3(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
 }
 
 
-inline vec3 subtractVectors(vec3& v1, vec3& v2){
+inline vec3 subtractVectors(const vec3& v1, const vec3& v2){
     return vec3(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
 }
 
 
-inline vec3 multiplyVector(vec3 v, double value){
+inline vec3 multiplyVector(const vec3& v, double value){
     return vec3(v[0] * value, v[1] * value, v[2] * value);
 }
 
-inline vec3 multiplyVectorElementwise(vec3& v1, vec3& v2){
+inline vec3 multiplyVectorElementwise(const vec3& v1, const vec3& v2){
     return vec3(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
 }
 
 
-inline vec3 divideVector(vec3 v, double value){
+inline vec3 divideVector(const vec3& v, double value){
     return multiplyVector(v, 1/value);
 }
 
 
 
-inline double dotVectors(vec3& v1, vec3& v2){
+inline double dotVectors(const vec3& v1, const vec3& v2){
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
 
-vec3 crossVectors(vec3& v1, vec3& v2){
+vec3 crossVectors(const vec3& v1, const vec3& v2){
     return vec3(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
 
-inline vec3 normalizeVector(vec3& v){
+inline vec3 normalizeVector(const vec3& v){
     double norm = v.length();
     return divideVector(v, norm);
 }
