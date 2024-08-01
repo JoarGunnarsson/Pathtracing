@@ -4,8 +4,19 @@
 #include <random>
 
 
+class VirtualMethodNotAllowedException : public std::logic_error {
+public:
+    explicit VirtualMethodNotAllowedException(const std::string& message)
+        : std::logic_error(message) {}
+};
+
+
+
 std::default_random_engine normal_generator;
 std::normal_distribution<double> normal_distribution(0, 1);
+
+std::minstd_rand uniform_generator;
+std::uniform_real_distribution<double> uniform_dist(0, 1);
 
 
 struct Hit{
@@ -89,5 +100,47 @@ vec3 sampleCosineHemisphere(vec3& normalVector){
     return sphere_points;
 }
 
+
+vec3 reflectVector(const vec3& directionVector, const vec3& normalVector){
+    double normalDotDirectionVector = dotVectors(normalVector, directionVector);
+    vec3 scaledNormal = multiplyVector(normalVector, 2.0 * normalDotDirectionVector);
+    vec3 reflectionVector = subtractVectors(directionVector, scaledNormal);
+    return reflectionVector;
+}
+
+vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const double n1, const double n2){
+    double mu = n1 / n2;
+    double cosIncident = dotVectors(normalVector, incidentVector);
+    double lengthInNormalDirectionSquared = 1 - pow(mu, 2) * (1 - pow(cosIncident, 2));
+    if (lengthInNormalDirectionSquared < 0){
+        return vec3(0,0,0);
+    }
+
+    double lengthInNormalDirection = sqrt(lengthInNormalDirectionSquared);
+    vec3 cosScaledNormal = multiplyVector(normalVector, cosIncident);
+    vec3 perpendicularVectors = subtractVectors(incidentVector, cosScaledNormal);
+    perpendicularVectors = multiplyVector(perpendicularVectors, mu);
+    vec3 normalScaledNormal = multiplyVector(normalVector, lengthInNormalDirection);
+    vec3 transmittedVector =  addVectors(normalScaledNormal, perpendicularVectors);
+    return transmittedVector;
+}
+
+
+double schlickApproximation(const double R0, const double cosTheta){
+    double R = R0 + (1 - R0) * pow((1 - cosTheta), 5);
+    return R;
+}
+
+double fresnelMultiplier(const vec3& incidentVector, const vec3& transmittedVector, const vec3& normalVector, const double n1, const double n2){
+    double R0 = pow(((n1 - n2) / (n1 + n2)), 2);
+    if (n2 >= n1){
+        double cosIncident = dotVectors(incidentVector, normalVector);
+        return schlickApproximation(R0, cosIncident);
+    }
+    else{
+        double cosTransmitted = dotVectors(transmittedVector, normalVector);
+        return schlickApproximation(R0, cosTransmitted);
+    }
+}
 
 #endif

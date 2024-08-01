@@ -11,17 +11,17 @@
 #include "constants.h"
 
 
-std::shared_ptr<Plane> thisFloor = std::make_shared<Plane>(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), Material(WHITE));
-std::shared_ptr<Plane> frontWall = std::make_shared<Plane>(vec3(0,0,-0.35), vec3(1,0,0), vec3(0,1,0), Material(WHITE));
-std::shared_ptr<Plane> leftWall = std::make_shared<Plane>(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), Material(RED));
-std::shared_ptr<Plane> rightWall = std::make_shared<Plane>(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), Material(GREEN));
-std::shared_ptr<Plane> roof = std::make_shared<Plane>(vec3(0,1.2,0), vec3(0,0,-1), vec3(1,0,0), Material(WHITE));
-std::shared_ptr<Plane> backWall = std::make_shared<Plane>(vec3(0,0,3.5), vec3(1,0,0), vec3(0,1,0), Material(WHITE));
+std::shared_ptr<Plane> thisFloor = std::make_shared<Plane>(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), std::make_shared<DiffuseMaterial>(WHITE));
+std::shared_ptr<Plane> frontWall = std::make_shared<Plane>(vec3(0,0,-0.35), vec3(1,0,0), vec3(0,1,0), std::make_shared<DiffuseMaterial>(WHITE));
+std::shared_ptr<Plane> leftWall = std::make_shared<Plane>(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), std::make_shared<DiffuseMaterial>(RED));
+std::shared_ptr<Plane> rightWall = std::make_shared<Plane>(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), std::make_shared<DiffuseMaterial>(GREEN));
+std::shared_ptr<Plane> roof = std::make_shared<Plane>(vec3(0,1.2,0), vec3(0,0,-1), vec3(1,0,0), std::make_shared<DiffuseMaterial>(WHITE));
+std::shared_ptr<Plane> backWall = std::make_shared<Plane>(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), std::make_shared<DiffuseMaterial>(WHITE));
 
-std::shared_ptr<Sphere> ball1 = std::make_shared<Sphere>(vec3(0.35,0,0), 0.35, Material(BLUE));
-std::shared_ptr<Sphere> ball2 = std::make_shared<Sphere>(vec3(-0.45,0,0.6), 0.35, Material(WHITE));
+std::shared_ptr<Sphere> ball1 = std::make_shared<Sphere>(vec3(0.35,0,0), 0.35, std::make_shared<ReflectiveMaterial>(BLUE));
+std::shared_ptr<Sphere> ball2 = std::make_shared<Sphere>(vec3(-0.45,0,0.6), 0.35, std::make_shared<TransparentMaterial>(WHITE, 0.8, 2));
 
-std::shared_ptr<Rectangle> lightSource = std::make_shared<Rectangle>(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, Material(WHITE, 1, 1, 1, WHITE, WARM_WHITE, 10));
+std::shared_ptr<Rectangle> lightSource = std::make_shared<Rectangle>(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, std::make_shared<DiffuseMaterial>(WHITE, 0.8, 1, 1, WHITE, WARM_WHITE, 10));
 
 std::vector<std::shared_ptr<Object>> objectPtrList = {thisFloor, roof, frontWall, backWall, rightWall, leftWall, ball1, ball2, lightSource};
 std::vector<std::shared_ptr<Object>> lightsourcePtrList = {lightSource};
@@ -29,8 +29,7 @@ vec3 cameraPosition = vec3(0, 1, 3);
 vec3 viewingDirection = vec3(0.0, -0.28734788556, -0.95782628522);
 vec3 screenPosition = addVectors(cameraPosition,viewingDirection);
 vec3 screenNormalVector = -viewingDirection;
-vec3 screenYVector = vec3(0, 1, 0);
-
+vec3 screenYVector = vec3(0, 0.95782628522, -0.28734788556);
 std::random_device rand_dev;
 std::minstd_rand generator(rand_dev());
 std::uniform_int_distribution<int> distr(0, lightsourcePtrList.size()-1);
@@ -82,18 +81,19 @@ Hit findClosestHit(Ray& ray, std::vector<std::shared_ptr<Object>>& objects){
     vec3 scaledDirectionVector = multiplyVector(ray.directionVector, closestHit.distance);
     closestHit.intersectionPoint = addVectors(ray.startingPosition, scaledDirectionVector);
     closestHit.normalVector = (*(objects[closestHit.intersectedObjectIndex])).getNormalVector(closestHit);
+    closestHit.incomingVector = ray.directionVector;
     return closestHit;
  }
 
-vec3 indirectLighting(Ray& ray, Hit& hit, int depth, vec3 throughput, double randomThreshold){
-    Material objectMaterial = (*objectPtrList[hit.intersectedObjectIndex]).material;
-    brdfData brdfResult = objectMaterial.sample(hit);
+vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThreshold){
+    brdfData brdfResult = (*objectPtrList[hit.intersectedObjectIndex]).material -> sample(hit);
 
     throughput = multiplyVectorElementwise(throughput, brdfResult.brdfMultiplier);
     throughput = divideVector(throughput, randomThreshold);
     Ray newRay;
     newRay.startingPosition = hit.intersectionPoint;
     newRay.directionVector = brdfResult.outgoingVector;
+    newRay.specular = brdfResult.specular;
     vec3 recursiveColor = raytrace(newRay, depth+1, throughput);
     return multiplyVectorElementwise(recursiveColor, brdfResult.brdfMultiplier);
 }
@@ -113,7 +113,7 @@ vec3 directLighting(Hit& hit){
         }
     }
     vec3 randomPoint = (*lightsourcePtrList[randomIndex]).generateRandomSurfacePoint();
-    Material lightMaterial = (*lightsourcePtrList[randomIndex]).material;
+    Material lightMaterial = *(*lightsourcePtrList[randomIndex]).material; // TODO: Perhaps an issue here.
     double area = (*lightsourcePtrList[randomIndex]).area;
 
     vec3 vectorTowardsLight = subtractVectors(randomPoint, hit.intersectionPoint);
@@ -132,7 +132,7 @@ vec3 directLighting(Hit& hit){
 
     double P = dotVectors(lightHit.normalVector, lightVector) / pow(lightHit.distance, 2);
     P = std::max(0.0, P);
-    vec3 brdfMultiplier = (*objectPtrList[hit.intersectedObjectIndex]).material.eval();
+    vec3 brdfMultiplier = (*objectPtrList[hit.intersectedObjectIndex]).material -> eval();
     vec3 lightEmmitance = multiplyVector(lightMaterial.emmissionColor, lightMaterial.lightIntensity);
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
@@ -150,9 +150,10 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
     }
 
     if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
-        Material objectMaterial = (*objectPtrList[rayHit.intersectedObjectIndex]).material;
+        Material objectMaterial = *(*objectPtrList[rayHit.intersectedObjectIndex]).material;
         color = multiplyVector(objectMaterial.emmissionColor, objectMaterial.lightIntensity);
     }
+
     bool allowRecursion;
     double randomThreshold;
 
@@ -170,7 +171,7 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
         return color;
     }   
 
-    vec3 indirect = indirectLighting(ray, rayHit, depth, throughput, randomThreshold);
+    vec3 indirect = indirectLighting(rayHit, depth, throughput, randomThreshold);
     vec3 direct;
 
     if (constants::enableNextEventEstimation){
@@ -183,6 +184,7 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
     vec3 tempColor = addVectors(indirect, direct);
     tempColor = divideVector(tempColor, randomThreshold);
     color = addVectors(color, tempColor);
+
     return color;
 
  }

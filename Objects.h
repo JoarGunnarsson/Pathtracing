@@ -6,18 +6,13 @@
 #include "constants.h"
 
 
-std::random_device this_rand_dev;
-std::minstd_rand uniform_generator(this_rand_dev());
-std::uniform_real_distribution<double> uniform_dist(0, 1);
-
-
 class Object{
     public:
         vec3 position;
-        Material material;
+        std::shared_ptr<Material> material;
         double area;
         Object(){}
-        Object(vec3 _position, Material _material){
+        Object(vec3 _position, std::shared_ptr<Material> _material){
             position = _position;
             material = _material;
         }
@@ -42,7 +37,7 @@ class Sphere: public Object{
     public:
         double radius;
         Sphere(){}
-        Sphere(vec3 _position, double _radius, Material _material){
+        Sphere(vec3 _position, double _radius, std::shared_ptr<Material> _material){
             position = _position;
             radius = _radius;
             material = _material;
@@ -80,8 +75,9 @@ class Plane: public Object{
         vec3 v1;
         vec3 v2;
         vec3 normalVector;
+        bool transparentBack;
         Plane(){}
-        Plane(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), Material _material=Material()){
+        Plane(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), std::shared_ptr<Material> _material=std::make_shared<Material>()){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
@@ -92,7 +88,7 @@ class Plane: public Object{
 
         double computeDistanceInCenteredSystem(vec3& startingPoint, vec3& directionVector){
             double directionDotNormal = -dotVectors(directionVector, normalVector);
-            if (directionDotNormal < constants::EPSILON){
+            if (std::abs(directionDotNormal) < constants::EPSILON){
                 return -1;
             }
 
@@ -122,7 +118,7 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
-        Rectangle(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), double _L1=1, double _L2=1, Material _material=Material()){
+        Rectangle(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), double _L1=1, double _L2=1, std::shared_ptr<Material> _material=std::make_shared<Material>()){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
@@ -134,20 +130,16 @@ class Rectangle: public Plane{
             material = _material;
         }
 
-        double computeDistanceInCenteredSystem(vec3& startingPoint, vec3& directionVector){
-            double directionDotNormal = -dotVectors(directionVector, normalVector);
-            if (directionDotNormal < constants::EPSILON){
-                return -1;
-            }
-
-            double distanceToStart = dotVectors(startingPoint, normalVector);
-            double distance = distanceToStart / directionDotNormal;
-            return distance;
-        }
-
         Hit findClosestHit(Ray& ray) override{
+            Hit hit;
+            hit.objectID = 0;
+
             vec3 shiftedPoint = subtractVectors(ray.startingPosition, position);
             double distance = Plane::computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
+            if (distance < 0){
+                hit.distance = distance;
+                return hit;
+            }
             double directionDotV1 = dotVectors(ray.directionVector, v1);
             double directionDotV2 = dotVectors(ray.directionVector, v2);
             double startDotV1 = dotVectors(shiftedPoint, v1);
@@ -156,8 +148,6 @@ class Rectangle: public Plane{
             if (std::abs(startDotV1 + directionDotV1 * distance) > L1 / 2.0 + constants::EPSILON || std::abs(startDotV2 + directionDotV2 * distance) > L2 / 2.0 + constants::EPSILON){
                 distance = -1;
             }
-            Hit hit;
-            hit.objectID = 0;
             hit.distance = distance;
             return hit;
         }
