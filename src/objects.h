@@ -4,15 +4,16 @@
 #include "utils.h"
 #include "materials.h"
 #include "constants.h"
+#include "colors.h"
 
 
 class Object{
     public:
         vec3 position;
-        std::shared_ptr<Material> material;
+        Material* material;
         double area;
         Object(){}
-        Object(vec3 _position, std::shared_ptr<Material> _material){
+        Object(vec3 _position, Material* _material){
             position = _position;
             material = _material;
         }
@@ -37,7 +38,7 @@ class Sphere: public Object{
     public:
         double radius;
         Sphere(){}
-        Sphere(vec3 _position, double _radius, std::shared_ptr<Material> _material){
+        Sphere(vec3 _position, double _radius, Material* _material){
             position = _position;
             radius = _radius;
             material = _material;
@@ -77,7 +78,7 @@ class Plane: public Object{
         vec3 normalVector;
         bool transparentBack;
         Plane(){}
-        Plane(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), std::shared_ptr<Material> _material=std::make_shared<Material>()){
+        Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
@@ -118,7 +119,7 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
-        Rectangle(vec3 _position, vec3 _v1=vec3(1,0,0), vec3 _v2=vec3(0,1,0), double _L1=1, double _L2=1, std::shared_ptr<Material> _material=std::make_shared<Material>()){
+        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
@@ -163,6 +164,27 @@ class Rectangle: public Plane{
         }
 };
 
+Hit findClosestHit(Ray& ray, std::vector<Object*> objects){
+    Hit closestHit;
+    closestHit.distance = -1;
+
+    for (int i = 0; i < objects.size(); i++){
+        Hit hit = (*objects[i]).findClosestHit(ray);
+        if (hit.distance > constants::EPSILON && (hit.distance < closestHit.distance || closestHit.distance == -1)){
+            hit.intersectedObjectIndex = i;
+            closestHit = hit;
+        }
+    }
+    if (closestHit.distance < constants::EPSILON){
+        return closestHit;
+    }
+
+    vec3 scaledDirectionVector = multiplyVector(ray.directionVector, closestHit.distance);
+    closestHit.intersectionPoint = addVectors(ray.startingPosition, scaledDirectionVector);
+    closestHit.normalVector = (*(objects[closestHit.intersectedObjectIndex])).getNormalVector(closestHit);
+    closestHit.incomingVector = ray.directionVector;
+    return closestHit;
+ }
 
 
 #endif

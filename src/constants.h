@@ -11,6 +11,4 @@ namespace constants
     const double airRefractiveIndex = 1;
 }
 
-
-
 #endif

@@ -20,13 +20,17 @@ class Material{
         vec3 absorptionColor;
         vec3 emmissionColor;
         double lightIntensity;
-        Material() :
-            albedo(WHITE),
-            refractiveIndex(1.0f),
-            attenuationCoefficient(0.0f),
-            absorptionColor(WHITE),
-            emmissionColor(WHITE),
-            lightIntensity(0.0f) {}
+        Material(){
+            albedo = WHITE;
+            refractiveIndex = 1;
+            attenuationCoefficient = 0;
+            absorptionColor = WHITE;
+            attenuationCoefficient = 0;
+            absorptionColor = WHITE;
+            emmissionColor = WHITE;
+            lightIntensity = 0;
+            // TODO: Combine emmissionColor and lightIntensity into one variable.
+        }
         Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0, vec3 _absorptionColor=WHITE,
         vec3 _emmissionColor=WHITE, double _lightIntensity=0){
             albedo = multiplyVector(_diffuseColor, _diffuseCoefficient);
@@ -43,11 +47,6 @@ class Material{
         return vec;
     }
 
-    virtual double pdf(){
-        throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
-        return 0;
-    }
-
     virtual brdfData sample(Hit& hit){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         brdfData data;
@@ -62,10 +61,6 @@ class DiffuseMaterial : public Material{
 
     vec3 eval() override{
         return divideVector(albedo, M_PI);
-    }
-
-    double pdf() override{
-        return 1 / (2 * M_PI);
     }
 
     brdfData sample(Hit& hit) override{
@@ -88,16 +83,11 @@ class ReflectiveMaterial : public Material{
         return BLACK;
     }
 
-    double pdf() override{
-        return 0;
-    }
-
     brdfData sample(Hit& hit) override{
         vec3 outgoingVector = reflectVector(hit.incomingVector, hit.normalVector);
-        vec3 brdfMultiplier = albedo; // TOOD: Specular color here?
         brdfData data;
         data.outgoingVector = outgoingVector;
-        data.brdfMultiplier = brdfMultiplier;
+        data.brdfMultiplier = albedo;
         data.specular = true;
         return data;
     }
@@ -110,10 +100,6 @@ class TransparentMaterial : public Material{
 
     vec3 eval() override{
         return BLACK;
-    }
-
-    double pdf() override{
-        return 0;
     }
 
     brdfData sample(Hit& hit) override{
@@ -135,12 +121,13 @@ class TransparentMaterial : public Material{
 
         vec3 transmittedVector = refractVector(fresnelNormal, hit.incomingVector, n1, n2);
 
-        /*# Blurry transmission?:
-        """
-        random_hemisphere_points = utils.sample_hemisphere(normal_vectors_for_fresnel[successful_transmitted_indices])
-        successful_transmitted_vectors = self.smoothness * successful_transmitted_vectors + (1-self.smoothness) * random_hemisphere_points
-        successful_transmitted_vectors = successful_transmitted_vectors / np.linalg.norm(successful_transmitted_vectors, axis=-1, keepdims=True)
-        """
+        /*
+        vec3 randomHemispherePoint = sampleHemisphere(fresnelNormal);
+        double smoothness = 0.5;
+        vec3 scaledTransmittedVector = multiplyVector(transmittedVector, smoothness);
+        vec3 scaledHemispherePoint = multiplyVector(randomHemispherePoint, 1-smoothness);
+        transmittedVector = addVectors(scaledTransmittedVector, scaledHemispherePoint);
+        transmittedVector = normalizeVector(transmittedVector);
         */
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
@@ -171,8 +158,24 @@ class TransparentMaterial : public Material{
             outgoingVector = reflectedVector;
         }
         else{
+            Ray transmissionRay;
+            transmissionRay.directionVector = transmittedVector;
+            transmissionRay.startingPosition = hit.intersectionPoint;
+            //Hit transmissionHit = findClosestHit(transmissionRay, objectPtrList);
+            double attenuationFactor = 1;
+            vec3 attenuationColor;
+            double distance = 0;
+            if (distance > 0 and !inside){
+                vec3 combined_attenuation_coefficient = multiplyVector(absorptionColor, attenuationCoefficient);
+                vec3 log_attenuation = multiplyVector(combined_attenuation_coefficient, -distance);
+                attenuationColor = expVector(log_attenuation);
+            }
+            else{
+                attenuationColor = albedo;
+            }
+
             double refractionIntensityFactor = pow(n2, 2) / pow(n1, 2);
-            brdfMultiplier = multiplyVector(WHITE, refractionIntensityFactor); // White -> attenuationFactors.
+            brdfMultiplier = multiplyVector(attenuationColor, refractionIntensityFactor); // White -> attenuationFactors.
             outgoingVector = transmittedVector;
         }
         brdfData data;
@@ -182,5 +185,6 @@ class TransparentMaterial : public Material{
         return data;
     }
 };
+
 
 #endif

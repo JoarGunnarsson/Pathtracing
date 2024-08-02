@@ -86,6 +86,11 @@ inline vec3 normalizeVector(const vec3& v){
 }
 
 
+inline vec3 expVector(const vec3& v){
+    return vec3(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
+}
+
+
 void displayVector(vec3 v){
     std::clog << "[";
     for (int i = 0; i < 3; i++){

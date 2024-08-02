@@ -2,7 +2,7 @@
 
 # Compile the C file
 echo "Compiling."
-g++ -std=c++11 main.cpp -o main -O3
+g++ -std=c++11 src/main.cpp -o main -O3
 echo "Finished compiling."
 echo "Running program."
-./main | python to_png.py
+./main > temp/result_data.txt && python python_utils/to_png.py
