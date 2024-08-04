@@ -18,7 +18,7 @@ namespace colors{
 }
 
 vec3 colorClip(vec3 rgb){
-    return divideVector(rgb, std::max(std::max(rgb[0], rgb[1]), rgb[2])+1);
+    return rgb / (rgb.max()+1);
 }
 
 #endif

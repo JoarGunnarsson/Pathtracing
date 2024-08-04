@@ -11,20 +11,57 @@ class vec3 {
         vec3() : e{0,0,0} {}
         vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
 
-        inline double x() const {
-            return e[0]; 
-        }
-
-        inline double y() const { 
-            return e[1]; 
-        }
-        
-        inline double z() const { 
-            return e[2];
-        }
-
-        vec3 operator-() const { 
+        inline vec3 operator-() const { 
             return vec3(-e[0], -e[1], -e[2]); 
+        }
+
+        inline vec3 operator+(const vec3 &v2) const{
+            double e0 = e[0] + v2[0];
+            double e1 = e[1] + v2[1];
+            double e2 = e[2] + v2[2];
+            return vec3(e0, e1, e2);
+        }
+
+        vec3& operator+=(const vec3 &v2){
+            e[0] += v2[0];
+            e[1] += v2[1];
+            e[2] += v2[2];
+            return *this;
+        }
+
+        inline vec3 operator-(const vec3 &v2) const{
+            double e0 = e[0] - v2[0];
+            double e1 = e[1] - v2[1];
+            double e2 = e[2] - v2[2];
+            return vec3(e0, e1, e2);
+        }
+
+        inline vec3 operator*(const vec3 &v2) const{
+            double e0 = e[0] * v2[0];
+            double e1 = e[1] * v2[1];
+            double e2 = e[2] * v2[2];
+            return vec3(e0, e1, e2);
+        }
+
+        inline vec3 operator*(const double value) const{
+            double e0 = e[0] * value;
+            double e1 = e[1] * value;
+            double e2 = e[2] * value;
+            return vec3(e0, e1, e2);
+        }
+
+        inline vec3 operator*=(const vec3& v2){
+            e[0] *= v2[0];
+            e[1] *= v2[1];
+            e[2] *= v2[2];
+            return *this;
+        }
+
+        inline vec3 operator/(const double value) const{
+            double e0 = e[0] / value;
+            double e1 = e[1] / value;
+            double e2 = e[2] / value;
+            return vec3(e0, e1, e2);
         }
 
         inline double operator[](int i) const { 
@@ -45,31 +82,6 @@ class vec3 {
 };
 
 
-inline vec3 addVectors(const vec3& v1, const vec3& v2){
-    return vec3(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
-}
-
-
-inline vec3 subtractVectors(const vec3& v1, const vec3& v2){
-    return vec3(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
-}
-
-
-inline vec3 multiplyVector(const vec3& v, double value){
-    return vec3(v[0] * value, v[1] * value, v[2] * value);
-}
-
-inline vec3 multiplyVectorElementwise(const vec3& v1, const vec3& v2){
-    return vec3(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
-}
-
-
-inline vec3 divideVector(const vec3& v, double value){
-    return multiplyVector(v, 1/value);
-}
-
-
-
 inline double dotVectors(const vec3& v1, const vec3& v2){
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
@@ -81,8 +93,7 @@ vec3 crossVectors(const vec3& v1, const vec3& v2){
 
 
 inline vec3 normalizeVector(const vec3& v){
-    double norm = v.length();
-    return divideVector(v, norm);
+    return v / v.length();
 }
 
 

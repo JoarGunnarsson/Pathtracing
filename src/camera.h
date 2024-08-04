@@ -25,27 +25,24 @@ class Camera{
             screenWidth = 1.0;
             screenHeight = screenWidth * (double) constants::HEIGHT / (double) constants::WIDTH; 
             screenXVector = crossVectors(viewingDirection, yVector);
-            screenPosition = addVectors(position,viewingDirection);
+            screenPosition = position + viewingDirection;
         }
 
     vec3 indexToPosition(double x, double y){
         double localXCoordinate = x * screenWidth / (double) constants::WIDTH - (double) screenWidth / 2.0;
-        vec3 localX = multiplyVector(screenXVector, localXCoordinate);
+        vec3 localX = screenXVector * localXCoordinate;
 
         double localYCoordinate = y * screenHeight / (double) constants::HEIGHT - (double) screenHeight / 2.0;
 
-        vec3 localY = multiplyVector(yVector, localYCoordinate);
-        vec3 xPlusY = addVectors(localX, localY);
-        return addVectors(xPlusY, screenPosition);
+        vec3 localY = yVector * localYCoordinate;
+        return localX + localY + screenPosition;
     }
-
 
     vec3 getStartingDirections(double x, double y){
         vec3 pixelVector = indexToPosition(x, y);
-        vec3  directionVector = subtractVectors(pixelVector, position);
+        vec3  directionVector = pixelVector - position;
         return normalizeVector(directionVector);
  }
-
 }; 
 
 

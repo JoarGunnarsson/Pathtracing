@@ -31,21 +31,13 @@ Sphere ball2 = Sphere(vec3(-0.45,0,0.6), 0.35, &whiteTransparentMaterial);
 
 Rectangle lightSource = Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, &lightSourceMaterial);
 
-std::vector<Object*> objectPtrList = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &lightSource};
-std::vector<Object*> lightsourcePtrList = {&lightSource};
+Object* objectPtrList[] = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &lightSource};
+Object* lightsourcePtrList[] = {&lightSource};
 
 vec3 cameraPosition = vec3(0, 1, 3);
 vec3 viewingDirection = vec3(0.0, -0.3, -1);
 vec3 screenYVector = vec3(0, 1, 0);
 Camera camera = Camera(cameraPosition, viewingDirection, screenYVector);
-
-
-
-std::random_device rand_dev;
-std::minstd_rand generator(rand_dev());
-std::uniform_int_distribution<int> distr(0, lightsourcePtrList.size()-1);
-int maxIters = 0;
-// TODO: Add classes etc for camera, screen etc. 
 
 
 vec3 raytrace(Ray& ray, int depth, vec3& throughput);
@@ -54,27 +46,21 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput);
 vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThreshold){
     brdfData brdfResult = (*objectPtrList[hit.intersectedObjectIndex]).material -> sample(hit);
 
-    throughput = multiplyVectorElementwise(throughput, brdfResult.brdfMultiplier);
-    throughput = divideVector(throughput, randomThreshold);
+    throughput *= brdfResult.brdfMultiplier / randomThreshold;
     Ray newRay;
     newRay.startingPosition = hit.intersectionPoint;
     newRay.directionVector = brdfResult.outgoingVector;
     newRay.specular = brdfResult.specular;
     vec3 recursiveColor = raytrace(newRay, depth+1, throughput);
-    return multiplyVectorElementwise(recursiveColor, brdfResult.brdfMultiplier);
-}
-
-
-inline int randomLightsourceIndex(){
-    return distr(generator);
+    return recursiveColor * brdfResult.brdfMultiplier;
 }
 
 
 vec3 directLighting(Hit& hit){
-    int numLightSources = lightsourcePtrList.size();
-    int randomIndex = randomLightsourceIndex();
+    int numLightSources = sizeof(lightsourcePtrList) / sizeof(Object*); // lightsourcePtrList.size();
+    int randomIndex = randomInt(0,numLightSources);
     int lightIndex;
-    for (int i = 0; i < objectPtrList.size(); i++){
+    for (int i = 0; i < sizeof(objectPtrList) / sizeof(Object*); i++){
         if (objectPtrList[i] == lightsourcePtrList[randomIndex]){
             lightIndex = i;
             break;
@@ -84,13 +70,14 @@ vec3 directLighting(Hit& hit){
     Material lightMaterial = *(*lightsourcePtrList[randomIndex]).material; // TODO: Perhaps an issue here.
     double area = (*lightsourcePtrList[randomIndex]).area;
 
-    vec3 vectorTowardsLight = subtractVectors(randomPoint, hit.intersectionPoint);
+    vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
     vectorTowardsLight = normalizeVector(vectorTowardsLight);
     Ray lightRay;
     lightRay.startingPosition = hit.intersectionPoint;
     lightRay.directionVector =  vectorTowardsLight;
-    Hit lightHit = findClosestHit(lightRay, objectPtrList);
+    int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
+    Hit lightHit = findClosestHit(lightRay, objectPtrList, numberOfObjects);
 
     if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex){
         return BLACK;
@@ -101,18 +88,18 @@ vec3 directLighting(Hit& hit){
     double P = dotVectors(lightHit.normalVector, lightVector) / pow(lightHit.distance, 2);
     P = std::max(0.0, P);
     vec3 brdfMultiplier = (*objectPtrList[hit.intersectedObjectIndex]).material -> eval();
-    vec3 lightEmmitance = multiplyVector(lightMaterial.emmissionColor, lightMaterial.lightIntensity);
+    vec3 lightEmmitance = lightMaterial.emmissionColor * lightMaterial.lightIntensity;
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
-    vec3 color = multiplyVector(lightEmmitance, P * cosine * area * (double) numLightSources);
-    color =  multiplyVectorElementwise(color, brdfMultiplier);
+    vec3 color = brdfMultiplier * lightEmmitance * P * cosine * area * (double) numLightSources;
     return color;
 }
 
 
 vec3 raytrace(Ray& ray, int depth, vec3& throughput){
     int forceRecusionLimit = 3;
-    Hit rayHit = findClosestHit(ray, objectPtrList);
+    int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
+    Hit rayHit = findClosestHit(ray, objectPtrList, numberOfObjects);
     vec3 color;
     if (rayHit.distance <= constants::EPSILON){
         return BLACK;
@@ -120,7 +107,7 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
 
     if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
         Material objectMaterial = *(*objectPtrList[rayHit.intersectedObjectIndex]).material;
-        color = multiplyVector(objectMaterial.emmissionColor, objectMaterial.lightIntensity);
+        color = objectMaterial.emmissionColor * objectMaterial.lightIntensity;
     }
 
     bool allowRecursion;
@@ -150,9 +137,7 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
         direct = BLACK;
     }
 
-    vec3 tempColor = addVectors(indirect, direct);
-    tempColor = divideVector(tempColor, randomThreshold);
-    color = addVectors(color, tempColor);
+    color += (indirect + direct) / randomThreshold;
 
     return color;
 
@@ -164,22 +149,22 @@ vec3 computePixelColor(int x, int y){
     Ray ray;
     ray.startingPosition = cameraPosition;
     for (int i = 0; i < constants::mcIterations; i++){
-        double x_offset = normal_distribution(normal_generator);
-        double y_offset = normal_distribution(normal_generator);
+        double x_offset = randomNormal();
+        double y_offset = randomNormal();
         ray.directionVector = camera.getStartingDirections(x + x_offset, y + y_offset);
         vec3 throughput = vec3(1,1,1);
         vec3 sampledColor = raytrace(ray, 0, throughput);
-        pixelColor = addVectors(pixelColor, sampledColor);
+        pixelColor = pixelColor + sampledColor;
             
     }
-    return divideVector(pixelColor, (double) constants::mcIterations);
+    return pixelColor / (double) constants::mcIterations;
 }
 
 
 void printPixelColor(vec3 rgb){
-    int r = int(rgb.x() * (double) 255);
-    int g = int(rgb.y() * (double) 255);
-    int b = int(rgb.z() * (double) 255);
+    int r = int(rgb[0] * (double) 255);
+    int g = int(rgb[1] * (double) 255);
+    int b = int(rgb[2] * (double) 255);
     std::cout << r << ' ' << g << ' ' << b << '\n';
 }
 

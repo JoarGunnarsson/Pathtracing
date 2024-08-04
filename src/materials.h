@@ -33,7 +33,7 @@ class Material{
         }
         Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0, vec3 _absorptionColor=WHITE,
         vec3 _emmissionColor=WHITE, double _lightIntensity=0){
-            albedo = multiplyVector(_diffuseColor, _diffuseCoefficient);
+            albedo = _diffuseColor * _diffuseCoefficient;
             refractiveIndex = _refractiveIndex;
             attenuationCoefficient = _attenuationCoefficient;
             absorptionColor = _absorptionColor;
@@ -60,7 +60,7 @@ class DiffuseMaterial : public Material{
         using Material::Material;
 
     vec3 eval() override{
-        return divideVector(albedo, M_PI);
+        return albedo / M_PI;
     }
 
     brdfData sample(Hit& hit) override{
@@ -134,7 +134,7 @@ class TransparentMaterial : public Material{
             F_r = fresnelMultiplier(hit.incomingVector, transmittedVector, fresnelNormal, n1, n2);
         }
         
-        double randomNum = uniform_dist(uniform_generator);
+        double randomNum = randomUniform(0, 1);
         bool isReflected = randomNum <= F_r;
 
         /*
@@ -166,8 +166,8 @@ class TransparentMaterial : public Material{
             vec3 attenuationColor;
             double distance = 0;
             if (distance > 0 and !inside){
-                vec3 combined_attenuation_coefficient = multiplyVector(absorptionColor, attenuationCoefficient);
-                vec3 log_attenuation = multiplyVector(combined_attenuation_coefficient, -distance);
+                vec3 combined_attenuation_coefficient = absorptionColor * attenuationCoefficient;
+                vec3 log_attenuation = combined_attenuation_coefficient * -distance;
                 attenuationColor = expVector(log_attenuation);
             }
             else{
@@ -175,7 +175,7 @@ class TransparentMaterial : public Material{
             }
 
             double refractionIntensityFactor = pow(n2, 2) / pow(n1, 2);
-            brdfMultiplier = multiplyVector(attenuationColor, refractionIntensityFactor); // White -> attenuationFactors.
+            brdfMultiplier = attenuationColor * refractionIntensityFactor; // White -> attenuationFactors.
             outgoingVector = transmittedVector;
         }
         brdfData data;

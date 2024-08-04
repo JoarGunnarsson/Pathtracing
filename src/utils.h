@@ -11,12 +11,26 @@ public:
 };
 
 
-
-std::default_random_engine normal_generator;
+std::minstd_rand normal_generator;
 std::normal_distribution<double> normal_distribution(0, 1);
 
 std::minstd_rand uniform_generator;
 std::uniform_real_distribution<double> uniform_dist(0, 1);
+
+
+inline double randomUniform(const double low, const double high){
+    return (high - low) * uniform_dist(uniform_generator) + low;
+}
+
+
+inline int randomInt(const int low, const int high){
+    return (int) randomUniform(low, high);
+}
+
+
+inline double randomNormal(){
+    return normal_distribution(normal_generator);
+}
 
 
 struct Hit{
@@ -58,9 +72,9 @@ double solveQuadratic(double b, double c){
 
 
 vec3 sampleSpherical(){
-    double r1 = normal_distribution(normal_generator);
-    double r2 = normal_distribution(normal_generator);
-    double r3 = normal_distribution(normal_generator);
+    double r1 = randomNormal();
+    double r2 = randomNormal();
+    double r3 = randomNormal();
     vec3 sample = vec3(r1, r2, r3);
     sample = normalizeVector(sample);
     return sample;
@@ -92,21 +106,14 @@ vec3 sampleCosineHemisphere(vec3& normalVector){
     double x = cos(theta) * radius;
     double y = sin(theta) * radius;
     double z = sqrt(1 - pow(x, 2) - pow(y,2));
-    vec3 scaledX = multiplyVector(xHat, x);
-    vec3 scaledY = multiplyVector(yHat, y);
-    vec3 scaledZ = multiplyVector(normalVector, z);
-    vec3 xPlusY = addVectors(scaledX, scaledY);
-    vec3 sphere_points = addVectors(xPlusY, scaledZ);
-    return sphere_points;
+    return xHat * x + yHat * y + normalVector * z;;
 }
 
 
 vec3 reflectVector(const vec3& directionVector, const vec3& normalVector){
-    double normalDotDirectionVector = dotVectors(normalVector, directionVector);
-    vec3 scaledNormal = multiplyVector(normalVector, 2.0 * normalDotDirectionVector);
-    vec3 reflectionVector = subtractVectors(directionVector, scaledNormal);
-    return reflectionVector;
+    return directionVector - normalVector * 2.0 * dotVectors(normalVector, directionVector);;
 }
+
 
 vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const double n1, const double n2){
     double mu = n1 / n2;
@@ -115,14 +122,8 @@ vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const d
     if (lengthInNormalDirectionSquared < 0){
         return vec3(0,0,0);
     }
-
-    double lengthInNormalDirection = sqrt(lengthInNormalDirectionSquared);
-    vec3 cosScaledNormal = multiplyVector(normalVector, cosIncident);
-    vec3 perpendicularVectors = subtractVectors(incidentVector, cosScaledNormal);
-    perpendicularVectors = multiplyVector(perpendicularVectors, mu);
-    vec3 normalScaledNormal = multiplyVector(normalVector, lengthInNormalDirection);
-    vec3 transmittedVector =  addVectors(normalScaledNormal, perpendicularVectors);
-    return transmittedVector;
+    vec3 perpendicularVectors = incidentVector - normalVector * cosIncident;
+    return normalVector * sqrt(lengthInNormalDirectionSquared) + perpendicularVectors * mu;
 }
 
 
@@ -130,6 +131,7 @@ double schlickApproximation(const double R0, const double cosTheta){
     double R = R0 + (1 - R0) * pow((1 - cosTheta), 5);
     return R;
 }
+
 
 double fresnelMultiplier(const vec3& incidentVector, const vec3& transmittedVector, const vec3& normalVector, const double n1, const double n2){
     double R0 = pow(((n1 - n2) / (n1 + n2)), 2);

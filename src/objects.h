@@ -48,7 +48,7 @@ class Sphere: public Object{
 
             double dotProduct = dotVectors(ray.directionVector, ray.startingPosition);
             double b = 2 * (dotProduct - dotVectors(ray.directionVector, position));
-            vec3 difference_in_positions = subtractVectors(position, ray.startingPosition);
+            vec3 difference_in_positions = position - ray.startingPosition;
             double c = difference_in_positions.length_squared() - pow(radius, 2);
             double distance = solveQuadratic(b, c);
             Hit hit;
@@ -58,15 +58,12 @@ class Sphere: public Object{
         }
 
         vec3 getNormalVector(Hit& hit) override{
-            vec3 differenceVector = subtractVectors(hit.intersectionPoint, position);
+            vec3 differenceVector = hit.intersectionPoint - position;
             return normalizeVector(differenceVector);
         }
 
         vec3 generateRandomSurfacePoint() override{
-            vec3 randomPoint = sampleSpherical();
-            randomPoint = multiplyVector(randomPoint, radius);
-            vec3 point = addVectors(randomPoint, position);
-            return point;
+            return sampleSpherical() * radius + position;
         }
 };
 
@@ -99,7 +96,7 @@ class Plane: public Object{
         }
 
         Hit findClosestHit(Ray& ray) override{
-            vec3 shiftedPoint = subtractVectors(ray.startingPosition, position);
+            vec3 shiftedPoint = ray.startingPosition - position;
             double distance = computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
             Hit hit;
             hit.objectID = 0;
@@ -135,7 +132,7 @@ class Rectangle: public Plane{
             Hit hit;
             hit.objectID = 0;
 
-            vec3 shiftedPoint = subtractVectors(ray.startingPosition, position);
+            vec3 shiftedPoint = ray.startingPosition - position;
             double distance = Plane::computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
             if (distance < 0){
                 hit.distance = distance;
@@ -154,22 +151,19 @@ class Rectangle: public Plane{
         }
 
         vec3 generateRandomSurfacePoint() override{
-            double r1 = (uniform_dist(uniform_generator) - 0.5) * L1;
-            double r2 = (uniform_dist(uniform_generator) - 0.5) * L2;
-            vec3 randomInV1 = multiplyVector(v1, r1);
-            vec3 randomInV2 = multiplyVector(v2, r2);
-            vec3 randomInLocal = addVectors(randomInV1, randomInV2);
-            vec3 randomPoint = addVectors(randomInLocal, position);
+            double r1 = randomUniform(-L1/2, L1/2);
+            double r2 = randomUniform(-L2/2, L2/2);
+            vec3 randomPoint = v1 * r1 + v2 * r2 + position;
             return randomPoint;
         }
 };
 
-Hit findClosestHit(Ray& ray, std::vector<Object*> objects){
+Hit findClosestHit(Ray& ray, Object* objects[], int size){
     Hit closestHit;
     closestHit.distance = -1;
 
-    for (int i = 0; i < objects.size(); i++){
-        Hit hit = (*objects[i]).findClosestHit(ray);
+    for (int i = 0; i < size; i++){
+        Hit hit = objects[i] -> findClosestHit(ray);
         if (hit.distance > constants::EPSILON && (hit.distance < closestHit.distance || closestHit.distance == -1)){
             hit.intersectedObjectIndex = i;
             closestHit = hit;
@@ -179,9 +173,9 @@ Hit findClosestHit(Ray& ray, std::vector<Object*> objects){
         return closestHit;
     }
 
-    vec3 scaledDirectionVector = multiplyVector(ray.directionVector, closestHit.distance);
-    closestHit.intersectionPoint = addVectors(ray.startingPosition, scaledDirectionVector);
-    closestHit.normalVector = (*(objects[closestHit.intersectedObjectIndex])).getNormalVector(closestHit);
+    vec3 scaledDirectionVector = ray.directionVector * closestHit.distance;
+    closestHit.intersectionPoint = ray.startingPosition + scaledDirectionVector;
+    closestHit.normalVector = objects[closestHit.intersectedObjectIndex] -> getNormalVector(closestHit);
     closestHit.incomingVector = ray.directionVector;
     return closestHit;
  }
