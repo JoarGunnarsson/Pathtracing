@@ -173,8 +173,7 @@ Hit findClosestHit(Ray& ray, Object* objects[], int size){
         return closestHit;
     }
 
-    vec3 scaledDirectionVector = ray.directionVector * closestHit.distance;
-    closestHit.intersectionPoint = ray.startingPosition + scaledDirectionVector;
+    closestHit.intersectionPoint = ray.startingPosition + ray.directionVector * closestHit.distance;
     closestHit.normalVector = objects[closestHit.intersectedObjectIndex] -> getNormalVector(closestHit);
     closestHit.incomingVector = ray.directionVector;
     return closestHit;

@@ -58,7 +58,7 @@ vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThresho
 
 vec3 directLighting(Hit& hit){
     int numLightSources = sizeof(lightsourcePtrList) / sizeof(Object*); // lightsourcePtrList.size();
-    int randomIndex = randomInt(0,numLightSources);
+    int randomIndex = randomInt(0, numLightSources);
     int lightIndex;
     for (int i = 0; i < sizeof(objectPtrList) / sizeof(Object*); i++){
         if (objectPtrList[i] == lightsourcePtrList[randomIndex]){
@@ -97,6 +97,9 @@ vec3 directLighting(Hit& hit){
 
 
 vec3 raytrace(Ray& ray, int depth, vec3& throughput){
+    if (depth > constants::maxRecursionDepth){
+        return BLACK;
+    }
     int forceRecusionLimit = 3;
     int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
     Hit rayHit = findClosestHit(ray, objectPtrList, numberOfObjects);
@@ -119,15 +122,17 @@ vec3 raytrace(Ray& ray, int depth, vec3& throughput){
     }
     else{
         randomThreshold = std::min(throughput.max(), 0.9);
-        double randomValue = ((double) rand() / (RAND_MAX));
+        double randomValue = randomUniform(0, 1);
         allowRecursion = randomValue < randomThreshold;
     }
     
     if (!allowRecursion){
-        return color;
+        return BLACK;
+        
     }   
 
     vec3 indirect = indirectLighting(rayHit, depth, throughput, randomThreshold);
+
     vec3 direct;
 
     if (constants::enableNextEventEstimation){

@@ -162,10 +162,9 @@ class TransparentMaterial : public Material{
             transmissionRay.directionVector = transmittedVector;
             transmissionRay.startingPosition = hit.intersectionPoint;
             //Hit transmissionHit = findClosestHit(transmissionRay, objectPtrList);
-            double attenuationFactor = 1;
             vec3 attenuationColor;
             double distance = 0;
-            if (distance > 0 and !inside){
+            if (distance > 0 && !inside){
                 vec3 combined_attenuation_coefficient = absorptionColor * attenuationCoefficient;
                 vec3 log_attenuation = combined_attenuation_coefficient * -distance;
                 attenuationColor = expVector(log_attenuation);
