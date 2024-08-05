@@ -40,7 +40,7 @@ vec3 screenYVector = vec3(0, 1, 0);
 Camera camera = Camera(cameraPosition, viewingDirection, screenYVector);
 
 
-vec3 raytrace(Ray& ray, int depth, vec3& throughput);
+vec3 raytrace(Ray ray);
 
 
 vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThreshold){
@@ -51,12 +51,12 @@ vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThresho
     newRay.startingPosition = hit.intersectionPoint;
     newRay.directionVector = brdfResult.outgoingVector;
     newRay.specular = brdfResult.specular;
-    vec3 recursiveColor = raytrace(newRay, depth+1, throughput);
+    vec3 recursiveColor = raytrace(newRay);
     return recursiveColor * brdfResult.brdfMultiplier;
 }
 
 
-vec3 directLighting(Hit& hit){
+vec3 directLighting(const Hit& hit){
     int numLightSources = sizeof(lightsourcePtrList) / sizeof(Object*); // lightsourcePtrList.size();
     int randomIndex = randomInt(0, numLightSources);
     int lightIndex;
@@ -66,9 +66,9 @@ vec3 directLighting(Hit& hit){
             break;
         }
     }
-    vec3 randomPoint = (*lightsourcePtrList[randomIndex]).generateRandomSurfacePoint();
-    Material lightMaterial = *(*lightsourcePtrList[randomIndex]).material; // TODO: Perhaps an issue here.
-    double area = (*lightsourcePtrList[randomIndex]).area;
+    vec3 randomPoint = lightsourcePtrList[randomIndex] -> generateRandomSurfacePoint();
+    Material lightMaterial = *(lightsourcePtrList[randomIndex] -> material);
+    double area = lightsourcePtrList[randomIndex] -> area;
 
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
@@ -96,70 +96,71 @@ vec3 directLighting(Hit& hit){
 }
 
 
-vec3 raytrace(Ray& ray, int depth, vec3& throughput){
-    if (depth > constants::maxRecursionDepth){
-        return BLACK;
-    }
+vec3 raytrace(Ray ray){
+    vec3 color = vec3(0,0,0);
+    vec3 lightColor = vec3(1,1,1);
+    vec3 throughput = vec3(1,1,1);
     int forceRecusionLimit = 3;
     int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
-    Hit rayHit = findClosestHit(ray, objectPtrList, numberOfObjects);
-    vec3 color;
-    if (rayHit.distance <= constants::EPSILON){
-        return BLACK;
-    }
+    double randomThreshold = 1;
+    for (int depth = 0; depth <= constants::maxRecursionDepth; depth++){
 
-    if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
-        Material objectMaterial = *(*objectPtrList[rayHit.intersectedObjectIndex]).material;
-        color = objectMaterial.emmissionColor * objectMaterial.lightIntensity;
-    }
+        Hit rayHit = findClosestHit(ray, objectPtrList, numberOfObjects);
+        if (rayHit.distance <= constants::EPSILON){
+            break;
+        }
 
-    bool allowRecursion;
-    double randomThreshold;
+        if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
+            Material objectMaterial = *(objectPtrList[rayHit.intersectedObjectIndex] -> material);
+            color += objectMaterial.emmissionColor * objectMaterial.lightIntensity * lightColor / randomThreshold;
+        }
 
-    if (depth < forceRecusionLimit){
-        randomThreshold = 1;
-        allowRecursion = true;
-    }
-    else{
-        randomThreshold = std::min(throughput.max(), 0.9);
-        double randomValue = randomUniform(0, 1);
-        allowRecursion = randomValue < randomThreshold;
-    }
-    
-    if (!allowRecursion){
-        return BLACK;
+        bool allowRecursion;
+        double randomThreshold;
+
+        if (depth < forceRecusionLimit){
+            randomThreshold = 1;
+            allowRecursion = true;
+        }
+        else{
+            randomThreshold = std::min(throughput.max(), 0.9);
+            double randomValue = randomUniform(0, 1);
+            allowRecursion = false;// randomValue < randomThreshold;
+        }
         
-    }   
+        if (!allowRecursion){
+            break;
+        }   
 
-    vec3 indirect = indirectLighting(rayHit, depth, throughput, randomThreshold);
+        if (constants::enableNextEventEstimation){
+            vec3 direct = directLighting(rayHit);
+            color += direct * lightColor;
+        }
 
-    vec3 direct;
+        brdfData brdfResult = objectPtrList[rayHit.intersectedObjectIndex] -> material -> sample(rayHit);
 
-    if (constants::enableNextEventEstimation){
-        direct = directLighting(rayHit);
+        throughput *= brdfResult.brdfMultiplier / randomThreshold;
+        ray.startingPosition = rayHit.intersectionPoint;
+        ray.directionVector = brdfResult.outgoingVector;
+        ray.specular = brdfResult.specular;
+
+        lightColor *= brdfResult.brdfMultiplier;
     }
-    else{
-        direct = BLACK;
-    }
-
-    color += (indirect + direct) / randomThreshold;
-
     return color;
 
  }
 
 
 vec3 computePixelColor(int x, int y){
-    vec3 pixelColor = BLACK;
+    vec3 pixelColor = vec3(0,0,0);
     Ray ray;
     ray.startingPosition = cameraPosition;
     for (int i = 0; i < constants::mcIterations; i++){
         double x_offset = randomNormal();
         double y_offset = randomNormal();
         ray.directionVector = camera.getStartingDirections(x + x_offset, y + y_offset);
-        vec3 throughput = vec3(1,1,1);
-        vec3 sampledColor = raytrace(ray, 0, throughput);
-        pixelColor = pixelColor + sampledColor;
+        vec3 sampledColor = raytrace(ray);
+        pixelColor += sampledColor;
             
     }
     return pixelColor / (double) constants::mcIterations;
