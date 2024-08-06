@@ -11,10 +11,11 @@ public:
 };
 
 
-std::minstd_rand normal_generator;
+std::random_device rand_dev;
+std::minstd_rand normal_generator(rand_dev());
 std::normal_distribution<double> normal_distribution(0, 1);
 
-std::minstd_rand uniform_generator;
+std::minstd_rand uniform_generator(rand_dev());
 std::uniform_real_distribution<double> uniform_dist(0, 1);
 
 
@@ -50,7 +51,7 @@ struct Ray{
 };
 
 
-double solveQuadratic(double b, double c){
+double solveQuadratic(const double b, const double c){
     double discriminant = pow(b, 2) - 4 * c;
     if (discriminant < 0){
         return -1.0;
@@ -81,7 +82,7 @@ vec3 sampleSpherical(){
 }
 
 
-vec3 sampleHemisphere(vec3 normal){
+vec3 sampleHemisphere(const vec3& normal){
     vec3 sample = sampleSpherical();
     if (dotVectors(normal, sample) < 0){
         return -sample;
@@ -89,17 +90,36 @@ vec3 sampleHemisphere(vec3 normal){
     return sample;
 }
 
-
-vec3 sampleCosineHemisphere(vec3& normalVector){
+void setPerpendicularVectors(const vec3& zHat, vec3& xHat, vec3& yHat){
     vec3 nonParallelVector = vec3(1.0, 0.0, 0.0);
-    if (std::abs(dotVectors(nonParallelVector, normalVector)) == 1.0){
+    if (std::abs(dotVectors(nonParallelVector, zHat)) == 1.0){
         nonParallelVector = vec3(0.0, 1.0, 0.0);
     }
     
-    vec3 xHat = crossVectors(normalVector, nonParallelVector);
+    xHat = crossVectors(zHat, nonParallelVector);
     xHat = normalizeVector(xHat);
-    vec3 yHat = crossVectors(normalVector, xHat);
+    yHat = crossVectors(zHat, xHat);
     yHat = normalizeVector(yHat);
+}
+
+vec3 sampleAngledHemisphere(const vec3& normalVector, const double cosMax){
+    vec3 xHat;
+    vec3 yHat;
+    setPerpendicularVectors(normalVector, xHat, yHat);
+    double phi = randomUniform(0, 2.0 * M_PI);
+    double cosTheta = randomUniform(cosMax, 1);
+    double sinTheta = sqrt(1 - pow(cosTheta, 2));
+    double x = sinTheta * cos(phi);
+    double y = sinTheta * sin(phi); 
+    double z = cosTheta;
+    return xHat * x + yHat * y + normalVector * z;
+}
+
+
+vec3 sampleCosineHemisphere(const vec3& normalVector){
+    vec3 xHat;
+    vec3 yHat;
+    setPerpendicularVectors(normalVector, xHat, yHat);
 
     double theta = ((double) rand() / (RAND_MAX)) * 2 * M_PI;
     double radius = sqrt((double) rand() / (RAND_MAX));

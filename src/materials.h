@@ -52,6 +52,10 @@ class Material{
         brdfData data;
         return data;
     }
+
+    vec3 getLightStrength(){
+        return emmissionColor * lightIntensity;
+    }
 };
 
 

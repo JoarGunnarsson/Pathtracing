@@ -50,10 +50,24 @@ class vec3 {
             return vec3(e0, e1, e2);
         }
 
-        inline vec3 operator*=(const vec3& v2){
+        inline vec3& operator*=(const vec3& v2){
             e[0] *= v2[0];
             e[1] *= v2[1];
             e[2] *= v2[2];
+            return *this;
+        }
+
+        inline vec3& operator*=(const double value){
+            e[0] *= value;
+            e[1] *= value;
+            e[2] *= value;
+            return *this;
+        }
+
+        inline vec3& operator/=(const double value){
+            e[0] /= value;
+            e[1] /= value;
+            e[2] /= value;
             return *this;
         }
 

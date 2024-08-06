@@ -19,17 +19,29 @@ class Object{
         }
         virtual ~Object(){}
 
-        virtual Hit findClosestHit(Ray& ray){
+        virtual Hit findClosestHit(const Ray& ray){
             Hit hit;
             return hit;
         }
-        virtual vec3 getNormalVector(Hit& hit){
+        virtual vec3 getNormalVector(const vec3& intersectionPoint){
             vec3 vec;
             return vec;
         }
         virtual vec3 generateRandomSurfacePoint(){
             vec3 point;
             return point;
+        }
+
+        virtual vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF){
+            vec3 point;
+            return point;
+        }
+        double areaToAnglePDFFactor(const vec3& surfacePoint, const vec3& referencePoint){
+            vec3 normalVector = getNormalVector(surfacePoint);
+            vec3 differenceVector = referencePoint - surfacePoint;
+            vec3 vectorToPoint = normalizeVector(differenceVector);
+            double PDF = dotVectors(normalVector, vectorToPoint) / differenceVector.length_squared();
+            return std::max(0.0, PDF);
         }
 };
 
@@ -44,7 +56,7 @@ class Sphere: public Object{
             material = _material;
             area = 4 * M_PI * pow(radius, 2);
         }
-        Hit findClosestHit(Ray& ray) override{
+        Hit findClosestHit(const Ray& ray) override{
 
             double dotProduct = dotVectors(ray.directionVector, ray.startingPosition);
             double b = 2 * (dotProduct - dotVectors(ray.directionVector, position));
@@ -57,13 +69,30 @@ class Sphere: public Object{
             return hit;
         }
 
-        vec3 getNormalVector(Hit& hit) override{
-            vec3 differenceVector = hit.intersectionPoint - position;
+        vec3 getNormalVector(const vec3& intersectionPoint) override{
+            vec3 differenceVector = intersectionPoint - position;
             return normalizeVector(differenceVector);
         }
 
         vec3 generateRandomSurfacePoint() override{
             return sampleSpherical() * radius + position;
+        }
+
+        vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
+            double distanceToPoint = (referencePoint - position).length();
+            if (distanceToPoint <= radius){
+                vec3 randomPoint = generateRandomSurfacePoint();
+                inversePDF = areaToAnglePDFFactor(randomPoint, referencePoint) * area;
+                return randomPoint;
+            }
+            
+            double thetaMax = asin(radius / distanceToPoint);
+            double cosMax = cos(M_PI / 2 - thetaMax);
+            vec3 randomPoint = sampleAngledHemisphere(getNormalVector(referencePoint), cosMax) * radius + position;
+
+            inversePDF = 2 * M_PI * pow(radius, 2) * (1 - cosMax);
+            inversePDF *= areaToAnglePDFFactor(randomPoint, referencePoint);
+            return randomPoint;
         }
 };
 
@@ -84,7 +113,7 @@ class Plane: public Object{
             material = _material;
         }
 
-        double computeDistanceInCenteredSystem(vec3& startingPoint, vec3& directionVector){
+        double computeDistanceInCenteredSystem(const vec3& startingPoint, const vec3& directionVector){
             double directionDotNormal = -dotVectors(directionVector, normalVector);
             if (std::abs(directionDotNormal) < constants::EPSILON){
                 return -1;
@@ -95,7 +124,7 @@ class Plane: public Object{
             return distances;
         }
 
-        Hit findClosestHit(Ray& ray) override{
+        Hit findClosestHit(const Ray& ray) override{
             vec3 shiftedPoint = ray.startingPosition - position;
             double distance = computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
             Hit hit;
@@ -104,7 +133,7 @@ class Plane: public Object{
             return hit;
         }
 
-        vec3 getNormalVector(Hit& hit) override{
+        vec3 getNormalVector(const vec3& intersectionPoint) override{
             return normalVector;
         }
 
@@ -128,7 +157,7 @@ class Rectangle: public Plane{
             material = _material;
         }
 
-        Hit findClosestHit(Ray& ray) override{
+        Hit findClosestHit(const Ray& ray) override{
             Hit hit;
             hit.objectID = 0;
 
@@ -156,6 +185,12 @@ class Rectangle: public Plane{
             vec3 randomPoint = v1 * r1 + v2 * r2 + position;
             return randomPoint;
         }
+
+        vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
+            vec3 randomPoint = generateRandomSurfacePoint();
+            inversePDF = area * areaToAnglePDFFactor(randomPoint, referencePoint);
+            return randomPoint;
+        }
 };
 
 Hit findClosestHit(Ray& ray, Object* objects[], int size){
@@ -174,7 +209,7 @@ Hit findClosestHit(Ray& ray, Object* objects[], int size){
     }
 
     closestHit.intersectionPoint = ray.startingPosition + ray.directionVector * closestHit.distance;
-    closestHit.normalVector = objects[closestHit.intersectedObjectIndex] -> getNormalVector(closestHit);
+    closestHit.normalVector = objects[closestHit.intersectedObjectIndex] -> getNormalVector(closestHit.intersectionPoint);
     closestHit.incomingVector = ray.directionVector;
     return closestHit;
  }

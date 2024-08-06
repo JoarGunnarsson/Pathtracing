@@ -16,8 +16,9 @@ DiffuseMaterial whiteDiffuseMaterial = DiffuseMaterial(WHITE);
 DiffuseMaterial redDiffuseMaterial = DiffuseMaterial(RED);
 DiffuseMaterial greenDiffuseMaterial = DiffuseMaterial(GREEN);
 ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(BLUE);
-DiffuseMaterial whiteTransparentMaterial = DiffuseMaterial(WHITE, 0.8, 2);
-DiffuseMaterial lightSourceMaterial = DiffuseMaterial(WHITE, 0.8, 1, 1, WHITE, WARM_WHITE, 10);
+ReflectiveMaterial whiteReflectiveMaterial = ReflectiveMaterial(WHITE);
+DiffuseMaterial whiteTransparentMaterial = DiffuseMaterial(WHITE, 0.8, 2, 1, WHITE, WARM_WHITE, 5);
+DiffuseMaterial lightSourceMaterial = DiffuseMaterial(WHITE, 0.8, 1, 1, WHITE, WARM_WHITE, 0);
 
 Plane thisFloor = Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), &whiteDiffuseMaterial);
 Plane  frontWall = Plane(vec3(0,0,-0.35), vec3(1,0,0), vec3(0,1,0), &whiteDiffuseMaterial);
@@ -29,10 +30,10 @@ Plane backWall = Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), &whiteDiffuseMat
 Sphere ball1 = Sphere(vec3(0.35,0,0), 0.35, &blueReflectiveMaterial);
 Sphere ball2 = Sphere(vec3(-0.45,0,0.6), 0.35, &whiteTransparentMaterial);
 
-Rectangle lightSource = Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, &lightSourceMaterial);
+Rectangle lightSource = Rectangle(vec3(0, 1.1999, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, &lightSourceMaterial);
 
 Object* objectPtrList[] = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &lightSource};
-Object* lightsourcePtrList[] = {&lightSource};
+Object* lightsourcePtrList[] = {&ball2};
 
 vec3 cameraPosition = vec3(0, 1, 3);
 vec3 viewingDirection = vec3(0.0, -0.3, -1);
@@ -41,19 +42,6 @@ Camera camera = Camera(cameraPosition, viewingDirection, screenYVector);
 
 
 vec3 raytrace(Ray ray);
-
-
-vec3 indirectLighting(Hit& hit, int depth, vec3 throughput, double randomThreshold){
-    brdfData brdfResult = (*objectPtrList[hit.intersectedObjectIndex]).material -> sample(hit);
-
-    throughput *= brdfResult.brdfMultiplier / randomThreshold;
-    Ray newRay;
-    newRay.startingPosition = hit.intersectionPoint;
-    newRay.directionVector = brdfResult.outgoingVector;
-    newRay.specular = brdfResult.specular;
-    vec3 recursiveColor = raytrace(newRay);
-    return recursiveColor * brdfResult.brdfMultiplier;
-}
 
 
 vec3 directLighting(const Hit& hit){
@@ -66,33 +54,31 @@ vec3 directLighting(const Hit& hit){
             break;
         }
     }
-    vec3 randomPoint = lightsourcePtrList[randomIndex] -> generateRandomSurfacePoint();
-    Material lightMaterial = *(lightsourcePtrList[randomIndex] -> material);
-    double area = lightsourcePtrList[randomIndex] -> area;
+    double inversePDF;
+    vec3 randomPoint = lightsourcePtrList[randomIndex] -> randomLightPoint(hit.intersectionPoint, inversePDF);
 
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
     vectorTowardsLight = normalizeVector(vectorTowardsLight);
+
     Ray lightRay;
     lightRay.startingPosition = hit.intersectionPoint;
     lightRay.directionVector =  vectorTowardsLight;
+
     int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
     Hit lightHit = findClosestHit(lightRay, objectPtrList, numberOfObjects);
 
-    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex){
+    bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
+    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance){
         return BLACK;
     }
 
-    vec3 lightVector = -vectorTowardsLight;
-
-    double P = dotVectors(lightHit.normalVector, lightVector) / pow(lightHit.distance, 2);
-    P = std::max(0.0, P);
-    vec3 brdfMultiplier = (*objectPtrList[hit.intersectedObjectIndex]).material -> eval();
-    vec3 lightEmmitance = lightMaterial.emmissionColor * lightMaterial.lightIntensity;
+    vec3 brdfMultiplier = objectPtrList[hit.intersectedObjectIndex] -> material -> eval();
+    vec3 lightEmmitance = lightsourcePtrList[randomIndex] -> material -> getLightStrength();
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
-    vec3 color = brdfMultiplier * lightEmmitance * P * cosine * area * (double) numLightSources;
-    return color;
+
+    return brdfMultiplier * cosine * lightEmmitance * inversePDF * (double) numLightSources;;
 }
 
 
@@ -112,7 +98,7 @@ vec3 raytrace(Ray ray){
 
         if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
             Material objectMaterial = *(objectPtrList[rayHit.intersectedObjectIndex] -> material);
-            color += objectMaterial.emmissionColor * objectMaterial.lightIntensity * lightColor / randomThreshold;
+            color += objectMaterial.emmissionColor * objectMaterial.lightIntensity * lightColor * (dotVectors(ray.directionVector, rayHit.normalVector) < 0);
         }
 
         bool allowRecursion;
@@ -125,7 +111,7 @@ vec3 raytrace(Ray ray){
         else{
             randomThreshold = std::min(throughput.max(), 0.9);
             double randomValue = randomUniform(0, 1);
-            allowRecursion = false;// randomValue < randomThreshold;
+            allowRecursion = randomValue < randomThreshold;
         }
         
         if (!allowRecursion){
@@ -134,7 +120,7 @@ vec3 raytrace(Ray ray){
 
         if (constants::enableNextEventEstimation){
             vec3 direct = directLighting(rayHit);
-            color += direct * lightColor;
+            color += direct * lightColor / randomThreshold;
         }
 
         brdfData brdfResult = objectPtrList[rayHit.intersectedObjectIndex] -> material -> sample(rayHit);
@@ -144,7 +130,7 @@ vec3 raytrace(Ray ray){
         ray.directionVector = brdfResult.outgoingVector;
         ray.specular = brdfResult.specular;
 
-        lightColor *= brdfResult.brdfMultiplier;
+        lightColor *= brdfResult.brdfMultiplier / randomThreshold;
     }
     return color;
 
