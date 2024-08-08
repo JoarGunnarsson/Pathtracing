@@ -11,9 +11,9 @@
 DiffuseMaterial whiteDiffuseMaterial = DiffuseMaterial(WHITE);
 DiffuseMaterial redDiffuseMaterial = DiffuseMaterial(RED);
 DiffuseMaterial greenDiffuseMaterial = DiffuseMaterial(GREEN);
-ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(BLUE);
+ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(BLUE, 0.8, 1.5, 0, WHITE, 0, false);
 ReflectiveMaterial whiteReflectiveMaterial = ReflectiveMaterial(WHITE);
-TransparentMaterial ball2Material = TransparentMaterial(RED, 1, 1.5, 0, WHITE, 0, false, 1.5);
+FrostyMaterial ball2Material = FrostyMaterial(WHITE, 1, 1.5, 0, WHITE, 0, true, 1.5);
 DiffuseMaterial lightSourceMaterial = DiffuseMaterial(WHITE, 0.8, 1, 1, WARM_WHITE, 10);
 
 Plane thisFloor = Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), &whiteDiffuseMaterial);
@@ -65,11 +65,12 @@ vec3 directLighting(const Hit& hit){
     Hit lightHit = findClosestHit(lightRay, objectPtrList, numberOfObjects);
 
     bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
-    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance){
+    bool hitFromBehind = dotVectors(vectorTowardsLight, hit.normalVector) < 0.0;
+    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance || hitFromBehind){
         return BLACK;
     }
 
-    vec3 brdfMultiplier = objectPtrList[hit.intersectedObjectIndex] -> material -> eval();
+    vec3 brdfMultiplier = objectPtrList[hit.intersectedObjectIndex] -> material -> eval(hit.incomingVector, vectorTowardsLight, hit.normalVector);
     vec3 lightEmitance = lightsourcePtrList[randomIndex] -> material -> getLightEmittance();
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);

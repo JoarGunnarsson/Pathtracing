@@ -52,6 +52,11 @@ struct Ray{
 };
 
 
+inline double clamp(const double value, const double min, const double max){
+    return std::max(std::min(value, max), min);
+}
+
+
 double solveQuadratic(const double b, const double c){
     double discriminant = pow(b, 2) - 4 * c;
     if (discriminant < 0){
@@ -109,7 +114,7 @@ vec3 sampleAngledHemisphere(const vec3& normalVector, const double cosMax){
     setPerpendicularVectors(normalVector, xHat, yHat);
     double phi = randomUniform(0, 2.0 * M_PI);
     double cosTheta = randomUniform(cosMax, 1);
-    double sinTheta = sqrt(1 - pow(cosTheta, 2));
+    double sinTheta = sqrt(1 - (cosTheta * cosTheta));
     double x = sinTheta * cos(phi);
     double y = sinTheta * sin(phi); 
     double z = cosTheta;
@@ -126,7 +131,7 @@ vec3 sampleCosineHemisphere(const vec3& normalVector){
     double radius = sqrt((double) rand() / (RAND_MAX));
     double x = cos(theta) * radius;
     double y = sin(theta) * radius;
-    double z = sqrt(1 - pow(x, 2) - pow(y,2));
+    double z = sqrt(1 - x * x - y * y);
     return xHat * x + yHat * y + normalVector * z;
 }
 
@@ -139,7 +144,7 @@ vec3 reflectVector(const vec3& directionVector, const vec3& normalVector){
 vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const double n1, const double n2){
     double mu = n1 / n2;
     double cosIncident = dotVectors(normalVector, incidentVector);
-    double lengthInNormalDirectionSquared = 1 - pow(mu, 2) * (1 - pow(cosIncident, 2));
+    double lengthInNormalDirectionSquared = 1 - mu * mu * (1 - cosIncident * cosIncident);
     if (lengthInNormalDirectionSquared < 0){
         return vec3(0,0,0);
     }
@@ -149,7 +154,7 @@ vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const d
 
 
 double fresnelDielectric(const double cosIncident, const double n1, const double n2){
-    double sinIncident = sqrt(1 - pow(cosIncident, 2));
+    double sinIncident = sqrt(1 - cosIncident * cosIncident);
     double cosTransmitted = sqrt(1 - pow(n1 / n2 * sinIncident, 2));
     double n1CosIncident = n1 * cosIncident;
     double n2CosTransmitted = n2 * cosTransmitted;
@@ -169,18 +174,19 @@ double fresnelConductor(const double cosTheta, const double n1, const double k1,
         k = k2 / n1;
     }
     else{
-        double complexIndexNorm = (pow(n1, 2) * pow(k1, 2));
+        double complexIndexNorm = (n1 * n1 * k1 * k1);
         eta = n2 * n1 / complexIndexNorm;
         k = - k1 * n2 / complexIndexNorm;
     }
 
-    double cosTheta2 = pow(cosTheta, 2);
+    double cosTheta2 = cosTheta * cosTheta;
     double sinTheta2 = 1 - cosTheta2;
-    double a2b2 = sqrt(pow(pow(eta, 2) - pow(k, 2) - sinTheta2, 2) + 4 * pow(eta * k, 2));
-    double a = sqrt(0.5 * sqrt(pow(pow(eta, 2) - pow(k, 2) - sinTheta2, 2) + 4 * pow(eta * k, 2)) + pow(eta, 2) - pow(k, 2) - sinTheta2);
+    double f0 = sqrt(pow(eta * eta - k * k - sinTheta2, 2) + 4 * eta * eta * k * k);
+    double a2b2 = f0;
+    double a = sqrt(0.5 * f0 + eta * eta - k * k - sinTheta2);
     double f1 = a2b2 + cosTheta2;
     double f2 = 2 * a * cosTheta;
-    double f3 = cosTheta2 * a2b2 + pow(sinTheta2, 2);;
+    double f3 = cosTheta2 * a2b2 + sinTheta2 * sinTheta2;
     double f4 = f2 * sinTheta2;
 
     double R_p = (f1 - f2) / (f1 + f2);
@@ -189,8 +195,7 @@ double fresnelConductor(const double cosTheta, const double n1, const double k1,
 }
 
 
-double fresnelMultiplier(const vec3& incidentVector, const vec3& normalVector, const double n1, const double k1, const double n2, const double k2, const bool isDielectric){
-    double cosIncident = -dotVectors(incidentVector, normalVector);
+double fresnelMultiplier(const double cosIncident, const double n1, const double k1, const double n2, const double k2, const bool isDielectric){
     if (isDielectric || (k1==0 && k2==0)){
         return fresnelDielectric(cosIncident, n1, n2);
     }

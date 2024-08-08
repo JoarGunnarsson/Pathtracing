@@ -34,7 +34,8 @@ class Material{
             attenuationCoefficient = 0;
             emmissionColor = WHITE;
             lightIntensity = 0;
-            imaginaryRefractiveIndex = 1.5;
+            isDielectric = true;
+            imaginaryRefractiveIndex = 0;
         }
         Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
         vec3 _emmissionColor=WHITE, double _lightIntensity=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0){
@@ -45,10 +46,15 @@ class Material{
             emmissionColor = _emmissionColor;
             lightIntensity = _lightIntensity;
             isDielectric = _isDielectric;
-            imaginaryRefractiveIndex = _imaginaryRefractiveIndex;
+            if (isDielectric){
+                imaginaryRefractiveIndex = 0;
+            }
+            else{
+                imaginaryRefractiveIndex = _imaginaryRefractiveIndex;
+            }
         }
 
-    virtual vec3 eval(){
+    virtual vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         vec3 vec;
         return vec;
@@ -66,43 +72,11 @@ class Material{
 };
 
 
-class MicrofacetMaterial : public Material{
-    public:
-        MicrofacetMaterial(){
-            albedo = WHITE;
-            refractiveIndex = 1;
-            attenuationCoefficient = 0;
-            absorptionAlbedo = WHITE;
-            attenuationCoefficient = 0;
-            emmissionColor = WHITE;
-            lightIntensity = 0;
-        }
-        MicrofacetMaterial(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
-        vec3 _emmissionColor=WHITE, double _lightIntensity=0){
-            albedo = _diffuseColor * _diffuseCoefficient;
-            refractiveIndex = _refractiveIndex;
-            attenuationCoefficient = _attenuationCoefficient;
-            absorptionAlbedo = vec3(1,1,1) - albedo;
-            emmissionColor = _emmissionColor;
-            lightIntensity = _lightIntensity;
-        }
-
-    vec3 eval() override{
-        return BLACK;
-    }
-
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-        brdfData data;
-        return data;
-    }
-};
-
-
-class DiffuseMaterial : public Material{
+class DiffuseMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval() override{
+    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
         return albedo / M_PI;
     }
 
@@ -118,11 +92,11 @@ class DiffuseMaterial : public Material{
 };
 
 
-class ReflectiveMaterial : public Material{
+class ReflectiveMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval() override{
+    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
         return BLACK;
     }
 
@@ -130,18 +104,18 @@ class ReflectiveMaterial : public Material{
         vec3 outgoingVector = reflectVector(hit.incomingVector, hit.normalVector);
         brdfData data;
         data.outgoingVector = outgoingVector;
-        data.brdfMultiplier = albedo;
+        data.brdfMultiplier = isDielectric ? WHITE : albedo;
         data.specular = true;
         return data;
     }
 };
 
 
-class TransparentMaterial : public Material{
+class TransparentMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval() override{
+    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
         return BLACK;
     }
 
@@ -172,7 +146,8 @@ class TransparentMaterial : public Material{
 
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            F_r = fresnelMultiplier(hit.incomingVector, -fresnelNormal, n1, k1, n2, k2, isDielectric);
+            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal);
+            F_r = fresnelMultiplier(cosIncident, n1, k1, n2, k2, isDielectric);
         }
 
         double randomNum = randomUniform(0, 1);
@@ -203,10 +178,11 @@ class TransparentMaterial : public Material{
                 attenuationColor = albedo;
             }
 
-            double refractionIntensityFactor = pow(n2 / n1, 2);
+            double refractionIntensityFactor = n2 * n2 / (n1 * n1);
             brdfMultiplier = attenuationColor * refractionIntensityFactor;
             outgoingVector = transmittedVector;
         }
+
         brdfData data;
         data.outgoingVector = outgoingVector;
         data.brdfMultiplier = brdfMultiplier;
@@ -216,4 +192,95 @@ class TransparentMaterial : public Material{
 };
 
 
+class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
+    public:
+        double roughness = 0.9;
+        double percentageSpecular = 0.3;
+        using DiffuseMaterial::DiffuseMaterial;
+
+    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+        double randomNum = randomUniform(0, 1);
+        double cosTheta = -dotVectors(incidentVector, normalVector);
+        double n1 = constants::airRefractiveIndex;
+        double k1 = 0;
+        double n2 = refractiveIndex;
+        double k2 = imaginaryRefractiveIndex;
+        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
+        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        if (doSpecular){
+            return ReflectiveMaterial::eval(incidentVector, outgoingVector, normalVector);
+        }
+        else{
+            return DiffuseMaterial::eval(incidentVector, outgoingVector, normalVector);
+        }
+    }
+
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+        double randomNum = randomUniform(0, 1);
+        double cosTheta = -dotVectors(hit.incomingVector, hit.normalVector);
+        double n1 = constants::airRefractiveIndex;
+        double k1 = 0;
+        double n2 = refractiveIndex;
+        double k2 = imaginaryRefractiveIndex;
+        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
+        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        if (doSpecular){
+            brdfData data = ReflectiveMaterial::sample(hit, objectPtrList, numberOfObjects);
+            vec3 randomRay = sampleCosineHemisphere(hit.normalVector);
+            data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
+            data.brdfMultiplier *= 1 - roughness;
+            return data;
+        }
+        else{
+            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects);
+        }
+    }
+};
+
+
+class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
+    public:
+        double roughness = 0.3;
+        double percentageSpecular = 1;
+        using DiffuseMaterial::DiffuseMaterial;
+
+    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+        double randomNum = randomUniform(0, 1);
+        double cosTheta = -dotVectors(incidentVector, normalVector);
+        double n1 = constants::airRefractiveIndex;
+        double k1 = 0;
+        double n2 = refractiveIndex;
+        double k2 = imaginaryRefractiveIndex;
+        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
+        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        if (doSpecular){
+            return TransparentMaterial::eval(incidentVector, outgoingVector, normalVector);
+        }
+        else{
+            return DiffuseMaterial::eval(incidentVector, outgoingVector, normalVector);
+        }
+    }
+
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+        // TODO: check whether specular ray is transmitted or reflected, and randomize on the right hemisphere. Maybe make a change to brdfData struct.
+        double randomNum = randomUniform(0, 1);
+        double cosTheta = -dotVectors(hit.incomingVector, hit.normalVector);
+        double n1 = constants::airRefractiveIndex;
+        double k1 = 0;
+        double n2 = refractiveIndex;
+        double k2 = imaginaryRefractiveIndex;
+        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
+        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        if (doSpecular){
+            brdfData data = TransparentMaterial::sample(hit, objectPtrList, numberOfObjects);            
+            vec3 randomRay = sampleCosineHemisphere(-hit.normalVector);
+            data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
+            data.brdfMultiplier *= 1 - roughness;
+            return data;
+        }
+        else{
+            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects);
+        }
+    }
+};
 #endif

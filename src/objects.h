@@ -49,19 +49,21 @@ class Object{
 class Sphere: public Object{
     public:
         double radius;
+        double radiusSquared;
         Sphere(){}
         Sphere(vec3 _position, double _radius, Material* _material){
             position = _position;
             radius = _radius;
             material = _material;
-            area = 4 * M_PI * pow(radius, 2);
+            area = 4 * M_PI * radius * radius;
+            radiusSquared = radius * radius;
         }
         Hit findClosestHit(const Ray& ray) override{
 
             double dotProduct = dotVectors(ray.directionVector, ray.startingPosition);
             double b = 2 * (dotProduct - dotVectors(ray.directionVector, position));
             vec3 difference_in_positions = position - ray.startingPosition;
-            double c = difference_in_positions.length_squared() - pow(radius, 2);
+            double c = difference_in_positions.length_squared() - radiusSquared;
             double distance = solveQuadratic(b, c);
             Hit hit;
             hit.objectID = 0;
@@ -91,9 +93,9 @@ class Sphere: public Object{
 
         double rand = randomUniform(0, 1);
         double cosTheta = 1 + rand * (cosThetaMax-1);
-        double sinTheta = sqrt(1 - pow(cosTheta, 2));
-        double cosAlpha = (pow(radius, 2) + pow(distance, 2) - pow(distance * cosTheta - sqrt(pow(radius,2) - pow(distance*sinTheta, 2)), 2)) / (2.0 * distance * radius);
-        double sinAlpha = sqrt(1.0 - pow(cosAlpha, 2));
+        double sinTheta = sqrt(1 - cosTheta * cosTheta);
+        double cosAlpha = (radiusSquared + distance * distance - pow(distance * cosTheta - sqrt(radiusSquared - pow(distance*sinTheta, 2)), 2)) / (2.0 * distance * radius);
+        double sinAlpha = sqrt(1.0 - cosAlpha * cosAlpha);
         
         vec3 xHat;
         vec3 yHat;
@@ -129,8 +131,7 @@ class Plane: public Object{
             }
 
             double distancesToStart = dotVectors(startingPoint, normalVector);
-            double distances = distancesToStart / directionDotNormal;
-            return distances;
+            return distancesToStart / directionDotNormal;
         }
 
         Hit findClosestHit(const Ray& ray) override{
