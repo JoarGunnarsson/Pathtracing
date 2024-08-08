@@ -13,7 +13,7 @@ DiffuseMaterial redDiffuseMaterial = DiffuseMaterial(RED);
 DiffuseMaterial greenDiffuseMaterial = DiffuseMaterial(GREEN);
 ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(BLUE);
 ReflectiveMaterial whiteReflectiveMaterial = ReflectiveMaterial(WHITE);
-DiffuseMaterial ball2Material = DiffuseMaterial(WHITE, 1, 1.5);
+TransparentMaterial ball2Material = TransparentMaterial(RED, 1, 1.5, 0, WHITE, 0, false, 1.5);
 DiffuseMaterial lightSourceMaterial = DiffuseMaterial(WHITE, 0.8, 1, 1, WARM_WHITE, 10);
 
 Plane thisFloor = Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), &whiteDiffuseMaterial);

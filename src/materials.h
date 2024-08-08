@@ -24,6 +24,8 @@ class Material{
         vec3 absorptionAlbedo;
         vec3 emmissionColor;
         double lightIntensity;
+        bool isDielectric;
+        double imaginaryRefractiveIndex;
         Material(){
             albedo = WHITE;
             refractiveIndex = 1;
@@ -32,15 +34,18 @@ class Material{
             attenuationCoefficient = 0;
             emmissionColor = WHITE;
             lightIntensity = 0;
+            imaginaryRefractiveIndex = 1.5;
         }
         Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
-        vec3 _emmissionColor=WHITE, double _lightIntensity=0){
+        vec3 _emmissionColor=WHITE, double _lightIntensity=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0){
             albedo = _diffuseColor * _diffuseCoefficient;
             refractiveIndex = _refractiveIndex;
             attenuationCoefficient = _attenuationCoefficient;
             absorptionAlbedo = vec3(1,1,1) - albedo;
             emmissionColor = _emmissionColor;
             lightIntensity = _lightIntensity;
+            isDielectric = _isDielectric;
+            imaginaryRefractiveIndex = _imaginaryRefractiveIndex;
         }
 
     virtual vec3 eval(){
@@ -57,6 +62,38 @@ class Material{
 
     vec3 getLightEmittance(){
         return emmissionColor * lightIntensity;
+    }
+};
+
+
+class MicrofacetMaterial : public Material{
+    public:
+        MicrofacetMaterial(){
+            albedo = WHITE;
+            refractiveIndex = 1;
+            attenuationCoefficient = 0;
+            absorptionAlbedo = WHITE;
+            attenuationCoefficient = 0;
+            emmissionColor = WHITE;
+            lightIntensity = 0;
+        }
+        MicrofacetMaterial(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
+        vec3 _emmissionColor=WHITE, double _lightIntensity=0){
+            albedo = _diffuseColor * _diffuseCoefficient;
+            refractiveIndex = _refractiveIndex;
+            attenuationCoefficient = _attenuationCoefficient;
+            absorptionAlbedo = vec3(1,1,1) - albedo;
+            emmissionColor = _emmissionColor;
+            lightIntensity = _lightIntensity;
+        }
+
+    vec3 eval() override{
+        return BLACK;
+    }
+
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+        brdfData data;
+        return data;
     }
 };
 
@@ -113,23 +150,29 @@ class TransparentMaterial : public Material{
         vec3 fresnelNormal;
         bool inside = incomingDotNormal > 0.0;
         double n1;
+        double k1;
         double n2;
+        double k2;
         if (!inside){
             fresnelNormal = -hit.normalVector;
             n1 = constants::airRefractiveIndex;
+            k1 = 0;
             n2 = refractiveIndex;
+            k2 = imaginaryRefractiveIndex;
         }
         else{
             fresnelNormal = hit.normalVector;
             n1 = refractiveIndex;
+            k1 = imaginaryRefractiveIndex;
             n2 = constants::airRefractiveIndex;
+            k2 = 0;
         }
 
         vec3 transmittedVector = refractVector(fresnelNormal, hit.incomingVector, n1, n2);
 
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            F_r = fresnelMultiplier(hit.incomingVector, -fresnelNormal, n1, n2);
+            F_r = fresnelMultiplier(hit.incomingVector, -fresnelNormal, n1, k1, n2, k2, isDielectric);
         }
 
         double randomNum = randomUniform(0, 1);
@@ -137,21 +180,15 @@ class TransparentMaterial : public Material{
         
         vec3 brdfMultiplier;
         vec3 outgoingVector;
-        if (isReflected){
+        if (isReflected && isDielectric){
+            brdfMultiplier = WHITE;
+            outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
+        }
+        else if (isReflected && !isDielectric){
             brdfMultiplier = albedo;
             outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
         }
         else{
-            bool enableRandomTransmission = false;
-            if (enableRandomTransmission){
-                vec3 randomHemispherePoint = sampleHemisphere(fresnelNormal);
-                double smoothness = 0.5;
-                vec3 scaledTransmittedVector = transmittedVector * smoothness;
-                vec3 scaledHemispherePoint = randomHemispherePoint * (1 - smoothness);
-                transmittedVector = scaledTransmittedVector + scaledHemispherePoint;
-                transmittedVector = normalizeVector(transmittedVector);
-            }
-
             Ray transmissionRay;
             transmissionRay.directionVector = transmittedVector;
             transmissionRay.startingPosition = hit.intersectionPoint;
@@ -160,7 +197,7 @@ class TransparentMaterial : public Material{
             double distance = transmissionHit.distance;
             if (distance > 0 && !inside){
                 vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
-                attenuationColor = expVector(log_attenuation);
+                attenuationColor = albedo * expVector(log_attenuation);
             }
             else{
                 attenuationColor = albedo;

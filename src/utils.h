@@ -148,15 +148,7 @@ vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const d
 }
 
 
-double schlickApproximation(const double R0, const double cosTheta){
-    double R = R0 + (1 - R0) * pow((1 - cosTheta), 5);
-    return R;
-}
-
-
-double fresnelMultiplier(const vec3& incidentVector, const vec3& normalVector, const double n1, const double n2){
-
-    double cosIncident = -dotVectors(incidentVector, normalVector);
+double fresnelDielectric(const double cosIncident, const double n1, const double n2){
     double sinIncident = sqrt(1 - pow(cosIncident, 2));
     double cosTransmitted = sqrt(1 - pow(n1 / n2 * sinIncident, 2));
     double n1CosIncident = n1 * cosIncident;
@@ -166,5 +158,43 @@ double fresnelMultiplier(const vec3& incidentVector, const vec3& normalVector, c
     double R_s = pow((n1CosIncident - n2CosTransmitted) / (n1CosIncident + n2CosTransmitted), 2);
     double R_p = pow((n1CosTransmitted - n2CosIncident) / (n1CosTransmitted + n2CosIncident), 2);
     return 0.5 * (R_s + R_p);
+}
+
+
+double fresnelConductor(const double cosTheta, const double n1, const double k1, const double n2, const double k2){
+    double eta;
+    double k;
+    if (k1 == 0){
+        eta = n2 / n1;
+        k = k2 / n1;
+    }
+    else{
+        double complexIndexNorm = (pow(n1, 2) * pow(k1, 2));
+        eta = n2 * n1 / complexIndexNorm;
+        k = - k1 * n2 / complexIndexNorm;
+    }
+
+    double cosTheta2 = pow(cosTheta, 2);
+    double sinTheta2 = 1 - cosTheta2;
+    double a2b2 = sqrt(pow(pow(eta, 2) - pow(k, 2) - sinTheta2, 2) + 4 * pow(eta * k, 2));
+    double a = sqrt(0.5 * sqrt(pow(pow(eta, 2) - pow(k, 2) - sinTheta2, 2) + 4 * pow(eta * k, 2)) + pow(eta, 2) - pow(k, 2) - sinTheta2);
+    double f1 = a2b2 + cosTheta2;
+    double f2 = 2 * a * cosTheta;
+    double f3 = cosTheta2 * a2b2 + pow(sinTheta2, 2);;
+    double f4 = f2 * sinTheta2;
+
+    double R_p = (f1 - f2) / (f1 + f2);
+    double R_s = R_p * (f3 - f4) / (f3 + f4); 
+    return 0.5 * (R_p + R_s);
+}
+
+
+double fresnelMultiplier(const vec3& incidentVector, const vec3& normalVector, const double n1, const double k1, const double n2, const double k2, const bool isDielectric){
+    double cosIncident = -dotVectors(incidentVector, normalVector);
+    if (isDielectric || (k1==0 && k2==0)){
+        return fresnelDielectric(cosIncident, n1, n2);
+    }
+
+    return fresnelConductor(cosIncident, n1, k1, n2, k2);
 }
 #endif
