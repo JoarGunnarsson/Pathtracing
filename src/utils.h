@@ -11,6 +11,7 @@ public:
 };
 
 
+//TODO: Look into using faster random number generators.
 std::random_device rand_dev;
 std::minstd_rand normal_generator(rand_dev());
 std::normal_distribution<double> normal_distribution(0, 1);
@@ -126,12 +127,12 @@ vec3 sampleCosineHemisphere(const vec3& normalVector){
     double x = cos(theta) * radius;
     double y = sin(theta) * radius;
     double z = sqrt(1 - pow(x, 2) - pow(y,2));
-    return xHat * x + yHat * y + normalVector * z;;
+    return xHat * x + yHat * y + normalVector * z;
 }
 
 
 vec3 reflectVector(const vec3& directionVector, const vec3& normalVector){
-    return directionVector - normalVector * 2.0 * dotVectors(normalVector, directionVector);;
+    return directionVector - normalVector * 2.0 * dotVectors(normalVector, directionVector);
 }
 
 
@@ -153,16 +154,17 @@ double schlickApproximation(const double R0, const double cosTheta){
 }
 
 
-double fresnelMultiplier(const vec3& incidentVector, const vec3& transmittedVector, const vec3& normalVector, const double n1, const double n2){
-    double R0 = pow(((n1 - n2) / (n1 + n2)), 2);
-    if (n2 >= n1){
-        double cosIncident = dotVectors(incidentVector, normalVector);
-        return schlickApproximation(R0, cosIncident);
-    }
-    else{
-        double cosTransmitted = dotVectors(transmittedVector, normalVector);
-        return schlickApproximation(R0, cosTransmitted);
-    }
-}
+double fresnelMultiplier(const vec3& incidentVector, const vec3& normalVector, const double n1, const double n2){
 
+    double cosIncident = -dotVectors(incidentVector, normalVector);
+    double sinIncident = sqrt(1 - pow(cosIncident, 2));
+    double cosTransmitted = sqrt(1 - pow(n1 / n2 * sinIncident, 2));
+    double n1CosIncident = n1 * cosIncident;
+    double n2CosTransmitted = n2 * cosTransmitted;
+    double n1CosTransmitted = n1 * cosTransmitted;
+    double n2CosIncident = n2 * cosIncident;
+    double R_s = pow((n1CosIncident - n2CosTransmitted) / (n1CosIncident + n2CosTransmitted), 2);
+    double R_p = pow((n1CosTransmitted - n2CosIncident) / (n1CosTransmitted + n2CosIncident), 2);
+    return 0.5 * (R_s + R_p);
+}
 #endif

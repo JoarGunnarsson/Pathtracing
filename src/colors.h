@@ -17,6 +17,7 @@ namespace colors{
     vec3 const WARM_WHITE = vec3(0.9922, 0.9569, 0.8627);
 }
 
+
 vec3 colorClip(vec3 rgb){
     return rgb / (rgb.max()+1);
 }

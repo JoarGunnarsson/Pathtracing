@@ -79,20 +79,29 @@ class Sphere: public Object{
         }
 
         vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
-            double distanceToPoint = (referencePoint - position).length();
-            if (distanceToPoint <= radius){
+            double distance = (referencePoint - position).length();
+            if (distance <= radius){
                 vec3 randomPoint = generateRandomSurfacePoint();
                 inversePDF = areaToAnglePDFFactor(randomPoint, referencePoint) * area;
                 return randomPoint;
             }
-            
-            double thetaMax = asin(radius / distanceToPoint);
-            double cosMax = cos(M_PI / 2 - thetaMax);
-            vec3 randomPoint = sampleAngledHemisphere(getNormalVector(referencePoint), cosMax) * radius + position;
+        
+        double cosThetaMax = sqrt(1 - pow(radius / distance, 2));
+        inversePDF = 2 * M_PI * (1 - (cosThetaMax));
 
-            inversePDF = 2 * M_PI * pow(radius, 2) * (1 - cosMax);
-            inversePDF *= areaToAnglePDFFactor(randomPoint, referencePoint);
-            return randomPoint;
+        double rand = randomUniform(0, 1);
+        double cosTheta = 1 + rand * (cosThetaMax-1);
+        double sinTheta = sqrt(1 - pow(cosTheta, 2));
+        double cosAlpha = (pow(radius, 2) + pow(distance, 2) - pow(distance * cosTheta - sqrt(pow(radius,2) - pow(distance*sinTheta, 2)), 2)) / (2.0 * distance * radius);
+        double sinAlpha = sqrt(1.0 - pow(cosAlpha, 2));
+        
+        vec3 xHat;
+        vec3 yHat;
+        vec3 zHat = getNormalVector(referencePoint);
+        setPerpendicularVectors(zHat, xHat, yHat);
+        double phi = randomUniform(0, 2.0*M_PI);
+        vec3 randomPoint = xHat * sinAlpha * cos(phi) + yHat * sinAlpha * sin(phi) + zHat * cosAlpha;
+        return randomPoint * radius + position;
         }
 };
 
@@ -182,8 +191,7 @@ class Rectangle: public Plane{
         vec3 generateRandomSurfacePoint() override{
             double r1 = randomUniform(-L1/2, L1/2);
             double r2 = randomUniform(-L2/2, L2/2);
-            vec3 randomPoint = v1 * r1 + v2 * r2 + position;
-            return randomPoint;
+            return v1 * r1 + v2 * r2 + position;
         }
 
         vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
@@ -193,7 +201,7 @@ class Rectangle: public Plane{
         }
 };
 
-Hit findClosestHit(Ray& ray, Object* objects[], int size){
+Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     Hit closestHit;
     closestHit.distance = -1;
 

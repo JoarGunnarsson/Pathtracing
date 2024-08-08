@@ -4,7 +4,11 @@
 #include "colors.h"
 #include "utils.h"
 #include "constants.h"
+#include "objects.h"
 
+class Object;
+
+Hit findClosestHit(const Ray& ray, Object** objects, const int size);
 
 struct brdfData{
     vec3 outgoingVector;
@@ -17,26 +21,24 @@ class Material{
         vec3 albedo;
         double refractiveIndex;
         double attenuationCoefficient;
-        vec3 absorptionColor;
+        vec3 absorptionAlbedo;
         vec3 emmissionColor;
         double lightIntensity;
         Material(){
             albedo = WHITE;
             refractiveIndex = 1;
             attenuationCoefficient = 0;
-            absorptionColor = WHITE;
+            absorptionAlbedo = WHITE;
             attenuationCoefficient = 0;
-            absorptionColor = WHITE;
             emmissionColor = WHITE;
             lightIntensity = 0;
-            // TODO: Combine emmissionColor and lightIntensity into one variable.
         }
-        Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0, vec3 _absorptionColor=WHITE,
+        Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
         vec3 _emmissionColor=WHITE, double _lightIntensity=0){
             albedo = _diffuseColor * _diffuseCoefficient;
             refractiveIndex = _refractiveIndex;
             attenuationCoefficient = _attenuationCoefficient;
-            absorptionColor = _absorptionColor;
+            absorptionAlbedo = vec3(1,1,1) - albedo;
             emmissionColor = _emmissionColor;
             lightIntensity = _lightIntensity;
         }
@@ -47,13 +49,13 @@ class Material{
         return vec;
     }
 
-    virtual brdfData sample(Hit& hit){
+    virtual brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         brdfData data;
         return data;
     }
 
-    vec3 getLightStrength(){
+    vec3 getLightEmittance(){
         return emmissionColor * lightIntensity;
     }
 };
@@ -67,7 +69,7 @@ class DiffuseMaterial : public Material{
         return albedo / M_PI;
     }
 
-    brdfData sample(Hit& hit) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
         vec3 outgoingVector = sampleCosineHemisphere(hit.normalVector);
         vec3 brdfMultiplier = albedo;
         brdfData data;
@@ -87,7 +89,7 @@ class ReflectiveMaterial : public Material{
         return BLACK;
     }
 
-    brdfData sample(Hit& hit) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
         vec3 outgoingVector = reflectVector(hit.incomingVector, hit.normalVector);
         brdfData data;
         data.outgoingVector = outgoingVector;
@@ -106,7 +108,7 @@ class TransparentMaterial : public Material{
         return BLACK;
     }
 
-    brdfData sample(Hit& hit) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
         double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
         vec3 fresnelNormal;
         bool inside = incomingDotNormal > 0.0;
@@ -125,60 +127,47 @@ class TransparentMaterial : public Material{
 
         vec3 transmittedVector = refractVector(fresnelNormal, hit.incomingVector, n1, n2);
 
-        /*
-        vec3 randomHemispherePoint = sampleHemisphere(fresnelNormal);
-        double smoothness = 0.5;
-        vec3 scaledTransmittedVector = multiplyVector(transmittedVector, smoothness);
-        vec3 scaledHemispherePoint = multiplyVector(randomHemispherePoint, 1-smoothness);
-        transmittedVector = addVectors(scaledTransmittedVector, scaledHemispherePoint);
-        transmittedVector = normalizeVector(transmittedVector);
-        */
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            F_r = fresnelMultiplier(hit.incomingVector, transmittedVector, fresnelNormal, n1, n2);
+            F_r = fresnelMultiplier(hit.incomingVector, -fresnelNormal, n1, n2);
         }
-        
+
         double randomNum = randomUniform(0, 1);
         bool isReflected = randomNum <= F_r;
-
-        /*
-        # TODO: Add attenuation computation here.
-        transmission_from_outside_indices = np.logical_and(transmitted_indices, outside_indices)
-        attenuation_intersections = intersection_points[transmission_from_outside_indices]
-        attenuation_outgoing_vectors = transmitted_vectors[transmission_from_outside_indices]
-        _, transmitted_distances = utils.find_closest_intersected_object(attenuation_intersections, attenuation_outgoing_vectors, Scene.current_scene.objects)
-
-        attenuation_factors = np.ones((transmission_size, 3), dtype=float)
-        transmitted_distances = np.maximum(0, transmitted_distances)
-        combined_attenuation_coefficient = self.attenuation_coefficient * self.absorption_color
-        attenuation_factors[transmitted_into_an_object_indices] = np.exp(-combined_attenuation_coefficient * transmitted_distances)
-        */
-        vec3 reflectedVector = reflectVector(hit.incomingVector, fresnelNormal);
-        // TODO: Ok vectors^?
+        
         vec3 brdfMultiplier;
         vec3 outgoingVector;
         if (isReflected){
             brdfMultiplier = albedo;
-            outgoingVector = reflectedVector;
+            outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
         }
         else{
+            bool enableRandomTransmission = false;
+            if (enableRandomTransmission){
+                vec3 randomHemispherePoint = sampleHemisphere(fresnelNormal);
+                double smoothness = 0.5;
+                vec3 scaledTransmittedVector = transmittedVector * smoothness;
+                vec3 scaledHemispherePoint = randomHemispherePoint * (1 - smoothness);
+                transmittedVector = scaledTransmittedVector + scaledHemispherePoint;
+                transmittedVector = normalizeVector(transmittedVector);
+            }
+
             Ray transmissionRay;
             transmissionRay.directionVector = transmittedVector;
             transmissionRay.startingPosition = hit.intersectionPoint;
-            //Hit transmissionHit = findClosestHit(transmissionRay, objectPtrList);
+            Hit transmissionHit = findClosestHit(transmissionRay, objectPtrList, numberOfObjects);
             vec3 attenuationColor;
-            double distance = 0;
+            double distance = transmissionHit.distance;
             if (distance > 0 && !inside){
-                vec3 combined_attenuation_coefficient = absorptionColor * attenuationCoefficient;
-                vec3 log_attenuation = combined_attenuation_coefficient * -distance;
+                vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
                 attenuationColor = expVector(log_attenuation);
             }
             else{
                 attenuationColor = albedo;
             }
 
-            double refractionIntensityFactor = pow(n2, 2) / pow(n1, 2);
-            brdfMultiplier = attenuationColor * refractionIntensityFactor; // White -> attenuationFactors.
+            double refractionIntensityFactor = pow(n2 / n1, 2);
+            brdfMultiplier = attenuationColor * refractionIntensityFactor;
             outgoingVector = transmittedVector;
         }
         brdfData data;
