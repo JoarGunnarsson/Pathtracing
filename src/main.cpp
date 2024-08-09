@@ -13,8 +13,10 @@ DiffuseMaterial redDiffuseMaterial = DiffuseMaterial(RED);
 DiffuseMaterial greenDiffuseMaterial = DiffuseMaterial(GREEN);
 ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(BLUE, 0.8, 1.5, 0, WHITE, 0, false);
 ReflectiveMaterial whiteReflectiveMaterial = ReflectiveMaterial(WHITE);
-FrostyMaterial ball2Material = FrostyMaterial(WHITE, 1, 1.5, 0, WHITE, 0, true, 1.5);
+GlossyMaterial ball2Material = GlossyMaterial(WHITE, 1, 1.5, 0, WHITE, 0, true, 1.5);
 DiffuseMaterial lightSourceMaterial = DiffuseMaterial(WHITE, 0.8, 1, 1, WARM_WHITE, 10);
+TransparentMaterial pane1Material = TransparentMaterial(WHITE, 1, 1.5);
+FrostyMaterial pane2Material = FrostyMaterial(WHITE, 1, 1.5);
 
 Plane thisFloor = Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), &whiteDiffuseMaterial);
 Plane  frontWall = Plane(vec3(0,0,-0.35), vec3(1,0,0), vec3(0,1,0), &whiteDiffuseMaterial);
@@ -23,12 +25,18 @@ Plane rightWall = Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), &greenDiffuseMat
 Plane roof = Plane(vec3(0,1.2,0), vec3(0,0,-1), vec3(1,0,0), &whiteDiffuseMaterial);
 Plane backWall = Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), &whiteDiffuseMaterial);
 
+Rectangle frontPane1 = Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, &pane1Material);
+Rectangle BackPane1 = Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, &pane1Material);
+
+Rectangle frontPane2 = Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, &pane2Material);
+Rectangle BackPane2 = Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, &pane2Material);
+
 Sphere ball1 = Sphere(vec3(0.35,0,0), 0.35, &blueReflectiveMaterial);
 Sphere ball2 = Sphere(vec3(-0.45,0,0.6), 0.35, &ball2Material);
 
 Rectangle lightSource = Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, &lightSourceMaterial);
 
-Object* objectPtrList[] = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &lightSource};
+Object* objectPtrList[] = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &frontPane1, &BackPane1, &frontPane2, &BackPane2, &lightSource};
 Object* lightsourcePtrList[] = {&lightSource};
 
 vec3 cameraPosition = vec3(0, 1, 3);
@@ -93,7 +101,8 @@ vec3 raytrace(Ray ray){
             break;
         }
 
-        if (!constants::enableNextEventEstimation || depth == 0 || ray.specular){
+        bool specularRay = ray.type == REFLECTED || ray.type == TRANSMITTED;
+        if (!constants::enableNextEventEstimation || depth == 0 || specularRay){
             vec3 lightEmitance = objectPtrList[rayHit.intersectedObjectIndex] -> material -> getLightEmittance();
             color += lightEmitance * brdfAccumulator * (dotVectors(ray.directionVector, rayHit.normalVector) < 0);
         }
@@ -125,7 +134,7 @@ vec3 raytrace(Ray ray){
         throughput *= brdfResult.brdfMultiplier / randomThreshold;
         ray.startingPosition = rayHit.intersectionPoint;
         ray.directionVector = brdfResult.outgoingVector;
-        ray.specular = brdfResult.specular;
+        ray.type = brdfResult.type;
 
         brdfAccumulator *= brdfResult.brdfMultiplier / randomThreshold;
     }

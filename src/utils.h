@@ -11,7 +11,6 @@ public:
 };
 
 
-//TODO: Look into using faster random number generators.
 std::random_device rand_dev;
 std::minstd_rand normal_generator(rand_dev());
 std::normal_distribution<double> normal_distribution(0, 1);
@@ -35,6 +34,13 @@ inline double randomNormal(){
 }
 
 
+enum reflectionType{
+    DIFFUSE = 0,
+    REFLECTED = 1,
+    TRANSMITTED = 2
+};
+
+
 struct Hit{
     int intersectedObjectIndex;
     int objectID;
@@ -48,7 +54,7 @@ struct Hit{
 struct Ray{
     vec3 startingPosition;
     vec3 directionVector;
-    bool specular = false;
+    int type = DIFFUSE;
 };
 
 

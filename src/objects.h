@@ -23,10 +23,12 @@ class Object{
             Hit hit;
             return hit;
         }
+        
         virtual vec3 getNormalVector(const vec3& intersectionPoint){
             vec3 vec;
             return vec;
         }
+
         virtual vec3 generateRandomSurfacePoint(){
             vec3 point;
             return point;
@@ -36,12 +38,13 @@ class Object{
             vec3 point;
             return point;
         }
+
         double areaToAnglePDFFactor(const vec3& surfacePoint, const vec3& referencePoint){
             vec3 normalVector = getNormalVector(surfacePoint);
             vec3 differenceVector = referencePoint - surfacePoint;
             vec3 vectorToPoint = normalizeVector(differenceVector);
-            double PDF = dotVectors(normalVector, vectorToPoint) / differenceVector.length_squared();
-            return std::max(0.0, PDF);
+            double inversePDF = dotVectors(normalVector, vectorToPoint) / differenceVector.length_squared();
+            return std::max(0.0, inversePDF);
         }
 };
 

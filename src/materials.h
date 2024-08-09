@@ -6,15 +6,19 @@
 #include "constants.h"
 #include "objects.h"
 
+
 class Object;
 
+
 Hit findClosestHit(const Ray& ray, Object** objects, const int size);
+
 
 struct brdfData{
     vec3 outgoingVector;
     vec3 brdfMultiplier;
-    bool specular = false;
+    int type = DIFFUSE;
 };
+
 
 class Material{
     public:
@@ -81,12 +85,13 @@ class DiffuseMaterial : public virtual Material{
     }
 
     brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-        vec3 outgoingVector = sampleCosineHemisphere(hit.normalVector);
+        vec3 adjustedNormal = dotVectors(hit.incomingVector, hit.normalVector) < 0 ? hit.normalVector : -hit.normalVector;
+        vec3 outgoingVector = sampleCosineHemisphere(adjustedNormal);
         vec3 brdfMultiplier = albedo;
         brdfData data;
         data.outgoingVector = outgoingVector;
         data.brdfMultiplier = brdfMultiplier;
-        data.specular = false;
+        data.type = DIFFUSE;
         return data;
     }
 };
@@ -101,11 +106,12 @@ class ReflectiveMaterial : public virtual Material{
     }
 
     brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-        vec3 outgoingVector = reflectVector(hit.incomingVector, hit.normalVector);
+        vec3 adjustedNormal = dotVectors(hit.incomingVector, hit.normalVector) < 0 ? hit.normalVector : -hit.normalVector;
+        vec3 outgoingVector = reflectVector(hit.incomingVector, adjustedNormal);
         brdfData data;
         data.outgoingVector = outgoingVector;
         data.brdfMultiplier = isDielectric ? WHITE : albedo;
-        data.specular = true;
+        data.type = REFLECTED;
         return data;
     }
 };
@@ -186,7 +192,7 @@ class TransparentMaterial : public virtual Material{
         brdfData data;
         data.outgoingVector = outgoingVector;
         data.brdfMultiplier = brdfMultiplier;
-        data.specular = true;
+        data.type = TRANSMITTED;
         return data;
     }
 };
@@ -200,13 +206,7 @@ class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
 
     vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
         double randomNum = randomUniform(0, 1);
-        double cosTheta = -dotVectors(incidentVector, normalVector);
-        double n1 = constants::airRefractiveIndex;
-        double k1 = 0;
-        double n2 = refractiveIndex;
-        double k2 = imaginaryRefractiveIndex;
-        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
-        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        bool doSpecular = randomNum <= percentageSpecular;
         if (doSpecular){
             return ReflectiveMaterial::eval(incidentVector, outgoingVector, normalVector);
         }
@@ -217,18 +217,11 @@ class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
 
     brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
         double randomNum = randomUniform(0, 1);
-        double cosTheta = -dotVectors(hit.incomingVector, hit.normalVector);
-        double n1 = constants::airRefractiveIndex;
-        double k1 = 0;
-        double n2 = refractiveIndex;
-        double k2 = imaginaryRefractiveIndex;
-        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
-        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        bool doSpecular = randomNum <= percentageSpecular;
         if (doSpecular){
             brdfData data = ReflectiveMaterial::sample(hit, objectPtrList, numberOfObjects);
             vec3 randomRay = sampleCosineHemisphere(hit.normalVector);
             data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
-            data.brdfMultiplier *= 1 - roughness;
             return data;
         }
         else{
@@ -240,19 +233,13 @@ class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
 
 class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
     public:
-        double roughness = 0.3;
+        double roughness = 0.05;
         double percentageSpecular = 1;
         using DiffuseMaterial::DiffuseMaterial;
 
     vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
         double randomNum = randomUniform(0, 1);
-        double cosTheta = -dotVectors(incidentVector, normalVector);
-        double n1 = constants::airRefractiveIndex;
-        double k1 = 0;
-        double n2 = refractiveIndex;
-        double k2 = imaginaryRefractiveIndex;
-        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
-        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        bool doSpecular = randomNum <= percentageSpecular;
         if (doSpecular){
             return TransparentMaterial::eval(incidentVector, outgoingVector, normalVector);
         }
@@ -262,20 +249,19 @@ class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
     }
 
     brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-        // TODO: check whether specular ray is transmitted or reflected, and randomize on the right hemisphere. Maybe make a change to brdfData struct.
         double randomNum = randomUniform(0, 1);
-        double cosTheta = -dotVectors(hit.incomingVector, hit.normalVector);
-        double n1 = constants::airRefractiveIndex;
-        double k1 = 0;
-        double n2 = refractiveIndex;
-        double k2 = imaginaryRefractiveIndex;
-        double F = fresnelMultiplier(cosTheta, n1, k1, n2, k2, isDielectric);
-        bool doSpecular = randomNum <= percentageSpecular + (1 - percentageSpecular) * F;
+        bool doSpecular = randomNum <= percentageSpecular;
         if (doSpecular){
-            brdfData data = TransparentMaterial::sample(hit, objectPtrList, numberOfObjects);            
-            vec3 randomRay = sampleCosineHemisphere(-hit.normalVector);
+            brdfData data = TransparentMaterial::sample(hit, objectPtrList, numberOfObjects);
+            vec3 adjustedNormal;
+            if (data.type == TRANSMITTED){
+                adjustedNormal = -hit.normalVector;
+            }   
+            else{
+                adjustedNormal = hit.normalVector;
+            }        
+            vec3 randomRay = sampleCosineHemisphere(adjustedNormal);
             data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
-            data.brdfMultiplier *= 1 - roughness;
             return data;
         }
         else{
