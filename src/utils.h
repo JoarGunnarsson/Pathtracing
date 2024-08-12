@@ -58,6 +58,11 @@ struct Ray{
 };
 
 
+inline double posFmod(const double a, const double b){
+    return fmod((fmod(a, b) + b), b);
+}
+
+
 inline double clamp(const double value, const double min, const double max){
     return std::max(std::min(value, max), min);
 }

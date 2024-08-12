@@ -4,7 +4,7 @@
 #include "colors.h"
 #include "utils.h"
 #include "constants.h"
-#include "objects.h"
+#include "objects.h" // TODO: is this needed?
 
 
 class Object;
@@ -20,35 +20,82 @@ struct brdfData{
 };
 
 
+struct materialData{
+
+};
+
+class ValueMap{
+    public:
+        double* data;
+        int width;
+        double uMax;
+        int height;
+        double vMax;
+        ValueMap(){
+            data = new double(0);
+            width = 1;
+            height = 1;
+            uMax = 1;
+            vMax = 1;
+        }
+        ValueMap(double* _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
+            data = _data;
+            width = _width;
+            height = _height;
+            uMax = _uMax;
+            vMax = _vMax;
+        }
+        ~ValueMap(){
+            delete[] data;
+        }
+};
+
+
+class ValueMap1D : public ValueMap{
+    public:
+        using ValueMap::ValueMap;
+
+    double get(const double u, const double v) {
+        int uIdx = int((double) width * posFmod(u / uMax, 1.0));
+        int vIdx = int((double) height * posFmod(v / vMax, 1.0));
+        int index = (vIdx * width + uIdx);
+        return data[index];
+    }
+};
+
+
+class ValueMap3D : public ValueMap{
+    public:
+        using ValueMap::ValueMap;
+
+    vec3 get(const double u, const double v){
+        int uIdx = int((double) width * posFmod(u / uMax, 1.0));
+        int vIdx = int((double) height * posFmod(v / vMax, 1.0));
+        int startIndex = 3 * (vIdx * width + uIdx);
+        return vec3(data[startIndex], data[startIndex + 1], data[startIndex + 2]);
+    }
+};
+
+
 class Material{
     public:
-        vec3 albedo;
+        ValueMap3D* albedoMap;
         double refractiveIndex;
         double attenuationCoefficient;
         vec3 absorptionAlbedo;
-        vec3 emmissionColor;
-        double lightIntensity;
+        ValueMap3D* emmissionColorMap;
+        ValueMap1D* lightIntensityMap;
         bool isDielectric;
         double imaginaryRefractiveIndex;
-        Material(){
-            albedo = WHITE;
-            refractiveIndex = 1;
-            attenuationCoefficient = 0;
-            absorptionAlbedo = WHITE;
-            attenuationCoefficient = 0;
-            emmissionColor = WHITE;
-            lightIntensity = 0;
-            isDielectric = true;
-            imaginaryRefractiveIndex = 0;
-        }
-        Material(vec3 _diffuseColor, double _diffuseCoefficient=0.8, double _refractiveIndex=1, double _attenuationCoefficient=0,
-        vec3 _emmissionColor=WHITE, double _lightIntensity=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0){
-            albedo = _diffuseColor * _diffuseCoefficient;
+        Material(){}
+        Material(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
+        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0){
+            albedoMap =_albedoMap;
             refractiveIndex = _refractiveIndex;
             attenuationCoefficient = _attenuationCoefficient;
-            absorptionAlbedo = vec3(1,1,1) - albedo;
-            emmissionColor = _emmissionColor;
-            lightIntensity = _lightIntensity;
+            absorptionAlbedo = vec3(1,1,1) - BLACK; //TODO
+            emmissionColorMap = _emmissionColorMap;
+            lightIntensityMap = _lightIntensityMap;
             isDielectric = _isDielectric;
             if (isDielectric){
                 imaginaryRefractiveIndex = 0;
@@ -58,20 +105,20 @@ class Material{
             }
         }
 
-    virtual vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector){
+    virtual vec3 eval(const double u, const double v){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         vec3 vec;
         return vec;
     }
 
-    virtual brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects){
+    virtual brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         brdfData data;
         return data;
     }
 
-    vec3 getLightEmittance(){
-        return emmissionColor * lightIntensity;
+    vec3 getLightEmittance(const double u, const double v){
+        return emmissionColorMap -> get(u, v) * lightIntensityMap -> get(u, v);
     }
 };
 
@@ -80,14 +127,14 @@ class DiffuseMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
-        return albedo / M_PI;
+    vec3 eval(const double u, const double v) override{
+        return albedoMap -> get(u, v) / M_PI;
     }
 
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         vec3 adjustedNormal = dotVectors(hit.incomingVector, hit.normalVector) < 0 ? hit.normalVector : -hit.normalVector;
         vec3 outgoingVector = sampleCosineHemisphere(adjustedNormal);
-        vec3 brdfMultiplier = albedo;
+        vec3 brdfMultiplier = albedoMap -> get(u, v);
         brdfData data;
         data.outgoingVector = outgoingVector;
         data.brdfMultiplier = brdfMultiplier;
@@ -101,16 +148,16 @@ class ReflectiveMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+    vec3 eval(const double u, const double v) override{
         return BLACK;
     }
 
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         vec3 adjustedNormal = dotVectors(hit.incomingVector, hit.normalVector) < 0 ? hit.normalVector : -hit.normalVector;
         vec3 outgoingVector = reflectVector(hit.incomingVector, adjustedNormal);
         brdfData data;
         data.outgoingVector = outgoingVector;
-        data.brdfMultiplier = isDielectric ? WHITE : albedo;
+        data.brdfMultiplier = isDielectric ? WHITE : albedoMap -> get(u, v);
         data.type = REFLECTED;
         return data;
     }
@@ -121,11 +168,11 @@ class TransparentMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+    vec3 eval(const double u, const double v) override{
         return BLACK;
     }
 
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
         vec3 fresnelNormal;
         bool inside = incomingDotNormal > 0.0;
@@ -152,10 +199,10 @@ class TransparentMaterial : public virtual Material{
 
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal);
+            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal); // TODO: Negative here?
             F_r = fresnelMultiplier(cosIncident, n1, k1, n2, k2, isDielectric);
         }
-
+        F_r = 0; // Temporary
         double randomNum = randomUniform(0, 1);
         bool isReflected = randomNum <= F_r;
         
@@ -166,7 +213,7 @@ class TransparentMaterial : public virtual Material{
             outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
         }
         else if (isReflected && !isDielectric){
-            brdfMultiplier = albedo;
+            brdfMultiplier = albedoMap -> get(u, v);
             outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
         }
         else{
@@ -177,11 +224,11 @@ class TransparentMaterial : public virtual Material{
             vec3 attenuationColor;
             double distance = transmissionHit.distance;
             if (distance > 0 && !inside){
-                vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
-                attenuationColor = albedo * expVector(log_attenuation);
+                vec3 log_attenuation = (vec3(1,1,1) - albedoMap -> get(u, v)) * attenuationCoefficient * (-distance);
+                attenuationColor = expVector(log_attenuation);
             }
             else{
-                attenuationColor = albedo;
+                attenuationColor = WHITE; // TODO: Is this right?
             }
 
             double refractionIntensityFactor = n2 * n2 / (n1 * n1);
@@ -200,32 +247,44 @@ class TransparentMaterial : public virtual Material{
 
 class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
     public:
-        double roughness = 0.9;
-        double percentageSpecular = 0.3;
-        using DiffuseMaterial::DiffuseMaterial;
+        ValueMap1D* roughnessMap;
+        ValueMap1D* percentageSpecularMap;
+        GlossyMaterial(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
+        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0)
+        :Material(_albedoMap, _emmissionColorMap, _lightIntensityMap, _refractiveIndex, _attenuationCoefficient, _isDielectric, _imaginaryRefractiveIndex){
+            double* v1 = new double(0.2);
+            roughnessMap = new ValueMap1D(v1);
+            double* v2 = new double(1);
+            percentageSpecularMap = new ValueMap1D(v2);
+        }
+        ~GlossyMaterial(){
+            delete roughnessMap;
+            delete percentageSpecularMap;
+        }
 
-    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+    vec3 eval(const double u, const double v) override{
         double randomNum = randomUniform(0, 1);
-        bool doSpecular = randomNum <= percentageSpecular;
+        bool doSpecular = randomNum <= percentageSpecularMap -> get(u, v);
         if (doSpecular){
-            return ReflectiveMaterial::eval(incidentVector, outgoingVector, normalVector);
+            return ReflectiveMaterial::eval(u, v);
         }
         else{
-            return DiffuseMaterial::eval(incidentVector, outgoingVector, normalVector);
+            return DiffuseMaterial::eval(u, v);
         }
     }
 
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         double randomNum = randomUniform(0, 1);
-        bool doSpecular = randomNum <= percentageSpecular;
+        bool doSpecular = randomNum <= percentageSpecularMap -> get(u, v);
         if (doSpecular){
-            brdfData data = ReflectiveMaterial::sample(hit, objectPtrList, numberOfObjects);
+            brdfData data = ReflectiveMaterial::sample(hit, objectPtrList, numberOfObjects, u, v);
             vec3 randomRay = sampleCosineHemisphere(hit.normalVector);
+            double roughness = roughnessMap -> get(u, v);
             data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
             return data;
         }
         else{
-            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects);
+            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects, u, v);
         }
     }
 };
@@ -233,26 +292,38 @@ class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
 
 class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
     public:
-        double roughness = 0.05;
-        double percentageSpecular = 1;
-        using DiffuseMaterial::DiffuseMaterial;
+        ValueMap1D* roughnessMap;
+        ValueMap1D* percentageSpecularMap;
+        FrostyMaterial(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
+        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0)
+        : Material(_albedoMap, _emmissionColorMap, _lightIntensityMap, _refractiveIndex, _attenuationCoefficient, _isDielectric, _imaginaryRefractiveIndex){
+            double* roughnessData = new double(0.1);
+            roughnessMap = new ValueMap1D(roughnessData);
+            double* specData = new double(1);
+            percentageSpecularMap = new ValueMap1D(specData);
+        }
 
-    vec3 eval(const vec3& incidentVector, const vec3& outgoingVector, const vec3& normalVector) override{
+        ~FrostyMaterial(){
+            delete roughnessMap;
+            delete percentageSpecularMap;
+        }
+
+    vec3 eval(const double u, const double v) override{
         double randomNum = randomUniform(0, 1);
-        bool doSpecular = randomNum <= percentageSpecular;
+        bool doSpecular = randomNum <= percentageSpecularMap -> get(u, v);
         if (doSpecular){
-            return TransparentMaterial::eval(incidentVector, outgoingVector, normalVector);
+            return TransparentMaterial::eval(u, v);
         }
         else{
-            return DiffuseMaterial::eval(incidentVector, outgoingVector, normalVector);
+            return DiffuseMaterial::eval(u, v);
         }
     }
 
-    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
+    brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         double randomNum = randomUniform(0, 1);
-        bool doSpecular = randomNum <= percentageSpecular;
+        bool doSpecular = randomNum <= percentageSpecularMap -> get(u, v);
         if (doSpecular){
-            brdfData data = TransparentMaterial::sample(hit, objectPtrList, numberOfObjects);
+            brdfData data = TransparentMaterial::sample(hit, objectPtrList, numberOfObjects, u, v);
             vec3 adjustedNormal;
             if (data.type == TRANSMITTED){
                 adjustedNormal = -hit.normalVector;
@@ -261,11 +332,12 @@ class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
                 adjustedNormal = hit.normalVector;
             }        
             vec3 randomRay = sampleCosineHemisphere(adjustedNormal);
+            double roughness = roughnessMap -> get(u, v);
             data.outgoingVector = normalizeVector(data.outgoingVector * (1 - roughness) + randomRay * roughness);
             return data;
         }
         else{
-            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects);
+            return DiffuseMaterial::sample(hit, objectPtrList, numberOfObjects, u, v);
         }
     }
 };

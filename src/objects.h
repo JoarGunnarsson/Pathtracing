@@ -17,7 +17,26 @@ class Object{
             position = _position;
             material = _material;
         }
-        virtual ~Object(){}
+
+        virtual vec3 getUV(const vec3& hitPoint){
+            vec3 vec;
+            return vec;
+        }
+
+        virtual vec3 eval(const vec3& intersectionPoint){
+            vec3 UV = getUV(intersectionPoint);
+            return material -> eval(UV[0], UV[1]);
+        }
+
+        virtual brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects){
+            vec3 UV = getUV(hit.intersectionPoint);
+            return material -> sample(hit, objectPtrList, numberOfObjects, UV[0], UV[1]);
+        }
+
+        virtual vec3 getLightEmittance(const vec3& intersectionPoint){
+            vec3 UV = getUV(intersectionPoint);
+            return material -> getLightEmittance(UV[0], UV[1]);
+        }
 
         virtual Hit findClosestHit(const Ray& ray){
             Hit hit;
@@ -61,6 +80,17 @@ class Sphere: public Object{
             area = 4 * M_PI * radius * radius;
             radiusSquared = radius * radius;
         }
+
+        vec3 getUV(const vec3& hitPoint) override{
+            vec3 unitSpherePoint = (hitPoint - position)/radius;
+            double x = -unitSpherePoint[0];
+            double y = -unitSpherePoint[1];
+            double z = -unitSpherePoint[2];
+            double u = 0.5 + atan2(z, x) / (2 * M_PI);
+            double v = 0.5 + asin(y) / (M_PI);
+            return vec3(u, v, 0);
+        }
+
         Hit findClosestHit(const Ray& ray) override{
 
             double dotProduct = dotVectors(ray.directionVector, ray.startingPosition);
@@ -127,6 +157,13 @@ class Plane: public Object{
             material = _material;
         }
 
+        vec3 getUV(const vec3& hitPoint) override{
+            vec3 shiftedPoint = hitPoint - position;
+            double u = dotVectors(shiftedPoint, v1);
+            double v = dotVectors(shiftedPoint, v2);
+            return vec3(u, v, 0);
+        }
+
         double computeDistanceInCenteredSystem(const vec3& startingPoint, const vec3& directionVector){
             double directionDotNormal = -dotVectors(directionVector, normalVector);
             if (std::abs(directionDotNormal) < constants::EPSILON){
@@ -168,6 +205,13 @@ class Rectangle: public Plane{
             vec3 _normalVector = crossVectors(v1, v2);
             normalVector = normalizeVector(_normalVector);
             material = _material;
+        }
+        vec3 getUV(const vec3& hitPoint) override{
+            // TODO: Shift by half, scale etc.
+            vec3 shiftedPoint = hitPoint - position;
+            double u = dotVectors(shiftedPoint, v1) / L1 + 0.5;
+            double v = dotVectors(shiftedPoint, v2) / L2 + 0.5;
+            return vec3(u, v, 0);
         }
 
         Hit findClosestHit(const Ray& ray) override{

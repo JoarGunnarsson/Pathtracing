@@ -15,6 +15,14 @@ namespace colors{
     vec3 const GREY = vec3(0.5, 0.5, 0.5);
     vec3 const BLUEISH_WHITE = vec3(0.7215, 0.8274, 0.8705);
     vec3 const WARM_WHITE = vec3(0.9922, 0.9569, 0.8627);
+
+    double WHITE_DATA[] = {1,1,1};
+    double BLACK_DATA[] = {0,0,0};
+    double RED_DATA[] = {1.0, 0.0, 0.0};
+    double GREEN_DATA[] = {0.0, 1.0, 0.0};
+    double BLUE_DATA[] =  {0.0, 0.0, 1.0};
+    double YELLOW_DATA[] = {1.0, 1.0, 0.0};
+    double CYAN_DATA[] = {0.0, 1.0, 1.0};
 }
 
 

@@ -93,6 +93,14 @@ class vec3 {
         inline double max() const{
             return std::max(std::max(e[0], e[1]), e[2]);
         }
+
+        operator double*() const{
+            double* result = new double[3];
+            result[0] = e[0];
+            result[1] = e[1];
+            result[2] = e[2];
+            return result;
+        }
 };
 
 

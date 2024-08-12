@@ -16,7 +16,7 @@ Below are a few different an example scenes, showcasing the different material t
 
 ## Usage
 
-To run the ray tracing simulation and generate an image, simply execute the bash script `main.sh` file:
+To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
 
 ```
 ./main.sh
