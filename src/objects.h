@@ -207,7 +207,6 @@ class Rectangle: public Plane{
             material = _material;
         }
         vec3 getUV(const vec3& hitPoint) override{
-            // TODO: Shift by half, scale etc.
             vec3 shiftedPoint = hitPoint - position;
             double u = dotVectors(shiftedPoint, v1) / L1 + 0.5;
             double v = dotVectors(shiftedPoint, v2) / L2 + 0.5;
@@ -252,7 +251,6 @@ class Rectangle: public Plane{
 Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     Hit closestHit;
     closestHit.distance = -1;
-
     for (int i = 0; i < size; i++){
         Hit hit = objects[i] -> findClosestHit(ray);
         if (hit.distance > constants::EPSILON && (hit.distance < closestHit.distance || closestHit.distance == -1)){

@@ -20,10 +20,6 @@ struct brdfData{
 };
 
 
-struct materialData{
-
-};
-
 class ValueMap{
     public:
         double* data;
@@ -77,6 +73,28 @@ class ValueMap3D : public ValueMap{
 };
 
 
+struct MaterialData{
+    ValueMap3D* whiteMap = new ValueMap3D(WHITE);
+    double* zero = new double(0);
+    ValueMap1D* zeroMap = new ValueMap1D(zero);
+    double* ohFive = new double(0.5);
+    ValueMap1D* ohFiveMap = new ValueMap1D(ohFive);
+    double* one = new double(1);
+    ValueMap1D* oneMap = new ValueMap1D(one);
+
+    ValueMap3D* albedoMap = whiteMap;
+    double refractiveIndex = 1;
+    double attenuationCoefficient = 0;
+    vec3 absorptionAlbedo = WHITE;
+    ValueMap3D* emmissionColorMap = whiteMap;
+    ValueMap1D* lightIntensityMap = zeroMap;
+    bool isDielectric = true;
+    double imaginaryRefractiveIndex = 0;
+    ValueMap1D* roughnessMap = ohFiveMap;
+    ValueMap1D* percentageSpecularMap = oneMap;
+    bool isLightSource = false;
+};
+
 class Material{
     public:
         ValueMap3D* albedoMap;
@@ -87,22 +105,23 @@ class Material{
         ValueMap1D* lightIntensityMap;
         bool isDielectric;
         double imaginaryRefractiveIndex;
+        bool isLightSource;
         Material(){}
-        Material(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
-        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0){
-            albedoMap =_albedoMap;
-            refractiveIndex = _refractiveIndex;
-            attenuationCoefficient = _attenuationCoefficient;
-            absorptionAlbedo = vec3(1,1,1) - BLACK; //TODO
-            emmissionColorMap = _emmissionColorMap;
-            lightIntensityMap = _lightIntensityMap;
-            isDielectric = _isDielectric;
+        Material(MaterialData data){
+            albedoMap = data.albedoMap;
+            refractiveIndex = data.refractiveIndex;
+            attenuationCoefficient = data.attenuationCoefficient;
+            absorptionAlbedo = data.absorptionAlbedo;
+            emmissionColorMap = data.emmissionColorMap;
+            lightIntensityMap = data.lightIntensityMap;
+            isDielectric = data.isDielectric;
             if (isDielectric){
                 imaginaryRefractiveIndex = 0;
             }
             else{
-                imaginaryRefractiveIndex = _imaginaryRefractiveIndex;
+                imaginaryRefractiveIndex = data.imaginaryRefractiveIndex;
             }
+            isLightSource = data.isLightSource;
         }
 
     virtual vec3 eval(const double u, const double v){
@@ -199,22 +218,18 @@ class TransparentMaterial : public virtual Material{
 
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal); // TODO: Negative here?
+            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal);
             F_r = fresnelMultiplier(cosIncident, n1, k1, n2, k2, isDielectric);
         }
-        F_r = 0; // Temporary
+
         double randomNum = randomUniform(0, 1);
         bool isReflected = randomNum <= F_r;
         
         vec3 brdfMultiplier;
         vec3 outgoingVector;
-        if (isReflected && isDielectric){
-            brdfMultiplier = WHITE;
-            outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
-        }
-        else if (isReflected && !isDielectric){
-            brdfMultiplier = albedoMap -> get(u, v);
-            outgoingVector = reflectVector(hit.incomingVector, -fresnelNormal);
+        if (isReflected){
+            brdfMultiplier = isDielectric ? WHITE : albedoMap -> get(u, v);
+            outgoingVector = reflectVector(hit.incomingVector, fresnelNormal);
         }
         else{
             Ray transmissionRay;
@@ -224,11 +239,11 @@ class TransparentMaterial : public virtual Material{
             vec3 attenuationColor;
             double distance = transmissionHit.distance;
             if (distance > 0 && !inside){
-                vec3 log_attenuation = (vec3(1,1,1) - albedoMap -> get(u, v)) * attenuationCoefficient * (-distance);
+                vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
                 attenuationColor = expVector(log_attenuation);
             }
             else{
-                attenuationColor = WHITE; // TODO: Is this right?
+                attenuationColor = WHITE;
             }
 
             double refractionIntensityFactor = n2 * n2 / (n1 * n1);
@@ -249,13 +264,10 @@ class GlossyMaterial : public DiffuseMaterial, public ReflectiveMaterial{
     public:
         ValueMap1D* roughnessMap;
         ValueMap1D* percentageSpecularMap;
-        GlossyMaterial(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
-        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0)
-        :Material(_albedoMap, _emmissionColorMap, _lightIntensityMap, _refractiveIndex, _attenuationCoefficient, _isDielectric, _imaginaryRefractiveIndex){
-            double* v1 = new double(0.2);
-            roughnessMap = new ValueMap1D(v1);
-            double* v2 = new double(1);
-            percentageSpecularMap = new ValueMap1D(v2);
+        GlossyMaterial(MaterialData data)
+        : Material(data){
+            roughnessMap = data.roughnessMap;
+            percentageSpecularMap = data.percentageSpecularMap;
         }
         ~GlossyMaterial(){
             delete roughnessMap;
@@ -294,13 +306,10 @@ class FrostyMaterial : public DiffuseMaterial, public TransparentMaterial{
     public:
         ValueMap1D* roughnessMap;
         ValueMap1D* percentageSpecularMap;
-        FrostyMaterial(ValueMap3D* _albedoMap, ValueMap3D* _emmissionColorMap, ValueMap1D* _lightIntensityMap,
-        double _refractiveIndex=1, double _attenuationCoefficient=0, bool _isDielectric=true, double _imaginaryRefractiveIndex=0)
-        : Material(_albedoMap, _emmissionColorMap, _lightIntensityMap, _refractiveIndex, _attenuationCoefficient, _isDielectric, _imaginaryRefractiveIndex){
-            double* roughnessData = new double(0.1);
-            roughnessMap = new ValueMap1D(roughnessData);
-            double* specData = new double(1);
-            percentageSpecularMap = new ValueMap1D(specData);
+        FrostyMaterial(MaterialData data)
+        : Material(data){
+            roughnessMap = data.roughnessMap;
+            percentageSpecularMap = data.percentageSpecularMap;
         }
 
         ~FrostyMaterial(){

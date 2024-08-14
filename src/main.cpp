@@ -8,78 +8,69 @@
 #include "constants.h"
 
 
-ValueMap3D whiteMap = ValueMap3D(WHITE*0.8);
-ValueMap3D warmWhiteMap = ValueMap3D(WARM_WHITE);
-ValueMap3D pureWhiteMap = ValueMap3D(WHITE);
-ValueMap3D redMap = ValueMap3D(RED*0.8);
-ValueMap3D greenMap = ValueMap3D(GREEN*0.8);
-ValueMap3D blueMap = ValueMap3D(BLUE*0.8);
-double* zero = new double(0);
-double* ten = new double(6);
-ValueMap1D zeroMap = ValueMap1D(zero);
-ValueMap1D tenMap = ValueMap1D(ten);
-
-double* colorData = new double[6]{1,1,1, 0.5, 0.5, 0.5};
-ValueMap3D variedMap = ValueMap3D(colorData, 2, 1);
-
-double* roughnessData = new double[6]{0, 0.03, 0.07, 0.12, 0.2, 0.3};
-ValueMap3D roughnessMap = ValueMap3D(roughnessData, 3, 2, 1, 1);
-
-double* smilyData = new double[108]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-ValueMap3D smilyMap = ValueMap3D(smilyData, 6, 6, 1, 1);
-
-DiffuseMaterial whiteDiffuseMaterial = DiffuseMaterial(&variedMap, &whiteMap, &zeroMap);
-DiffuseMaterial redDiffuseMaterial = DiffuseMaterial(&redMap, &whiteMap, &zeroMap);
-DiffuseMaterial greenDiffuseMaterial = DiffuseMaterial(&greenMap, &whiteMap, &zeroMap);
-ReflectiveMaterial blueReflectiveMaterial = ReflectiveMaterial(&blueMap, &whiteMap, &zeroMap, 1.5, 0, false);
-ReflectiveMaterial whiteReflectiveMaterial = ReflectiveMaterial(&whiteMap, &whiteMap, &zeroMap);
-FrostyMaterial ball2Material = FrostyMaterial(&whiteMap, &whiteMap, &zeroMap, 1.5, 1.4, false, 1.5);
-DiffuseMaterial lightSourceMaterial = DiffuseMaterial(&whiteMap, &warmWhiteMap, &tenMap);
-TransparentMaterial pane1Material = TransparentMaterial(&pureWhiteMap, &whiteMap, &zeroMap, 1.5);
-FrostyMaterial pane2Material = FrostyMaterial(&pureWhiteMap, &whiteMap, &zeroMap, 1.5);
-
-Plane thisFloor = Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), &whiteDiffuseMaterial);
-Plane  frontWall = Plane(vec3(0,0,-0.35), vec3(-1,0,0), vec3(0,-1,0), &whiteDiffuseMaterial);
-Plane leftWall = Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), &redDiffuseMaterial);
-Plane rightWall = Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), &greenDiffuseMaterial);
-Plane roof = Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), &whiteDiffuseMaterial);
-Plane backWall = Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), &whiteDiffuseMaterial);
-
-Rectangle frontPane1 = Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, &pane1Material);
-Rectangle BackPane1 = Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, &pane1Material);
-
-Rectangle frontPane2 = Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, &pane2Material);
-Rectangle BackPane2 = Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, &pane2Material);
-
-Sphere ball1 = Sphere(vec3(0.35,0,0), 0.35, &blueReflectiveMaterial);
-Sphere ball2 = Sphere(vec3(-0.45,0,0.6), 0.35, &ball2Material);
-
-Rectangle lightSource = Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, &lightSourceMaterial);
-
-Object* objectPtrList[] = {&thisFloor, &roof, &frontWall, &backWall, &rightWall, &leftWall, &ball1, &ball2, &lightSource};
-Object* lightsourcePtrList[] = {&lightSource};
-
-vec3 cameraPosition = vec3(0, 1, 3);
-vec3 viewingDirection = vec3(0.0, -0.3, -1);
-vec3 screenYVector = vec3(0, 1, 0);
-Camera camera = Camera(cameraPosition, viewingDirection, screenYVector);
+struct Scene{
+    Object** objects;
+    Camera* camera;
+    int numberOfObjects;
+};
 
 
-vec3 raytrace(Ray ray);
+ValueMap1D* createValueMap1D(std::string fileName, double uMax=1, double vMax=1){
+    std::fstream mapFile(fileName, std::ios_base::in); 
+    int width;
+    int height;
+    int dimension;
+    mapFile >> width;
+    mapFile >> height;
+    mapFile >> dimension;
+    int N = width * height * dimension;
+    double valueHolder;
+    double* dataArray = new double[N];
+    for (int i = 0; i < N; i++){
+        mapFile >> dataArray[i];
+    }
+
+    return new ValueMap1D(dataArray, width, height, uMax, vMax);;
+}
 
 
-vec3 directLighting(const Hit& hit){
-    int numLightSources = sizeof(lightsourcePtrList) / sizeof(Object*);
-    int randomIndex = randomInt(0, numLightSources);
-    int lightIndex;
-    for (int i = 0; i < sizeof(objectPtrList) / sizeof(Object*); i++){
-        if (objectPtrList[i] == lightsourcePtrList[randomIndex]){
-            lightIndex = i;
-            break;
+
+ValueMap3D* createValueMap3D(std::string fileName, double uMax=1, double vMax=1){
+    std::fstream mapFile(fileName, std::ios_base::in); 
+    int width;
+    int height;
+    int dimension;
+    mapFile >> width;
+    mapFile >> height;
+    mapFile >> dimension;
+    int N = width * height * dimension;
+    double valueHolder;
+    double* dataArray = new double[N];
+    for (int i = 0; i < N; i++){
+        mapFile >> dataArray[i];
+    }
+    return new ValueMap3D(dataArray, width, height, uMax, vMax);;
+}
+
+
+vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects);
+
+
+vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects){
+    int lightSourceIdxArray[numberOfObjects];
+
+    int numberOfLightSources = 0;
+    for (int i = 0; i < numberOfObjects; i++){
+        if (objects[i] -> material -> isLightSource){
+            lightSourceIdxArray[numberOfLightSources] = i;
+            numberOfLightSources++;
         }
     }
+    int randomIndex = randomInt(0, numberOfLightSources);
+    int lightIndex = lightSourceIdxArray[randomIndex];
+
     double inversePDF;
-    vec3 randomPoint = lightsourcePtrList[randomIndex] -> randomLightPoint(hit.intersectionPoint, inversePDF);
+    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit.intersectionPoint, inversePDF);
 
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
@@ -89,40 +80,38 @@ vec3 directLighting(const Hit& hit){
     lightRay.startingPosition = hit.intersectionPoint;
     lightRay.directionVector =  vectorTowardsLight;
 
-    int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
-    Hit lightHit = findClosestHit(lightRay, objectPtrList, numberOfObjects);
+    Hit lightHit = findClosestHit(lightRay, objects, numberOfObjects);
     bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
     bool hitFromBehind = dotVectors(vectorTowardsLight, hit.normalVector) < 0.0;
     if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance || hitFromBehind){
         return BLACK;
     }
 
-    vec3 brdfMultiplier = objectPtrList[hit.intersectedObjectIndex] -> eval(hit.intersectionPoint);
-    vec3 lightEmitance = lightsourcePtrList[randomIndex] -> getLightEmittance(lightHit.intersectionPoint);
+    vec3 brdfMultiplier = objects[hit.intersectedObjectIndex] -> eval(hit.intersectionPoint);
+    vec3 lightEmitance = objects[lightIndex] -> getLightEmittance(lightHit.intersectionPoint);
 
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
 
-    return brdfMultiplier * cosine * lightEmitance * inversePDF * (double) numLightSources;
+    return brdfMultiplier * cosine * lightEmitance * inversePDF * (double) numberOfLightSources;
 }
 
 
-vec3 raytrace(Ray ray){
+vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
     vec3 color = vec3(0,0,0);
     vec3 brdfAccumulator = vec3(1,1,1);
     vec3 throughput = vec3(1,1,1);
     int forceRecusionLimit = 3;
-    int numberOfObjects = sizeof(objectPtrList) / sizeof(Object*);
     double randomThreshold = 1;
     for (int depth = 0; depth <= constants::maxRecursionDepth; depth++){
-        Hit rayHit = findClosestHit(ray, objectPtrList, numberOfObjects);
+        Hit rayHit = findClosestHit(ray, objects, numberOfObjects);
         if (rayHit.distance <= constants::EPSILON){
             break;
         }
         
         bool specularRay = ray.type == REFLECTED || ray.type == TRANSMITTED;
         if (!constants::enableNextEventEstimation || depth == 0 || specularRay){
-            vec3 lightEmitance = objectPtrList[rayHit.intersectedObjectIndex] -> getLightEmittance(rayHit.intersectionPoint);
+            vec3 lightEmitance = objects[rayHit.intersectedObjectIndex] -> getLightEmittance(rayHit.intersectionPoint);
             color += lightEmitance * brdfAccumulator * (dotVectors(ray.directionVector, rayHit.normalVector) < 0);
         }
 
@@ -144,11 +133,11 @@ vec3 raytrace(Ray ray){
         }   
 
         if (constants::enableNextEventEstimation){
-            vec3 direct = directLighting(rayHit);
+            vec3 direct = directLighting(rayHit, objects, numberOfObjects);
             color += direct * brdfAccumulator / randomThreshold;
         }
 
-        brdfData brdfResult = objectPtrList[rayHit.intersectedObjectIndex] -> sample(rayHit, objectPtrList, numberOfObjects);
+        brdfData brdfResult = objects[rayHit.intersectedObjectIndex] -> sample(rayHit, objects, numberOfObjects);
 
         throughput *= brdfResult.brdfMultiplier / randomThreshold;
         ray.startingPosition = rayHit.intersectionPoint;
@@ -162,15 +151,15 @@ vec3 raytrace(Ray ray){
  }
 
 
-vec3 computePixelColor(const int x, const int y){
+vec3 computePixelColor(const int x, const int y, Scene scene){
     vec3 pixelColor = vec3(0,0,0);
     Ray ray;
-    ray.startingPosition = cameraPosition;
+    ray.startingPosition = scene.camera -> position;
     for (int i = 0; i < constants::samplesPerPixel; i++){
         double x_offset = randomNormal() / 2.0;
         double y_offset = randomNormal() / 2.0;
-        ray.directionVector = camera.getStartingDirections(x + x_offset, y + y_offset);
-        vec3 sampledColor = raytrace(ray);
+        ray.directionVector = scene.camera -> getStartingDirections(x + x_offset, y + y_offset);
+        vec3 sampledColor = raytrace(ray, scene.objects, scene.numberOfObjects);
         pixelColor += sampledColor;    
     }
 
@@ -202,18 +191,124 @@ void printProgress(double progress){
 }
 
 
+Scene createScene(){
+    ValueMap3D* whiteMap = new ValueMap3D(WHITE*0.8);
+    ValueMap3D* warmWhiteMap = new ValueMap3D(WARM_WHITE);
+    ValueMap3D* pureWhiteMap = new ValueMap3D(WHITE);
+    ValueMap3D* redMap = new ValueMap3D(RED*0.8);
+    ValueMap3D* greenMap = new ValueMap3D(GREEN*0.8);
+    ValueMap3D* blueMap = new ValueMap3D(BLUE*0.8);
+    double* zero = new double(0);
+    double* one = new double(1);
+    double* ten = new double(6);
+    ValueMap1D* zeroMap = new ValueMap1D(zero);
+    ValueMap1D* oneMap = new ValueMap1D(one);
+    ValueMap1D* tenMap = new ValueMap1D(ten);
+
+    ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
+
+    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
+    
+    MaterialData defaultMaterialData;
+    defaultMaterialData.albedoMap = whiteMap;
+    DiffuseMaterial* whiteDiffuseMaterial = new DiffuseMaterial(defaultMaterialData);
+    ReflectiveMaterial* whiteReflectiveMaterial = new ReflectiveMaterial(defaultMaterialData);   
+
+    MaterialData stripedData;
+    double* stripes = new double[6]{0.8, 0.8, 0.8, 0, 0, 0};
+    ValueMap3D* stripedMap = new ValueMap3D(stripes, 2, 1, 0.1, 1);
+    stripedData.albedoMap = stripedMap;
+    DiffuseMaterial* stripedMaterial = new DiffuseMaterial(stripedData);
+
+    MaterialData redMaterialData;
+    redMaterialData.albedoMap = redMap;
+    DiffuseMaterial* redDiffuseMaterial = new DiffuseMaterial(redMaterialData);
+
+    MaterialData greenMaterialData;
+    greenMaterialData.albedoMap = greenMap;
+    DiffuseMaterial* greenDiffuseMaterial = new DiffuseMaterial(greenMaterialData);
+
+    MaterialData blueMaterialData;
+    blueMaterialData.albedoMap = blueMap;
+    blueMaterialData.isDielectric = false;
+    ReflectiveMaterial* blueReflectiveMaterial = new ReflectiveMaterial(blueMaterialData);
+
+    MaterialData ball2Data;
+    ball2Data.albedoMap = blueMap;
+    ball2Data.refractiveIndex = 2;
+    ball2Data.attenuationCoefficient = 0.1;
+    ball2Data.roughnessMap = worldRoughnessMap;
+    ball2Data.absorptionAlbedo = WHITE - BLUE;
+    ball2Data.isDielectric = true;
+    FrostyMaterial* ball2Material = new FrostyMaterial(ball2Data);
+
+    MaterialData lightMaterialData;
+    lightMaterialData.albedoMap = blueMap;
+    lightMaterialData.emmissionColorMap = warmWhiteMap;
+    lightMaterialData.lightIntensityMap = tenMap;
+    lightMaterialData.isLightSource = true;
+    DiffuseMaterial* lightSourceMaterial = new DiffuseMaterial(lightMaterialData);
+
+    MaterialData glassData;
+    glassData.albedoMap = pureWhiteMap;
+    glassData.refractiveIndex = 1.5;
+    TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
+
+    MaterialData frostyGlassData;
+    frostyGlassData.albedoMap = pureWhiteMap;
+    frostyGlassData.refractiveIndex = 1.5;
+    frostyGlassData.roughnessMap = worldRoughnessMap;
+    FrostyMaterial* pane2Material = new FrostyMaterial(frostyGlassData);
+
+    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
+    Plane*  frontWall = new Plane(vec3(0,0,-0.35), vec3(-1,0,0), vec3(0,-1,0), stripedMaterial);
+    Plane* leftWall = new Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), redDiffuseMaterial);
+    Plane* rightWall = new Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), greenDiffuseMaterial);
+    Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
+    Plane* backWall = new Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), whiteDiffuseMaterial);
+
+    Rectangle* frontPane1 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Rectangle* BackPane1 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+
+    Rectangle* frontPane2 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
+    Rectangle* BackPane2 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
+
+    Sphere* ball1 = new Sphere(vec3(0.35,0,0), 0.35, blueReflectiveMaterial);
+    Sphere* ball2 = new Sphere(vec3(-0.45, 0, 0.6), 0.35, ball2Material);
+
+    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
+
+    Object** objects = new Object*[9]{thisFloor, roof, frontWall, backWall, rightWall, leftWall, ball1, ball2, lightSource};
+
+    vec3 cameraPosition = vec3(0, 0.7, 3.4);
+    vec3 viewingDirection = vec3(0.0, -0.2, -1);
+    vec3 screenYVector = vec3(0, 1, 0);
+    Camera* camera = new Camera(cameraPosition, viewingDirection, screenYVector);
+    int numberOfObjects = 9;
+    Scene scene;
+    scene.objects = objects;
+    scene.camera = camera;
+    scene.numberOfObjects = numberOfObjects;
+    return scene;
+}
+
+
 int main() {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     std::ofstream dataFile;
     dataFile.open("./temp/result_data.txt");
     
     dataFile << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+
+    Scene scene = createScene();
+
     int maxIters = 0;
     for (int y = constants::HEIGHT-1; y >= 0; y--) {
         double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;
         printProgress(progress);
         for (int x = constants::WIDTH-1; x >= 0; x--) {
-            vec3 rgb = computePixelColor(x, y);
+            vec3 rgb = computePixelColor(x, y, scene);
             printPixelColor(colorClip(rgb), dataFile);
         }
     }
@@ -223,5 +318,6 @@ int main() {
 
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
+    //TODO: remember to free the scene.
     return 0;
 }

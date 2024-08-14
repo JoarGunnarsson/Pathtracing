@@ -2,6 +2,7 @@
 #define utils
 #include "vec3.h"
 #include <random>
+#include <complex>
 
 
 class VirtualMethodNotAllowedException : public std::logic_error {
@@ -177,32 +178,38 @@ double fresnelDielectric(const double cosIncident, const double n1, const double
 }
 
 
-double fresnelConductor(const double cosTheta, const double n1, const double k1, const double n2, const double k2){
+double fresnelConductor(double cosThetaReal, const double n1, const double k1, const double n2, const double k2){
+    std::complex<double> cosTheta(cosThetaReal, 0);
     double eta;
     double k;
+    std::complex<double> one(1,0);
     if (k1 == 0){
         eta = n2 / n1;
         k = k2 / n1;
     }
     else{
-        double complexIndexNorm = (n1 * n1 * k1 * k1);
-        eta = n2 * n1 / complexIndexNorm;
-        k = - k1 * n2 / complexIndexNorm;
+        eta = n1 / n2;
+        k = k1 / n2;
+        std::complex<double> sinTheta = sqrt(one - cosTheta * cosTheta);
+        std::complex<double> n_tilde(n1, k1);
+        std::complex<double> sinThetaT = n_tilde / n2 * sinTheta;
+        std::complex<double> sinThetaT2 = sinThetaT * sinThetaT;
+        std::complex<double> cosTheta = sqrt(one - sinThetaT2);
     }
 
-    double cosTheta2 = cosTheta * cosTheta;
-    double sinTheta2 = 1 - cosTheta2;
-    double f0 = sqrt(pow(eta * eta - k * k - sinTheta2, 2) + 4 * eta * eta * k * k);
-    double a2b2 = f0;
-    double a = sqrt(0.5 * f0 + eta * eta - k * k - sinTheta2);
-    double f1 = a2b2 + cosTheta2;
-    double f2 = 2 * a * cosTheta;
-    double f3 = cosTheta2 * a2b2 + sinTheta2 * sinTheta2;
-    double f4 = f2 * sinTheta2;
+    std::complex<double> cosTheta2 = cosTheta * cosTheta;
+    std::complex<double> sinTheta2 = one - cosTheta2;
+    std::complex<double> f0 = sqrt(pow(eta * eta - k * k - sinTheta2, 2) + 4.0 * eta * eta * k * k);
+    std::complex<double> a2b2 = f0;
+    std::complex<double> a = sqrt(0.5 * f0 + eta * eta - k * k - sinTheta2);
+    std::complex<double> f1 = a2b2 + cosTheta2;
+    std::complex<double> f2 = 2.0 * a * cosTheta;
+    std::complex<double> f3 = cosTheta2 * a2b2 + sinTheta2 * sinTheta2;
+    std::complex<double> f4 = f2 * sinTheta2;
 
-    double R_p = (f1 - f2) / (f1 + f2);
-    double R_s = R_p * (f3 - f4) / (f3 + f4); 
-    return 0.5 * (R_p + R_s);
+    std::complex<double> R_s = (f1 - f2) / (f1 + f2);
+    std::complex<double> R_p = R_s * (f3 - f4) / (f3 + f4); 
+    return 0.5 * real(R_p + R_s);
 }
 
 
