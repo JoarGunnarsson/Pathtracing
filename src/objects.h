@@ -246,6 +246,102 @@ class Rectangle: public Plane{
 };
 
 
+class Triangle: public Object{
+    public:
+        vec3 position;
+        vec3 normalVector;
+        vec3 p1;
+        vec3 p2;
+        vec3 p3;
+        vec3 v1;
+        vec3 v2;
+        double x1;
+        double y1;
+        double x2;
+        double y2;
+        double x3;
+        double y3;
+        double detT;
+
+        Triangle(vec3 _p1, vec3 _p2, vec3 _p3, Material* _material) : Object(_material){
+            p1 = _p1;
+            p2 = _p2;
+            p3 = _p3;
+
+            position = p1;
+
+            v1 = normalizeVector(p2 - p1);
+            v2 = normalizeVector(p3 - p1);
+            normalVector = normalizeVector(crossVectors(v1, v2));
+            v2 = normalizeVector(crossVectors(normalVector, v1));
+
+            x1 = dotVectors(p1, v1);
+            y1 = dotVectors(p1, v2);
+            x2 = dotVectors(p2, v1);
+            y2 = dotVectors(p2, v2);
+            x3 = dotVectors(p3, v1);
+            y3 = dotVectors(p3, v2);
+            detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+
+            area = 0.5 * std::abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+        }
+
+        vec3 getNormalVector(const vec3& point) override{
+            return normalVector;
+        }
+
+        vec3 computeBarycentric(const vec3& point){
+            double x = dotVectors(point, v1);
+            double y = dotVectors(point, v2);
+
+            double lambda1 = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / detT;
+            double lambda2 = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / detT;
+            return vec3(lambda1, lambda2, 1 - lambda1 - lambda2);
+        }
+
+        vec3 getUV(const vec3& hitPoint) override{
+            // TODO
+            return vec3(0, 0, 0);
+        }
+
+        Hit findClosestHit(const Ray& ray) override{
+            Hit hit;
+            hit.objectID = 0;
+            hit.distance = -1;
+            vec3 shiftedPoint = ray.startingPosition - position;
+
+            double directionDotNormal = -dotVectors(ray.directionVector, normalVector);
+            if (std::abs(directionDotNormal) < constants::EPSILON){
+                return hit;
+            }
+
+            double distancesToStart = dotVectors(shiftedPoint, normalVector);
+            double distance = distancesToStart / directionDotNormal;
+
+            if (distance < 0){
+                return hit;
+            }
+
+            vec3 inPlanePoint = ray.startingPosition + ray.directionVector * distance;
+
+            vec3 barycentricVector = computeBarycentric(inPlanePoint);
+            if (barycentricVector[0] < 0 || barycentricVector[1] < 0 || barycentricVector[2] < 0){
+                return hit;
+            }
+            hit.distance = distance;
+            return hit;
+        }
+
+        vec3 generateRandomSurfacePoint() override{
+            return vec3(0,0,0);
+        }
+
+        vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
+            vec3 randomPoint;
+            return randomPoint;
+        }
+};
+
 
 Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     Hit closestHit;
