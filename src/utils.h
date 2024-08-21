@@ -69,6 +69,10 @@ inline double clamp(const double value, const double min, const double max){
 }
 
 
+double sign(const double x){
+    return x > 0 ? 1 : -1;
+}
+
 double solveQuadratic(const double b, const double c){
     double discriminant = pow(b, 2) - 4 * c;
     if (discriminant < 0){

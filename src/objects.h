@@ -9,16 +9,15 @@
 
 class Object{
     public:
-        vec3 position;
         Material* material;
         double area;
         Object(){}
-        Object(vec3 _position, Material* _material){
-            position = _position;
+        Object(Material* _material){
             material = _material;
         }
 
         virtual vec3 getUV(const vec3& hitPoint){
+            throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
         }
@@ -39,21 +38,25 @@ class Object{
         }
 
         virtual Hit findClosestHit(const Ray& ray){
+            throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             Hit hit;
             return hit;
         }
         
         virtual vec3 getNormalVector(const vec3& intersectionPoint){
+            throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
         }
 
         virtual vec3 generateRandomSurfacePoint(){
+            throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             vec3 point;
             return point;
         }
 
         virtual vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF){
+            throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             vec3 point;
             return point;
         }
@@ -70,19 +73,19 @@ class Object{
 
 class Sphere: public Object{
     public:
+        vec3 position;
         double radius;
         double radiusSquared;
         Sphere(){}
-        Sphere(vec3 _position, double _radius, Material* _material){
+        Sphere(vec3 _position, double _radius, Material* _material) : Object(_material){
             position = _position;
             radius = _radius;
-            material = _material;
             area = 4 * M_PI * radius * radius;
             radiusSquared = radius * radius;
         }
 
         vec3 getUV(const vec3& hitPoint) override{
-            vec3 unitSpherePoint = (hitPoint - position)/radius;
+            vec3 unitSpherePoint = (hitPoint - position) / radius;
             double x = -unitSpherePoint[0];
             double y = -unitSpherePoint[1];
             double z = -unitSpherePoint[2];
@@ -143,24 +146,24 @@ class Sphere: public Object{
 
 class Plane: public Object{
     public:
+        vec3 position;
         vec3 v1;
         vec3 v2;
         vec3 normalVector;
         bool transparentBack;
         Plane(){}
-        Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material){
+        Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material) : Object(_material){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
             vec3 _normalVector = crossVectors(v1, v2);
             normalVector = normalizeVector(_normalVector);
-            material = _material;
         }
 
         vec3 getUV(const vec3& hitPoint) override{
             vec3 shiftedPoint = hitPoint - position;
-            double u = dotVectors(shiftedPoint, v1);
-            double v = dotVectors(shiftedPoint, v2);
+            double u = 1 - dotVectors(shiftedPoint, v1) - 0.5;
+            double v = 1 - dotVectors(shiftedPoint, v2) - 0.5;
             return vec3(u, v, 0);
         }
 
@@ -195,32 +198,26 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
-        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material){
-            position = _position;
-            v1 = normalizeVector(_v1);
-            v2 = normalizeVector(_v2);
+        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material) : Plane(_position, _v1, _v2, _material){
             L1 = _L1;
             L2 = _L2;
             area = L1 * L2;
-            vec3 _normalVector = crossVectors(v1, v2);
-            normalVector = normalizeVector(_normalVector);
-            material = _material;
         }
         vec3 getUV(const vec3& hitPoint) override{
             vec3 shiftedPoint = hitPoint - position;
-            double u = dotVectors(shiftedPoint, v1) / L1 + 0.5;
-            double v = dotVectors(shiftedPoint, v2) / L2 + 0.5;
+            double u = 1 - dotVectors(shiftedPoint, v1) / L1 - 0.5;
+            double v = 1 - dotVectors(shiftedPoint, v2) / L2 - 0.5;
             return vec3(u, v, 0);
         }
 
         Hit findClosestHit(const Ray& ray) override{
             Hit hit;
             hit.objectID = 0;
+            hit.distance = -1;
 
             vec3 shiftedPoint = ray.startingPosition - position;
             double distance = Plane::computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
             if (distance < 0){
-                hit.distance = distance;
                 return hit;
             }
             double directionDotV1 = dotVectors(ray.directionVector, v1);
@@ -229,7 +226,7 @@ class Rectangle: public Plane{
             double startDotV2 = dotVectors(shiftedPoint, v2);
 
             if (std::abs(startDotV1 + directionDotV1 * distance) > L1 / 2.0 + constants::EPSILON || std::abs(startDotV2 + directionDotV2 * distance) > L2 / 2.0 + constants::EPSILON){
-                distance = -1;
+                return hit;
             }
             hit.distance = distance;
             return hit;
@@ -247,6 +244,8 @@ class Rectangle: public Plane{
             return randomPoint;
         }
 };
+
+
 
 Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     Hit closestHit;
