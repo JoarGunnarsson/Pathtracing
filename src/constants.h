@@ -9,7 +9,7 @@ namespace constants
     const int HEIGHT = 1000;
     const bool enableNextEventEstimation = true;
     const double airRefractiveIndex = 1;
-    const int maxRecursionDepth = 1;
+    const int maxRecursionDepth = 100;
 }
 
 #endif

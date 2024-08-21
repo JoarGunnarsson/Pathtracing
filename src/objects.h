@@ -263,6 +263,10 @@ class Triangle: public Object{
         double y3;
         double detT;
 
+        vec3 uv1;
+        vec3 uv2;
+        vec3 uv3;
+
         Triangle(vec3 _p1, vec3 _p2, vec3 _p3, Material* _material) : Object(_material){
             p1 = _p1;
             p2 = _p2;
@@ -284,6 +288,10 @@ class Triangle: public Object{
             detT = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
 
             area = 0.5 * std::abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+
+            uv1 = vec3(0, 0, 0);
+            uv2 = vec3(1, 0, 0);
+            uv3 = vec3(0, 1, 0);
         }
 
         vec3 getNormalVector(const vec3& point) override{
@@ -300,8 +308,8 @@ class Triangle: public Object{
         }
 
         vec3 getUV(const vec3& hitPoint) override{
-            // TODO
-            return vec3(0, 0, 0);
+            vec3 barycentricVector = computeBarycentric(hitPoint);
+            return uv1 * barycentricVector[0] + uv2 * barycentricVector[1] + uv3 * barycentricVector[2];
         }
 
         Hit findClosestHit(const Ray& ray) override{
@@ -333,11 +341,14 @@ class Triangle: public Object{
         }
 
         vec3 generateRandomSurfacePoint() override{
-            return vec3(0,0,0);
+            double r1 = randomUniform(0, 1);
+            double r2 = randomUniform(0, 1);
+            return p1 * (1.0 - sqrt(r1)) + p2 * (sqrt(r1) * (1.0 - r2)) + p3 * (sqrt(r1) * r2);
         }
 
         vec3 randomLightPoint(const vec3& referencePoint, double& inversePDF) override{
-            vec3 randomPoint;
+            vec3 randomPoint = generateRandomSurfacePoint();
+            inversePDF = area *  areaToAnglePDFFactor(randomPoint, referencePoint);
             return randomPoint;
         }
 };
