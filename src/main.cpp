@@ -195,15 +195,21 @@ Scene createScene(){
     ValueMap3D* redMap = new ValueMap3D(RED*0.8);
     ValueMap3D* greenMap = new ValueMap3D(GREEN*0.8);
     ValueMap3D* blueMap = new ValueMap3D(BLUE*0.8);
+    ValueMap3D* blackMap = new ValueMap3D(BLACK);
+    ValueMap3D* goldMap = new ValueMap3D(GOLD);
     double* zero = new double(0);
     double* one = new double(1);
-    double* ten = new double(10);
+    double* ten = new double(10*25 / 4.0);
     double* pointOne = new double(0.1);
+    double* pointThree = new double(0.3);
+    double* pointFive = new double(0.3);
     double* pointSeven = new double(0.7);
     ValueMap1D* zeroMap = new ValueMap1D(zero);
     ValueMap1D* oneMap = new ValueMap1D(one);
     ValueMap1D* tenMap = new ValueMap1D(ten);
     ValueMap1D* pointOneMap = new ValueMap1D(pointOne);
+    ValueMap1D* pointThreeMap = new ValueMap1D(pointThree);
+    ValueMap1D* pointFiveMap = new ValueMap1D(pointFive);
     ValueMap1D* pointSevenMap = new ValueMap1D(pointSeven);
 
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
@@ -235,8 +241,13 @@ Scene createScene(){
     ReflectiveMaterial* blueReflectiveMaterial = new ReflectiveMaterial(blueMaterialData);
 
     MaterialData ball2Data;
-    ball2Data.albedoMap = whiteMap;;
-    DiffuseMaterial* ball2Material = new DiffuseMaterial(ball2Data);
+    ball2Data.albedoMap = goldMap;
+    ball2Data.roughnessMap = zeroMap;
+    ball2Data.percentageDiffuseMap = oneMap;
+    ball2Data.refractiveIndex = 0.277;
+    ball2Data.extinctionCoefficient = 2.92;
+    ball2Data.isDielectric = false;
+    MicrofacetMaterial* ball2Material = new MicrofacetMaterial(ball2Data);
 
     MaterialData lightMaterialData;
     lightMaterialData.albedoMap = whiteMap;
@@ -251,9 +262,9 @@ Scene createScene(){
     MicrofacetMaterial* pane1Material = new MicrofacetMaterial(glassData);
 
     MaterialData frostyGlassData;
-    frostyGlassData.albedoMap = worldMap;
+    frostyGlassData.albedoMap = pureWhiteMap;
     frostyGlassData.refractiveIndex = 1.5;
-    frostyGlassData.roughnessMap = worldRoughnessMap;
+    frostyGlassData.roughnessMap = pointThreeMap;
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
     Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
@@ -261,18 +272,18 @@ Scene createScene(){
     Plane* leftWall = new Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), redDiffuseMaterial);
     Plane* rightWall = new Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), greenDiffuseMaterial);
     Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
-    Plane* backWall = new Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), whiteDiffuseMaterial);
+    Plane* backWall = new Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), redDiffuseMaterial);
 
-    Rectangle* frontPane1 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
-    Rectangle* backPane1 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Rectangle* backPane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
 
-    Rectangle* frontPane2 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
-    Rectangle* backPane2 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Rectangle* frontPane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
+    Rectangle* backPane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
 
     Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, blueReflectiveMaterial);
     Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, ball2Material);
 
-    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
+    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 0.4, 0.4, lightSourceMaterial);
 
     int numberOfObjects = 9;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, ball1, ball2, lightSource};

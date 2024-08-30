@@ -1,6 +1,7 @@
 #ifndef utils
 #define utils
 #include "vec3.h"
+#include "constants.h"
 #include <random>
 #include <complex>
 
@@ -73,8 +74,9 @@ double sign(const double x){
     return x > 0 ? 1 : -1;
 }
 
+
 double solveQuadratic(const double b, const double c){
-    double discriminant = pow(b, 2) - 4 * c;
+    double discriminant = b*b - 4.0 * c;
     if (discriminant < 0){
         return -1.0;
     }
@@ -82,11 +84,11 @@ double solveQuadratic(const double b, const double c){
     double maximum_solution = - 1.0 / 2.0 * (b - root_discriminant);
     double minimum_solution = - 1.0 / 2.0 * (b + root_discriminant);
 
-    if (minimum_solution > 0){
+    if (minimum_solution > constants::EPSILON){
         return minimum_solution;
     }
 
-    if (maximum_solution > 0){
+    if (maximum_solution > constants::EPSILON){
         return maximum_solution;
     }
     return -1.0;
@@ -157,15 +159,14 @@ vec3 reflectVector(const vec3& directionVector, const vec3& normalVector){
 }
 
 
-vec3 refractVector(const vec3& normalVector, const vec3& incidentVector, const double n1, const double n2){
-    double mu = n1 / n2;
+vec3 refractVector(const vec3& incidentVector, const vec3& normalVector, const double eta){
     double cosIncident = dotVectors(normalVector, incidentVector);
-    double lengthInNormalDirectionSquared = 1 - mu * mu * (1 - cosIncident * cosIncident);
+    double lengthInNormalDirectionSquared = 1 - eta * eta * (1 - cosIncident * cosIncident);
     if (lengthInNormalDirectionSquared < 0){
         return vec3(0,0,0);
     }
     vec3 perpendicularVectors = incidentVector - normalVector * cosIncident;
-    return normalVector * sqrt(lengthInNormalDirectionSquared) + perpendicularVectors * mu;
+    return normalVector * sqrt(lengthInNormalDirectionSquared) + perpendicularVectors * eta;
 }
 
 
