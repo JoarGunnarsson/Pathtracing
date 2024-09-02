@@ -7,10 +7,10 @@ This is a path tracer, written in C++, aiming to create realistic renders of a s
 Below are a few different an example scenes, showcasing the different material types and light sources.
 
 
-| ![Example 1](Images/Example1.png) | ![Example 2](Images/Ball.png) |
+| ![Example 1](Images/Example1.png) | ![Example 2](Images/BallLight.png) |
 |:----------------------------------:|:----------------------------------:|
 |             Example 1              |             Example 2              |
-| ![Example 3](Images/NoNee.png) | ![Example 4](Images/example_4.png) |
+| ![Example 3](Images/FrostedGlass.png) | ![Example 4](Images/VeryRoughGold.png) |
 |             Example 3              |             Example 4              |
 
 
