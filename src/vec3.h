@@ -125,14 +125,14 @@ inline vec3 expVector(const vec3& v){
 
 
 void displayVector(vec3 v){
-    std::clog << "[";
+    std::cout << "[";
     for (int i = 0; i < 3; i++){
-        std::clog << v[i];
+        std::cout << v[i];
         if (i != 2){
-            std::clog << ", ";
+            std::cout << ", ";
         }
     }
-    std::clog << "]\n";
+    std::cout << "]\n";
 }
 
 #endif

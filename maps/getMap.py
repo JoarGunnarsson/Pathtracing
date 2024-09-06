@@ -4,12 +4,16 @@ import matplotlib.pyplot as plt
 
 def convertImageToMap(inputFile, outputFile):
     img = plt.imread(inputFile)
-    height, width = img.shape[0], img.shape[1]
+    height, width, dim = img.shape[0], img.shape[1], img.shape[2]
     print(width, height)
 
+    img = np.reshape(img, (width*height, dim))
+
     img_data = []
-    for x in img.flatten():
-        img_data.append(str(float(x)/255))
+    maxValue = np.max(img)
+    for rgb in img:
+        for x in rgb[:3]:
+            img_data.append(str(float(x)/maxValue))
     
     write_data_to_file(outputFile, img_data, width, height, 3)
 
@@ -42,5 +46,5 @@ def write_data_to_file(file_name, img_data, width, height, dimension):
         file.write("\n".join(img_data))
 
 
-convertImageToMap("WorldMap.jpg", "world.map")
-world_map_mask()
+convertImageToMap("suzanne.png", "suzanne.map")
+#world_map_mask()

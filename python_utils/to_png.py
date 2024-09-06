@@ -1,4 +1,3 @@
-import os
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -21,8 +20,12 @@ for line in arr[1:]:
     rgb_values = cleaned_line.split(" ")
     rgb_values = [int(x) for x in rgb_values if x != " " and x != ""]
     image.append(rgb_values)
+ 
+if len(image) < size * width:
+    image[-1] = [0,0,0]
+    image.extend([[0, 0, 0]] * (size * width - len(image)))
+
 
 image = np.array(image, dtype=np.uint8)
 image = np.reshape(image, (size, width, 3))
 plt.imsave("Images/result.png", image)
-os.remove("temp/result_data.txt")

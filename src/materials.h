@@ -94,6 +94,44 @@ class ValueMap3D : public ValueMap{
 };
 
 
+ValueMap1D* createValueMap1D(std::string fileName, double uMax=1, double vMax=1){
+    std::fstream mapFile(fileName, std::ios_base::in); 
+    int width;
+    int height;
+    int dimension;
+    mapFile >> width;
+    mapFile >> height;
+    mapFile >> dimension;
+    int N = width * height * dimension;
+    double valueHolder;
+    double* dataArray = new double[N];
+    for (int i = 0; i < N; i++){
+        mapFile >> dataArray[i];
+    }
+
+    return new ValueMap1D(dataArray, width, height, uMax, vMax);;
+}
+
+
+
+ValueMap3D* createValueMap3D(std::string fileName, double uMax=1, double vMax=1){
+    std::fstream mapFile(fileName, std::ios_base::in); 
+    int width;
+    int height;
+    int dimension;
+    mapFile >> width;
+    mapFile >> height;
+    mapFile >> dimension;
+    int N = width * height * dimension;
+    double valueHolder;
+    double* dataArray = new double[N];
+    for (int i = 0; i < N; i++){
+        mapFile >> dataArray[i];
+    }
+    return new ValueMap3D(dataArray, width, height, uMax, vMax);;
+}
+
+
 struct MaterialData{
     ValueMap3D* whiteMap = new ValueMap3D(WHITE);
     double* zero = new double(0);
@@ -150,7 +188,7 @@ class Material{
             percentageDiffuseMap = data.percentageDiffuseMap;
         }
 
-    virtual vec3 eval(const double u, const double v){
+    virtual vec3 eval(const Hit& hit, const double u, const double v){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         vec3 vec;
         return vec;
@@ -172,7 +210,7 @@ class DiffuseMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const double u, const double v) override{
+    vec3 eval(const Hit& hit, const double u, const double v) override{
         return albedoMap -> get(u, v) / M_PI;
     }
 
@@ -193,7 +231,7 @@ class ReflectiveMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const double u, const double v) override{
+    vec3 eval(const Hit& hit, const double u, const double v) override{
         return BLACK;
     }
 
@@ -213,7 +251,7 @@ class TransparentMaterial : public virtual Material{
     public:
         using Material::Material;
 
-    vec3 eval(const double u, const double v) override{
+    vec3 eval(const Hit& hit, const double u, const double v) override{
         return BLACK;
     }
 
@@ -286,7 +324,7 @@ class MicrofacetMaterial : public Material{
     public:
         using Material::Material;
 
-    vec3 eval(const double u, const double v) override{
+    vec3 eval(const Hit& hit, const double u, const double v) override{
         return BLACK;
     }
 
@@ -355,7 +393,6 @@ class MicrofacetMaterial : public Material{
         }
 
         return attenuationColor;
-
     }
 
     brdfData sampleTransmission(const microfacetArgs& args){
@@ -399,8 +436,6 @@ class MicrofacetMaterial : public Material{
             k2 = 0;
         }
 
-        double eta = n1 / n2;
-
         double alpha = std::max(roughnessMap -> get(u, v), constants::EPSILON);
 
         vec3 sampledHalfVector = specularSample(-fresnelNormal, alpha);
@@ -429,7 +464,7 @@ class MicrofacetMaterial : public Material{
         }
         else{
             args.intersectionPoint = hit.intersectionPoint;
-            args.eta = eta;
+            args.eta = n1 / n2;;
             args.objects = objects;
             args.numberOfObjects = numberOfObjects;
             args.outside = outside;

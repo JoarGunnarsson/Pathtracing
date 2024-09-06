@@ -15,50 +15,12 @@ struct Scene{
 };
 
 
-ValueMap1D* createValueMap1D(std::string fileName, double uMax=1, double vMax=1){
-    std::fstream mapFile(fileName, std::ios_base::in); 
-    int width;
-    int height;
-    int dimension;
-    mapFile >> width;
-    mapFile >> height;
-    mapFile >> dimension;
-    int N = width * height * dimension;
-    double valueHolder;
-    double* dataArray = new double[N];
-    for (int i = 0; i < N; i++){
-        mapFile >> dataArray[i];
-    }
-
-    return new ValueMap1D(dataArray, width, height, uMax, vMax);;
-}
-
-
-
-ValueMap3D* createValueMap3D(std::string fileName, double uMax=1, double vMax=1){
-    std::fstream mapFile(fileName, std::ios_base::in); 
-    int width;
-    int height;
-    int dimension;
-    mapFile >> width;
-    mapFile >> height;
-    mapFile >> dimension;
-    int N = width * height * dimension;
-    double valueHolder;
-    double* dataArray = new double[N];
-    for (int i = 0; i < N; i++){
-        mapFile >> dataArray[i];
-    }
-    return new ValueMap3D(dataArray, width, height, uMax, vMax);;
-}
-
-
 vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects){
     int lightSourceIdxArray[numberOfObjects];
 
     int numberOfLightSources = 0;
     for (int i = 0; i < numberOfObjects; i++){
-        if (objects[i] -> material -> isLightSource){
+        if (objects[i] -> isLightSource(hit)){
             lightSourceIdxArray[numberOfLightSources] = i;
             numberOfLightSources++;
         }
@@ -67,7 +29,7 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
     int lightIndex = lightSourceIdxArray[randomIndex];
 
     double inversePDF;
-    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit.intersectionPoint, inversePDF);
+    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit, inversePDF);
 
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
@@ -84,8 +46,8 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
         return BLACK;
     }
 
-    vec3 brdfMultiplier = objects[hit.intersectedObjectIndex] -> eval(hit.intersectionPoint);
-    vec3 lightEmitance = objects[lightIndex] -> getLightEmittance(lightHit.intersectionPoint);
+    vec3 brdfMultiplier = objects[hit.intersectedObjectIndex] -> eval(hit);
+    vec3 lightEmitance = objects[lightIndex] -> getLightEmittance(lightHit);
 
     double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
@@ -109,7 +71,7 @@ vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
         bool isSpecularRay = ray.type == REFLECTED || ray.type == TRANSMITTED;
 
         if (!constants::enableNextEventEstimation || depth == 0 || isSpecularRay){
-            vec3 lightEmitance = objects[rayHit.intersectedObjectIndex] -> getLightEmittance(rayHit.intersectionPoint);
+            vec3 lightEmitance = objects[rayHit.intersectedObjectIndex] -> getLightEmittance(rayHit);
             color += lightEmitance * brdfAccumulator * (dotVectors(ray.directionVector, rayHit.normalVector) < 0);
         }
         bool allowRecursion;
@@ -174,7 +136,7 @@ void printPixelColor(vec3 rgb, std::ofstream& file){
 
 void printProgress(double progress){
     if (progress < 1.0) {
-        int barWidth = 70;
+        int barWidth = 60;
 
         std::clog << "[";
         int pos = barWidth * progress;
@@ -199,7 +161,7 @@ Scene createScene(){
     ValueMap3D* goldMap = new ValueMap3D(GOLD);
     double* zero = new double(0);
     double* one = new double(1);
-    double* ten = new double(10*25 / 4.0);
+    double* ten = new double(10);
     double* pointOne = new double(0.1);
     double* pointThree = new double(0.3);
     double* pointFive = new double(0.3);
@@ -213,7 +175,6 @@ Scene createScene(){
     ValueMap1D* pointSevenMap = new ValueMap1D(pointSeven);
 
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
-
     ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
     
     MaterialData defaultMaterialData;
@@ -240,14 +201,19 @@ Scene createScene(){
     blueMaterialData.isDielectric = false;
     ReflectiveMaterial* blueReflectiveMaterial = new ReflectiveMaterial(blueMaterialData);
 
-    MaterialData ball2Data;
-    ball2Data.albedoMap = goldMap;
-    ball2Data.roughnessMap = zeroMap;
-    ball2Data.percentageDiffuseMap = oneMap;
-    ball2Data.refractiveIndex = 0.277;
-    ball2Data.extinctionCoefficient = 2.92;
-    ball2Data.isDielectric = false;
-    MicrofacetMaterial* ball2Material = new MicrofacetMaterial(ball2Data);
+    MaterialData goldData;
+    goldData.albedoMap = goldMap;
+    goldData.roughnessMap = pointOneMap;
+    goldData.refractiveIndex = 0.277;
+    goldData.extinctionCoefficient = 2.92;
+    goldData.isDielectric = false;
+    MicrofacetMaterial* goldMaterial = new MicrofacetMaterial(goldData);
+
+    MaterialData suzanneData;
+    suzanneData.roughnessMap = zeroMap;
+    suzanneData.percentageDiffuseMap = zeroMap;
+    suzanneData.refractiveIndex = 1.5;
+    MicrofacetMaterial* suzanneMaterial = new MicrofacetMaterial(suzanneData);
 
     MaterialData lightMaterialData;
     lightMaterialData.albedoMap = whiteMap;
@@ -259,12 +225,14 @@ Scene createScene(){
     MaterialData glassData;
     glassData.albedoMap = pureWhiteMap;
     glassData.refractiveIndex = 1.5;
+    glassData.percentageDiffuseMap = zeroMap;
     MicrofacetMaterial* pane1Material = new MicrofacetMaterial(glassData);
 
     MaterialData frostyGlassData;
     frostyGlassData.albedoMap = pureWhiteMap;
     frostyGlassData.refractiveIndex = 1.5;
-    frostyGlassData.roughnessMap = pointThreeMap;
+    frostyGlassData.roughnessMap = pointOneMap;
+    frostyGlassData.percentageDiffuseMap = zeroMap;
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
     Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
@@ -276,17 +244,24 @@ Scene createScene(){
 
     Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
     Rectangle* backPane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Object** pane1Objects = new Object*[2]{frontPane1, backPane1};
+    ObjectUnion* pane1 = new ObjectUnion(pane1Objects, 2, vec3(0,0,0), 1.0);
 
     Rectangle* frontPane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
-    Rectangle* backPane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
+    Rectangle* backPane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
+    Object** pane2Objects = new Object*[2]{frontPane2, backPane2};
+    ObjectUnion* pane2 = new ObjectUnion(pane2Objects, 2, vec3(0,0,0), 1.0);
 
-    Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, blueReflectiveMaterial);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, ball2Material);
+    Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, greenDiffuseMaterial);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, goldMaterial);
 
-    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 0.4, 0.4, lightSourceMaterial);
+    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
 
-    int numberOfObjects = 9;
-    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, ball1, ball2, lightSource};
+    bool smoothShading = false;
+    ObjectUnion* suzanne = loadObjectModel("./models/suzanneTri.obj", redDiffuseMaterial, smoothShading);
+
+    int numberOfObjects = 8;
+    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, suzanne, lightSource};
 
     vec3 cameraPosition = vec3(0, 1, 3);
     vec3 viewingDirection = vec3(0.0, -0.3, -1);
