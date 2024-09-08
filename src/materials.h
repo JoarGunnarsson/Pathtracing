@@ -4,7 +4,6 @@
 #include "colors.h"
 #include "utils.h"
 #include "constants.h"
-#include "objects.h" // TODO: is this needed?
 
 
 class Object;

@@ -14,9 +14,28 @@ class Object{
     public:
         Material* material;
         double area;
+        int objectID = 0;
         Object(){}
         Object(Material* _material){
             material = _material;
+        }
+
+        virtual vec3 maxAxisPoint(){
+            throw VirtualMethodNotAllowedException("maxAxisPoint is a pure virtual method and should not be called.");
+            vec3 point;
+            return point;
+        }
+
+        virtual vec3 minAxisPoint(){
+            throw VirtualMethodNotAllowedException("minAxisPoint is a pure virtual method and should not be called.");
+            vec3 point;
+            return point;
+        }
+
+        virtual vec3 computeCentroid(){
+            throw VirtualMethodNotAllowedException("computeCentroid is a pure virtual method and should not be called.");
+            vec3 centroid;
+            return centroid;
         }
 
         virtual vec3 getUV(const vec3& hitPoint){
@@ -25,7 +44,7 @@ class Object{
             return vec;
         }
 
-        virtual bool isLightSource(const Hit& hit){
+        virtual bool isLightSource(){
             return material -> isLightSource;
         }
 
@@ -84,6 +103,12 @@ class Sphere: public Object{
         double radius;
         double radiusSquared;
         Sphere(){}
+        Sphere(vec3 _position, double _radius) : Object(){
+            position = _position;
+            radius = _radius;
+            area = 4 * M_PI * radius * radius;
+            radiusSquared = radius * radius;
+        }
         Sphere(vec3 _position, double _radius, Material* _material) : Object(_material){
             position = _position;
             radius = _radius;
@@ -109,7 +134,7 @@ class Sphere: public Object{
             double c = difference_in_positions.length_squared() - radiusSquared;
             double distance = solveQuadratic(b, c);
             Hit hit;
-            hit.objectID = 0;
+            hit.objectID = objectID;
             hit.distance = distance;
             return hit;
         }
@@ -159,6 +184,13 @@ class Plane: public Object{
         vec3 normalVector;
         bool transparentBack;
         Plane(){}
+        Plane(vec3 _position, vec3 _v1, vec3 _v2) : Object(){
+            position = _position;
+            v1 = normalizeVector(_v1);
+            v2 = normalizeVector(_v2);
+            vec3 _normalVector = crossVectors(v1, v2);
+            normalVector = normalizeVector(_normalVector);
+        }
         Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material) : Object(_material){
             position = _position;
             v1 = normalizeVector(_v1);
@@ -188,7 +220,7 @@ class Plane: public Object{
             vec3 shiftedPoint = ray.startingPosition - position;
             double distance = computeDistanceInCenteredSystem(shiftedPoint, ray.directionVector);
             Hit hit;
-            hit.objectID = 0;
+            hit.objectID = objectID;
             hit.distance = distance;
             return hit;
         }
@@ -205,6 +237,11 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
+        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2) : Plane(_position, _v1, _v2){
+            L1 = _L1;
+            L2 = _L2;
+            area = L1 * L2;
+        }
         Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material) : Plane(_position, _v1, _v2, _material){
             L1 = _L1;
             L2 = _L2;
@@ -219,7 +256,7 @@ class Rectangle: public Plane{
 
         Hit findClosestObjectHit(const Ray& ray) override{
             Hit hit;
-            hit.objectID = 0;
+            hit.objectID = objectID;
             hit.distance = -1;
 
             vec3 shiftedPoint = ray.startingPosition - position;
@@ -272,7 +309,7 @@ class Triangle: public Object{
         vec3 n3;
 
         bool smoothShaded = false;
-
+        Triangle(){}
         Triangle(vec3 _p1, vec3 _p2, vec3 _p3, Material* _material) : Object(_material){
             p1 = _p1;
             p2 = _p2;
@@ -280,9 +317,10 @@ class Triangle: public Object{
 
             position = p1;
 
-            v1 = normalizeVector(p2 - p1);
-            v2 = normalizeVector(p3 - p1);
+            v1 = p2 - p1;
+            v2 = p3 - p1;
             normalVector = normalizeVector(crossVectors(v1, v2));
+            v1 = normalizeVector(v1);
             v2 = normalizeVector(crossVectors(normalVector, v1));
 
             x1 = dotVectors(p1, v1);
@@ -302,6 +340,27 @@ class Triangle: public Object{
             n1 = normalVector;
             n2 = normalVector;
             n3 = normalVector;
+        }
+
+        vec3 maxAxisPoint() override{
+            vec3 point;
+            for (int i = 0; i < 3; i++){
+                point.e[i] = std::max(std::max(p1[i], p2[i]), p3[i]);
+            }
+            return point;
+        }
+
+        vec3 minAxisPoint() override{
+            vec3 point;
+            for (int i = 0; i < 3; i++){
+                point.e[i] = std::min(std::min(p1[i], p2[i]), p3[i]);
+            }
+            return point;
+        }
+
+
+        vec3 computeCentroid() override{
+            return (p1 + p2 + p3) / 3.0;
         }
 
         void setVertexUV(const vec3& _uv1, const vec3& _uv2, const vec3& _uv3){
@@ -345,7 +404,7 @@ class Triangle: public Object{
 
         Hit findClosestObjectHit(const Ray& ray) override{
             Hit hit;
-            hit.objectID = 0;
+            hit.objectID = objectID;
             hit.distance = -1;
             vec3 shiftedPoint = ray.startingPosition - position;
 
@@ -379,89 +438,6 @@ class Triangle: public Object{
 };
 
 
-class ObjectUnion : public Object{
-    public:
-        Object** objects;
-        int numberOfObjects;
-        vec3 position;
-        double size;
-        Sphere boundingSphere;
-        ObjectUnion(Object** _objects, int _numberOfObjects, vec3 _position, double _size) : Object(){
-            objects = _objects;
-            numberOfObjects = _numberOfObjects;
-            position = _position;
-            size = _size;
-            area = 0;
-            for (int i = 0; i < numberOfObjects; i++){
-                area += objects[i] -> area;
-            }
-            Material material;
-            boundingSphere = Sphere(position, _size, &material);
-        }
-
-        ~ObjectUnion(){
-            for (int i = 0; i < numberOfObjects; i++){
-                delete objects[i];
-            }
-        }
-
-        bool isLightSource(const Hit& hit) override{
-            return objects[hit.objectID] -> isLightSource(hit);
-        }
-
-        vec3 eval(const Hit& hit) override{
-            return objects[hit.objectID]  -> eval(hit);
-        }
-
-        brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-            return objects[hit.objectID]  -> sample(hit, objectPtrList, numberOfObjects);
-        }
-
-        vec3 getLightEmittance(const Hit& hit) override{
-            return objects[hit.objectID] -> getLightEmittance(hit);
-        }
-
-        Hit findClosestObjectHit(const Ray& ray) override{
-            Hit boundingHit = boundingSphere.findClosestObjectHit(ray);
-            if (boundingHit.distance < constants::EPSILON){
-                return boundingHit;
-            }
-            Hit hit = findClosestHit(ray, objects, numberOfObjects);
-            hit.objectID = hit.intersectedObjectIndex;
-            hit.intersectedObjectIndex = -1;
-            return hit;
-        }
-        
-        vec3 getNormalVector(const vec3& surfacePoint, const int objectID) override{
-            return objects[objectID] -> getNormalVector(surfacePoint, objectID);
-        }
-
-        int sampleRandomObjectIndex(){
-            double randomAreaSplit = randomUniform(0, 1) * area;
-            double summedArea = 0;
-            int sampledIndex = 0;
-            for (int i = 0; i < numberOfObjects; i++){
-                summedArea += objects[i] -> area;
-                if (summedArea >= randomAreaSplit){
-                    sampledIndex = i;
-                    break;
-                }
-            }
-            return sampledIndex;
-        }
-
-        vec3 generateRandomSurfacePoint() override{
-            return objects[sampleRandomObjectIndex()] -> generateRandomSurfacePoint();
-        }
-
-        vec3 randomLightPoint(const Hit& hit, double& inversePDF) override{
-            vec3 randomPoint = objects[sampleRandomObjectIndex()] -> generateRandomSurfacePoint();
-            inversePDF = area * areaToAnglePDFFactor(randomPoint, hit);
-            return randomPoint;
-        }
-};
-
-
 Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     Hit closestHit;
     closestHit.distance = -1;
@@ -482,236 +458,5 @@ Hit findClosestHit(const Ray& ray, Object** objects, const int size){
     return closestHit;
  }
 
-
-
-struct dataSizes{
-    int numVertices = 0;
-    int numVertexUVs = 0;
-    int numVertexNormals = 0;
-    int numTriangles = 0;
-};
-
-
-std::string getNthWord(std::string line, std::string delimiter, int n){
-    int endLocation = 0;
-    int startLocation = 0;
-    for (int i = 0; i < n + 1; i++){
-        int newEndLocation = line.find(delimiter, endLocation)+1;
-        if (newEndLocation <= endLocation && !(newEndLocation == 0 && endLocation == 0)){
-            return line.substr(endLocation, line.size() - endLocation);
-        }
-        startLocation = endLocation;
-        endLocation = newEndLocation;
-    }
-    return line.substr(startLocation, endLocation - startLocation - 1);
-}
-
-
-dataSizes getVertexDataSizes(std::string fileName){
-    std::ifstream modelFile(fileName);
-    std::string line;
-    dataSizes nums;
-    
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
-
-        bool isVertex = firstWord == "v";
-        bool isVertexUV = firstWord == "vt";
-        bool isVertexNormal = firstWord == "vn";
-        bool isShape = firstWord == "f";
-        
-        if (isVertex){
-            nums.numVertices++;
-        }
-        else if (isVertexUV){
-            nums.numVertexUVs++;
-        }
-        else if (isVertexNormal){
-            nums.numVertexNormals++;
-        }
-        else if (isShape){
-            int numberOfSpaces = 0;
-            for (int i = 0; i < line.size(); i++){
-                if (line.substr(i, 1) == " "){
-                    numberOfSpaces++;
-                }
-            }
-            
-            bool isTriangle = numberOfSpaces == 3;
-            bool isQuad = numberOfSpaces == 4;
-            if (isTriangle){
-                nums.numTriangles++;
-            }
-
-            else if (isQuad){
-                nums.numTriangles += 2;
-            }
-        }
-    }
-    return nums;
-}
-
-
-void populateVertexArrays(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray){
-    int vertexIdx = 0;
-    int vertexUVIdx = 0;
-    int vertexNormalIdx = 0;
-
-    std::ifstream modelFile(fileName);
-    std::string line;
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
-        bool isVertex = firstWord == "v";
-        bool isVertexUV = firstWord == "vt";
-        bool isVertexNormal = firstWord == "vn";
-
-        if (isVertex){
-            double v1 = std::stod(getNthWord(line, " ", 1));
-            double v2 = std::stod(getNthWord(line, " ", 2));
-            double v3 = std::stod(getNthWord(line, " ", 3));
-            vertexArray[vertexIdx] = vec3(v1, v2, v3);
-            vertexIdx++;
-        }
-        else if (isVertexUV){
-            double u = std::stod(getNthWord(line, " ", 1));
-            double v = std::stod(getNthWord(line, " ", 2));
-            vertexUVArray[vertexUVIdx] = vec3(u, v, 0);
-            vertexUVIdx++;
-        }
-        else if (isVertexNormal){
-            double n1 = std::stod(getNthWord(line, " ", 1));
-            double n2 = std::stod(getNthWord(line, " ", 2));
-            double n3 = std::stod(getNthWord(line, " ", 3));
-            vertexNormalArray[vertexNormalIdx] = vec3(n1, n2, n3);
-            vertexNormalIdx++;
-        }
-    }
-}
-
-
-void populateVertexVectors(const std::string vertexData, vec3& v, vec3& uv, vec3& n, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray){
-    std::string vIdx = getNthWord(vertexData, "/", 0);
-    std::string UVIdx = getNthWord(vertexData, "/", 1);
-    std::string nIdx = getNthWord(vertexData, "/", 2);
-
-    v = vertexArray[std::stoi(vIdx)-1];
-    uv = vertexUVArray[std::stoi(UVIdx)-1];
-    n = vertexNormalArray[std::stoi(nIdx)-1];
-}
-
-
-Triangle* constructTriangle(std::string triangleData, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray, const bool allowSmoothShading){
-    std::string v1Data = getNthWord(triangleData, " ", idx1);
-
-    vec3 v1;
-    vec3 uv1;
-    vec3 n1;
-    populateVertexVectors(v1Data, v1, uv1, n1, vertexArray, vertexUVArray, vertexNormalArray);
-
-    std::string v2Data = getNthWord(triangleData, " ", idx2);
-    vec3 v2;
-    vec3 uv2;
-    vec3 n2;
-    populateVertexVectors(v2Data, v2, uv2, n2, vertexArray, vertexUVArray, vertexNormalArray);
-
-    std::string v3Data = getNthWord(triangleData, " ", idx3);
-    vec3 v3;
-    vec3 uv3;
-    vec3 n3;
-    populateVertexVectors(v3Data, v3, uv3, n3, vertexArray, vertexUVArray, vertexNormalArray);
-
-    Triangle* triangle = new Triangle(v1, v2, v3, material);
-    triangle -> setVertexUV(uv1, uv2, uv3);
-    if (allowSmoothShading){
-        triangle -> setVertexNormals(n1, n2, n3);
-    }
-    return triangle;
-}
-
-
-void populateTriangleArray(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray, Object** triangleArray, Material* material, const bool allowSmoothShading){
-    std::ifstream modelFile(fileName);
-    std::string line;
-    int shapeIdx = 0;
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
-        bool isShape = firstWord == "f";
-        if (!isShape){
-            continue;
-        }
-        int numberOfSpaces = 0;
-        for (int i = 0; i < line.size(); i++){
-            if (line.substr(i, 1) == " "){
-                numberOfSpaces++;
-            }
-        }
-        bool isTriangle = numberOfSpaces == 3;
-        bool isQuad = numberOfSpaces == 4;
-        if (isTriangle){
-            
-            Triangle* triangle = constructTriangle(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx] = triangle;
-            shapeIdx++;
-        }
-
-        else if (isQuad){
-            Triangle* triangle1 = constructTriangle(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx] = triangle1;
-
-            Triangle* triangle2 = constructTriangle(line, 1, 3, 4, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx+1] = triangle2;
-            shapeIdx += 2;
-        }
-    }
-}
-
-
-vec3 computeAveragePosition(vec3* vertexArray, const int numberOfVertices){
-    vec3 avg = vec3(0,0,0);
-    for (int i = 0; i < numberOfVertices; i++){
-        avg += vertexArray[i];
-    }
-    return avg / numberOfVertices;
-}
-
-
-double maximumDistance(vec3 center, vec3* vertexArray, const int numberOfVertices){
-    double maxDistance = 0;
-    for (int i = 0; i < numberOfVertices; i++){
-        double distance = (vertexArray[i] - center).length();
-        if (distance > maxDistance){
-            maxDistance = distance;
-        }
-    }
-    return maxDistance;
-}
-
-void changeVectors(vec3 desiredCenter, double desiredSize, vec3* vertexArray, const int numberOfVertices){
-    vec3 averagePosition = computeAveragePosition(vertexArray, numberOfVertices);
-    double maxDistance = maximumDistance(averagePosition, vertexArray,numberOfVertices);
-
-    for (int i = 0; i < numberOfVertices; i++){
-        vertexArray[i] = (vertexArray[i] - averagePosition + desiredCenter) / maxDistance * desiredSize;
-    }
-}
-
-
-ObjectUnion* loadObjectModel(std::string fileName, Material* material, const bool allowSmoothShading){
-    dataSizes nums = getVertexDataSizes(fileName);
-
-    vec3 vertexArray[nums.numVertices];
-    vec3 vertexUVArray[nums.numVertexUVs];
-    vec3 vertexNormalArray[nums.numVertexNormals];
-    populateVertexArrays(fileName, vertexArray, vertexUVArray, vertexNormalArray);
-
-    double desiredSize = 0.7;
-    vec3 desiredCenter = vec3(0, 0.2, 1);
-    changeVectors(desiredCenter, desiredSize, vertexArray, nums.numVertices);
-
-    Object** triangles  = new Object*[nums.numTriangles];
-    populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, allowSmoothShading);
-    ObjectUnion* loadedObject = new ObjectUnion(triangles, nums.numTriangles, desiredCenter, desiredSize);
-    return loadedObject;
-}
 
 #endif

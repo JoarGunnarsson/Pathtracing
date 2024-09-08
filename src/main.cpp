@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "utils.h"
 #include "constants.h"
+#include "objectunion.h"
 
 
 struct Scene{
@@ -19,12 +20,17 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
     int lightSourceIdxArray[numberOfObjects];
 
     int numberOfLightSources = 0;
+    
     for (int i = 0; i < numberOfObjects; i++){
-        if (objects[i] -> isLightSource(hit)){
+        if (objects[i] -> isLightSource()){
             lightSourceIdxArray[numberOfLightSources] = i;
             numberOfLightSources++;
         }
     }
+    if (numberOfLightSources == 0){
+        return BLACK;
+    }
+    
     int randomIndex = randomInt(0, numberOfLightSources);
     int lightIndex = lightSourceIdxArray[randomIndex];
 
@@ -34,7 +40,7 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
     vectorTowardsLight = normalizeVector(vectorTowardsLight);
-
+    
     Ray lightRay;
     lightRay.startingPosition = hit.intersectionPoint;
     lightRay.directionVector =  vectorTowardsLight;
@@ -201,6 +207,9 @@ Scene createScene(){
     blueMaterialData.isDielectric = false;
     ReflectiveMaterial* blueReflectiveMaterial = new ReflectiveMaterial(blueMaterialData);
 
+    MaterialData mirrorData;
+    ReflectiveMaterial* mirrorMaterial = new ReflectiveMaterial(mirrorData);
+
     MaterialData goldData;
     goldData.albedoMap = goldMap;
     goldData.roughnessMap = pointOneMap;
@@ -210,8 +219,9 @@ Scene createScene(){
     MicrofacetMaterial* goldMaterial = new MicrofacetMaterial(goldData);
 
     MaterialData suzanneData;
+    suzanneData.albedoMap = whiteMap;
     suzanneData.roughnessMap = zeroMap;
-    suzanneData.percentageDiffuseMap = zeroMap;
+    suzanneData.percentageDiffuseMap = oneMap;
     suzanneData.refractiveIndex = 1.5;
     MicrofacetMaterial* suzanneMaterial = new MicrofacetMaterial(suzanneData);
 
@@ -235,7 +245,7 @@ Scene createScene(){
     frostyGlassData.percentageDiffuseMap = zeroMap;
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
-    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
+    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), mirrorMaterial);
     Plane* frontWall = new Plane(vec3(0,0,-0.35), vec3(-1,0,0), vec3(0,-1,0), whiteDiffuseMaterial);
     Plane* leftWall = new Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), redDiffuseMaterial);
     Plane* rightWall = new Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), greenDiffuseMaterial);
@@ -258,7 +268,7 @@ Scene createScene(){
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
 
     bool smoothShading = false;
-    ObjectUnion* suzanne = loadObjectModel("./models/suzanneTri.obj", redDiffuseMaterial, smoothShading);
+    ObjectUnion* suzanne = loadObjectModel("./models/dragon.obj", whiteDiffuseMaterial, smoothShading);
 
     int numberOfObjects = 8;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, suzanne, lightSource};
@@ -284,7 +294,6 @@ int main() {
     dataFile << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
     Scene scene = createScene();
-
     int maxIters = 0;
     for (int y = constants::HEIGHT-1; y >= 0; y--) {
         double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;
