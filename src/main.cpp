@@ -48,7 +48,8 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
     Hit lightHit = findClosestHit(lightRay, objects, numberOfObjects);
     bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
     bool hitFromBehind = dotVectors(vectorTowardsLight, hit.normalVector) < 0.0;
-    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance || hitFromBehind){
+    bool insideObject = dotVectors(hit.incomingVector, hit.normalVector) > 0.0;
+    if (lightHit.intersectedObjectIndex != lightIndex || hit.intersectedObjectIndex == lightIndex || !sameDistance || hitFromBehind || insideObject){
         return BLACK;
     }
 
@@ -165,6 +166,8 @@ Scene createScene(){
     ValueMap3D* blueMap = new ValueMap3D(BLUE*0.8);
     ValueMap3D* blackMap = new ValueMap3D(BLACK);
     ValueMap3D* goldMap = new ValueMap3D(GOLD);
+    ValueMap3D* brownMap = new ValueMap3D(CHOCOLATE_BROWN);
+
     double* zero = new double(0);
     double* one = new double(1);
     double* ten = new double(10);
@@ -202,6 +205,11 @@ Scene createScene(){
     greenMaterialData.albedoMap = greenMap;
     DiffuseMaterial* greenDiffuseMaterial = new DiffuseMaterial(greenMaterialData);
 
+    MaterialData chocolateMaterialData;
+    chocolateMaterialData.albedoMap = brownMap;
+    chocolateMaterialData.refractiveIndex = 1.2;
+    DiffuseMaterial* chocolateMaterial = new DiffuseMaterial(chocolateMaterialData);
+
     MaterialData blueMaterialData;
     blueMaterialData.albedoMap = blueMap;
     blueMaterialData.isDielectric = false;
@@ -233,10 +241,8 @@ Scene createScene(){
     DiffuseMaterial* lightSourceMaterial = new DiffuseMaterial(lightMaterialData);
 
     MaterialData glassData;
-    glassData.albedoMap = pureWhiteMap;
     glassData.refractiveIndex = 1.5;
-    glassData.percentageDiffuseMap = zeroMap;
-    MicrofacetMaterial* pane1Material = new MicrofacetMaterial(glassData);
+    TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
 
     MaterialData frostyGlassData;
     frostyGlassData.albedoMap = pureWhiteMap;
@@ -245,7 +251,7 @@ Scene createScene(){
     frostyGlassData.percentageDiffuseMap = zeroMap;
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
-    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), mirrorMaterial);
+    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
     Plane* frontWall = new Plane(vec3(0,0,-0.35), vec3(-1,0,0), vec3(0,-1,0), whiteDiffuseMaterial);
     Plane* leftWall = new Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), redDiffuseMaterial);
     Plane* rightWall = new Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), greenDiffuseMaterial);
@@ -266,12 +272,12 @@ Scene createScene(){
     Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, goldMaterial);
 
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
-
+    
     bool smoothShading = false;
-    ObjectUnion* suzanne = loadObjectModel("./models/dragon.obj", whiteDiffuseMaterial, smoothShading);
+    ObjectUnion* loadedModel = loadObjectModel("./models/dragonHQ.obj", mirrorMaterial, smoothShading);
 
     int numberOfObjects = 8;
-    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, suzanne, lightSource};
+    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, loadedModel, lightSource};
 
     vec3 cameraPosition = vec3(0, 1, 3);
     vec3 viewingDirection = vec3(0.0, -0.3, -1);
@@ -286,7 +292,6 @@ Scene createScene(){
 
 
 int main() {
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     std::ofstream dataFile;
     dataFile.open("./temp/result_data.txt");
@@ -294,6 +299,7 @@ int main() {
     dataFile << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
     Scene scene = createScene();
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     int maxIters = 0;
     for (int y = constants::HEIGHT-1; y >= 0; y--) {
         double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;

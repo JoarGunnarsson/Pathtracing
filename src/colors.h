@@ -16,6 +16,7 @@ namespace colors{
     vec3 const BLUEISH_WHITE = vec3(0.7215, 0.8274, 0.8705);
     vec3 const WARM_WHITE = vec3(0.9922, 0.9569, 0.8627);
     vec3 const GOLD = vec3(1, 0.84, 0);
+    vec3 const CHOCOLATE_BROWN = vec3(0.25490196078, 0.0980392156, 0) * 0.5;
 
     double WHITE_DATA[] = {1,1,1};
     double BLACK_DATA[] = {0,0,0};

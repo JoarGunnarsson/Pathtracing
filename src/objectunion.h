@@ -34,69 +34,88 @@ vec3 getMinPoint(Object** triangles, int numberOfTriangles){
 
 class BoundingBox{
     public:
-        Object** rects;
-        int numberOfObjects = 6;
+        vec3 p1;
+        vec3 p2;
+        double width;
+        double height;
+        double length;
+        double axisLength[3];
         BoundingBox(){}
         BoundingBox(Object** _triangles, int numberOfTriangles){
-            vec3 maxPoint = getMaxPoint(_triangles, numberOfTriangles);
-            vec3 minPoint = getMinPoint(_triangles, numberOfTriangles);
-            
-            double minX = minPoint[0];
-            double minY = minPoint[1];
-            double minZ = minPoint[2];
+            p1 = getMinPoint(_triangles, numberOfTriangles);
+            p2 = getMaxPoint(_triangles, numberOfTriangles);
 
-            double maxX = maxPoint[0];
-            double maxY = maxPoint[1];
-            double maxZ = maxPoint[2];
-
-            vec3 p1 = minPoint;
-            vec3 p2 = vec3(maxX, minY, minZ);
-            vec3 p3 = vec3(maxX, minY, maxZ);
-            vec3 p4 = vec3(minX, minY, maxZ);
-            vec3 p5 = vec3(minX, maxY, minZ);
-            vec3 p6 = vec3(maxX, maxY, minZ);
-            vec3 p7 = maxPoint;
-            vec3 p8 = vec3(minX, maxY, maxZ);
-
-            vec3 v1 = vec3(1, 0, 0);
-            vec3 v2 = vec3(0, 1, 0);
-            vec3 v3 = vec3(0, 0, 1);
-            double width = maxX - minX;
-            double height = maxZ - minZ;
-            double length = maxY - minY;
-
-            Rectangle* rect1 = new Rectangle(p1 + v1 * width / 2.0 + v3 * height / 2.0, v1, v3, width, height);
-            Rectangle* rect2 = new Rectangle(p7 - v1 * width / 2.0 - v3 * height / 2.0, -v1, v3, width, height);
-
-            Rectangle* rect3 = new Rectangle(p1 + v2 * length / 2.0 + v3 * height / 2.0, -v2, v3, length, height);
-            Rectangle* rect4 = new Rectangle(p7 - v2 * length / 2.0 - v3 * height / 2.0, v2, v3, length, height);
-
-            Rectangle* rect5 = new Rectangle(p1 + v2 * length / 2.0 + v1 * width / 2.0, v2, v1, length, width);
-            Rectangle* rect6 = new Rectangle(p7 - v2 * length / 2.0 - v1 * width / 2.0, -v2, v1, length, width);
-            rects = new Object*[numberOfObjects]{rect1, rect2, rect3, rect4, rect5, rect6};
+            width = p2[0] - p1[0];
+            length = p2[1] - p1[1];
+            height = p2[2] - p1[2];
+            axisLength[0] = width;
+            axisLength[1] = length;
+            axisLength[2] = height;
         }
+    
+    inline bool isWithinBounds(const double x, const double lower, const double higher){
+        return lower <= x && x <= higher;
+    }
 
     double intersect(const Ray& ray){
-        Hit hit = findClosestHit(ray, rects, numberOfObjects);
-        return hit.distance;
+        double t[6];
+        bool insideBounds[6];
+        for (int i = 0; i < 3; i++){
+            if (std::abs(ray.directionVector[i]) < constants::EPSILON){
+                t[i] = -1;
+                insideBounds[i] = false;
+                continue;
+            }
+            t[i] = (p1[i] - ray.startingPosition[i]) / ray.directionVector[i];
+            vec3 hitPoint = ray.directionVector * t[i] + ray.startingPosition;
+            vec3 differenceVector = hitPoint - p1;
+            if (i == 0){
+                insideBounds[i] = isWithinBounds(differenceVector[1], 0, length) && isWithinBounds(differenceVector[2], 0, height);
+            }
+            else if (i ==  1){
+                insideBounds[i] = isWithinBounds(differenceVector[0], 0, width) && isWithinBounds(differenceVector[2], 0, height);
+            }
+            else if (i == 2){
+                insideBounds[i] = isWithinBounds(differenceVector[0], 0, width) && isWithinBounds(differenceVector[1], 0, length);
+            }
+        }
+
+        for (int i = 0; i < 3; i++){
+            if (std::abs(ray.directionVector[i]) < constants::EPSILON){
+                t[i+3] = -1;
+                insideBounds[i+3] = false;
+                continue;
+            }
+            t[i+3] = (p2[i] - ray.startingPosition[i]) / ray.directionVector[i];
+            vec3 hitPoint = ray.directionVector * t[i+3] + ray.startingPosition;
+            vec3 differenceVector = hitPoint - p2;
+            if (i == 0){
+                insideBounds[i+3] = isWithinBounds(differenceVector[1], -length, 0) && isWithinBounds(differenceVector[2], -height, 0);
+            }
+            else if (i ==  1){
+                insideBounds[i+3] = isWithinBounds(differenceVector[0], -width, 0) && isWithinBounds(differenceVector[2], -height, 0);
+            }
+            else if (i == 2){
+                insideBounds[i+3] = isWithinBounds(differenceVector[0], -width, 0) && isWithinBounds(differenceVector[1], -length, 0);
+            }
+        }
+
+        double minT = -1;
+        for (int i = 0; i < 6; i++){
+            if (insideBounds[i] && (minT == -1 || minT > t[i]) && t[i] > constants::EPSILON){
+                minT = t[i];
+            }
+        }
+
+        return minT;
     }    
 };
 
 
 void sortByAxis(Object** triangles, int numberOfTriangles, int axis){
-    for (int i = 1; i < numberOfTriangles; i++){
-        Object* x = triangles[i];
-        int j;
-        for (j = i; j >= 1; j--){
-            if ((x -> computeCentroid())[axis] < (triangles[j-1] -> computeCentroid())[axis]){
-                triangles[j] = triangles[j-1];
-            }
-            else{
-                break;
-            }
-        }
-        triangles[j] = x;
-    }
+    std::sort(triangles, triangles + numberOfTriangles, [axis](Object* obj1, Object* obj2){ 
+        return (obj1 -> computeCentroid())[axis] < (obj2 -> computeCentroid())[axis]; 
+        });
 }
 
 
@@ -121,25 +140,36 @@ class Node{
                 return;
             }
             isLeafNode = false;
-            int axis = depth % 3;
+            int axis = getSplitAxis();
+
             sortByAxis(_triangles, _numberOfTriangles, axis);
-            int numberOfTriangles1 = _numberOfTriangles / 2;
-            int numberOfTriangles2 = _numberOfTriangles - numberOfTriangles1;
+            int splitIndex = _numberOfTriangles / 2;
 
-            Object** node1Triangles = new Object*[numberOfTriangles1];
-            Object** node2Triangles = new Object*[numberOfTriangles2];
+            Object** node1Triangles = new Object*[splitIndex];
+            Object** node2Triangles = new Object*[_numberOfTriangles - splitIndex];
 
-            for (int i = 0; i < numberOfTriangles1; i++){
+            for (int i = 0; i < splitIndex; i++){
                 node1Triangles[i] = _triangles[i];
             }
-            for (int i = 0; i < numberOfTriangles2; i++){
-                node2Triangles[i] = _triangles[i + numberOfTriangles1];
+            for (int i = splitIndex; i < _numberOfTriangles; i++){
+                node2Triangles[i - splitIndex] = _triangles[i];
             }
 
-            node1 = new Node(node1Triangles, numberOfTriangles1, _leafSize, depth+1);
-            node2 = new Node(node2Triangles, numberOfTriangles2, _leafSize, depth+1);
+            node1 = new Node(node1Triangles, splitIndex, _leafSize, depth+1);
+            node2 = new Node(node2Triangles, _numberOfTriangles - splitIndex, _leafSize, depth+1);
         }
 
+    int getSplitAxis(){
+        int axis;
+        double maxLength = 0;
+        for (int i = 0; i < 3; i++){
+            if (boundingBox.axisLength[i] >= maxLength){
+                axis = i;
+                maxLength = boundingBox.axisLength[i];
+            }
+        }
+        return axis;
+    }
 
     void intersect(const Ray& ray, Hit& hit){
         if (isLeafNode){
@@ -156,17 +186,22 @@ class Node{
 
         double d1 = node1 -> boundingBox.intersect(ray);
         double d2 = node2 -> boundingBox.intersect(ray);
-
+        
         bool node1Hit = d1 > constants::EPSILON && (d1 < hit.distance || hit.distance == -1);
         bool node2Hit = d2 > constants::EPSILON && (d2 < hit.distance || hit.distance == -1);
+        
         if (node1Hit && node2Hit){
             if (d1 > d2){
                 node1 -> intersect(ray, hit);
-                node2 -> intersect(ray, hit);
+                if (d2 < hit.distance || hit.distance == -1){
+                    node2 -> intersect(ray, hit);
+                }
             }
             else{
                 node2 -> intersect(ray, hit);
-                node1 -> intersect(ray, hit);
+                if (d1 < hit.distance || hit.distance == -1){
+                    node1 -> intersect(ray, hit);
+                }
             }
 
         }
@@ -189,11 +224,11 @@ class BoundingVolumeHierarchy{
         }
 
         Hit intersect(const Ray& ray){
+            double distanceToBoundingBox = rootNode -> boundingBox.intersect(ray);
+
             Hit hit;
             hit.distance = -1;
             hit.objectID = -1;
-            double distanceToBoundingBox = rootNode -> boundingBox.intersect(ray);
-
             if (distanceToBoundingBox > constants::EPSILON){
                 rootNode -> intersect(ray, hit);
             }
@@ -297,8 +332,7 @@ class ObjectUnion : public Object{
         }
 
         vec3 randomLightPoint(const Hit& hit, double& inversePDF) override{
-            // TODO: Only sample the index of the objects that are lightsources.
-            vec3 randomPoint = objects[sampleRandomObjectIndex()] -> generateRandomSurfacePoint();
+            vec3 randomPoint = generateRandomSurfacePoint();
             inversePDF = area * areaToAnglePDFFactor(randomPoint, hit);
             return randomPoint;
         }
@@ -530,7 +564,6 @@ ObjectUnion* loadObjectModel(std::string fileName, Material* material, const boo
     Object** triangles = new Object*[nums.numTriangles];
     populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, allowSmoothShading);
     ObjectUnion* loadedObject = new ObjectUnion(triangles, nums.numTriangles, desiredCenter, desiredSize, true);
-    std::cout << nums.numTriangles << "\n";
     return loadedObject;
 }
 
