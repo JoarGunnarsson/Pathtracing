@@ -14,7 +14,7 @@ def convertImageToMap(inputFile, outputFile):
     for rgb in img:
         for x in rgb[:3]:
             img_data.append(str(float(x)/maxValue))
-    
+
     write_data_to_file(outputFile, img_data, width, height, 3)
 
 
@@ -46,5 +46,5 @@ def write_data_to_file(file_name, img_data, width, height, dimension):
         file.write("\n".join(img_data))
 
 
-convertImageToMap("suzanne.png", "suzanne.map")
+convertImageToMap("bunny.png", "bunny.map")
 #world_map_mask()

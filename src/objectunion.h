@@ -504,6 +504,7 @@ Triangle* constructTriangle(std::string triangleData, const int idx1, const int 
     populateVertexVectors(v3Data, v3, uv3, n3, vertexArray, vertexUVArray, vertexNormalArray);
 
     Triangle* triangle = new Triangle(v1, v2, v3, material);
+
     triangle -> setVertexUV(uv1, uv2, uv3);
     if (allowSmoothShading){
         triangle -> setVertexNormals(n1, n2, n3);

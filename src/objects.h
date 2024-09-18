@@ -38,7 +38,7 @@ class Object{
             return centroid;
         }
 
-        virtual vec3 getUV(const vec3& hitPoint){
+        virtual vec3 getUV(const Hit& hit){
             throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
@@ -49,17 +49,17 @@ class Object{
         }
 
         virtual vec3 eval(const Hit& hit){
-            vec3 UV = getUV(hit.intersectionPoint);
+            vec3 UV = getUV(hit);
             return material -> eval(hit, UV[0], UV[1]);
         }
 
         virtual brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects){
-            vec3 UV = getUV(hit.intersectionPoint);
+            vec3 UV = getUV(hit);
             return material -> sample(hit, objectPtrList, numberOfObjects, UV[0], UV[1]);
         }
 
         virtual vec3 getLightEmittance(const Hit& hit){
-            vec3 UV = getUV(hit.intersectionPoint);
+            vec3 UV = getUV(hit);
             return material -> getLightEmittance(UV[0], UV[1]);
         }
 
@@ -116,8 +116,8 @@ class Sphere: public Object{
             radiusSquared = radius * radius;
         }
 
-        vec3 getUV(const vec3& hitPoint) override{
-            vec3 unitSpherePoint = (hitPoint - position) / radius;
+        vec3 getUV(const Hit& hit) override{
+            vec3 unitSpherePoint = (hit.intersectionPoint - position) / radius;
             double x = -unitSpherePoint[0];
             double y = -unitSpherePoint[1];
             double z = -unitSpherePoint[2];
@@ -184,13 +184,6 @@ class Plane: public Object{
         vec3 normalVector;
         bool transparentBack;
         Plane(){}
-        Plane(vec3 _position, vec3 _v1, vec3 _v2) : Object(){
-            position = _position;
-            v1 = normalizeVector(_v1);
-            v2 = normalizeVector(_v2);
-            vec3 _normalVector = crossVectors(v1, v2);
-            normalVector = normalizeVector(_normalVector);
-        }
         Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material) : Object(_material){
             position = _position;
             v1 = normalizeVector(_v1);
@@ -199,8 +192,8 @@ class Plane: public Object{
             normalVector = normalizeVector(_normalVector);
         }
 
-        vec3 getUV(const vec3& hitPoint) override{
-            vec3 shiftedPoint = hitPoint - position;
+        vec3 getUV(const Hit& hit) override{
+            vec3 shiftedPoint = hit.intersectionPoint - position;
             double u = 1 - dotVectors(shiftedPoint, v1) - 0.5;
             double v = 1 - dotVectors(shiftedPoint, v2) - 0.5;
             return vec3(u, v, 0);
@@ -237,18 +230,13 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
-        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2) : Plane(_position, _v1, _v2){
-            L1 = _L1;
-            L2 = _L2;
-            area = L1 * L2;
-        }
         Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material) : Plane(_position, _v1, _v2, _material){
             L1 = _L1;
             L2 = _L2;
             area = L1 * L2;
         }
-        vec3 getUV(const vec3& hitPoint) override{
-            vec3 shiftedPoint = hitPoint - position;
+        vec3 getUV(const Hit& hit) override{
+            vec3 shiftedPoint = hit.intersectionPoint - position;
             double u = 1 - dotVectors(shiftedPoint, v1) / L1 - 0.5;
             double v = 1 - dotVectors(shiftedPoint, v2) / L2 - 0.5;
             return vec3(u, v, 0);
@@ -397,8 +385,8 @@ class Triangle: public Object{
             return vec3(lambda1, lambda2, 1.0 - lambda1 - lambda2);
         }
 
-        vec3 getUV(const vec3& hitPoint) override{
-            vec3 barycentricVector = computeBarycentric(hitPoint);
+        vec3 getUV(const Hit& hit) override{
+            vec3 barycentricVector = computeBarycentric(hit.intersectionPoint);
             return uv1 * barycentricVector[0] + uv2 * barycentricVector[1] + uv3 * barycentricVector[2];
         }
 

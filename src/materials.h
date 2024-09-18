@@ -70,7 +70,7 @@ class ValueMap1D : public ValueMap{
             return 0;
         }
         int uIdx = int((double) width * posFmod(u / uMax, 1.0));
-        int vIdx = int((double) height * posFmod(v / vMax, 1.0));
+        int vIdx = int((double) height * (1-posFmod(v / vMax, 1.0)));
         int index = (vIdx * width + uIdx);
         return data[index];
     }
