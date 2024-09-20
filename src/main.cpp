@@ -16,7 +16,7 @@ struct Scene{
 };
 
 
-vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects){
+vec3 directLighting(Hit& hit, Object** objects, const int numberOfObjects){
     int lightSourceIdxArray[numberOfObjects];
 
     int numberOfLightSources = 0;
@@ -40,6 +40,7 @@ vec3 directLighting(const Hit& hit, Object** objects, const int numberOfObjects)
     vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
     double distanceToLight = vectorTowardsLight.length();
     vectorTowardsLight = normalizeVector(vectorTowardsLight);
+    hit.outgoingVector = vectorTowardsLight;
     
     Ray lightRay;
     lightRay.startingPosition = hit.intersectionPoint;
@@ -184,6 +185,10 @@ Scene createScene(){
     ValueMap1D* pointSevenMap = new ValueMap1D(pointSeven);
 
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
+    ValueMap3D* sakuraMap = createValueMap3D("./maps/sakura.map");
+    ValueMap3D* chineseMap = createValueMap3D("./maps/temple.map");
+    ValueMap3D* cobbleMap = createValueMap3D("./maps/cobblestone.map");
+    ValueMap3D* bunnyMap = createValueMap3D("./maps/bunny.map", 1, -1);
     ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
     
     MaterialData defaultMaterialData;
@@ -208,7 +213,15 @@ Scene createScene(){
     MaterialData chocolateMaterialData;
     chocolateMaterialData.albedoMap = brownMap;
     chocolateMaterialData.refractiveIndex = 1.2;
-    DiffuseMaterial* chocolateMaterial = new DiffuseMaterial(chocolateMaterialData);
+    MicrofacetMaterial* chocolateMaterial = new MicrofacetMaterial(chocolateMaterialData);
+
+    MaterialData whiteShinyData;
+    whiteShinyData.albedoMap = whiteMap;
+    whiteShinyData.refractiveIndex = 1.2;
+    whiteShinyData.extinctionCoefficient = 1.2;
+    whiteShinyData.isDielectric = false;
+
+    MicrofacetMaterial* whiteShinyMaterial = new MicrofacetMaterial(whiteShinyData);
 
     MaterialData blueMaterialData;
     blueMaterialData.albedoMap = blueMap;
@@ -251,12 +264,30 @@ Scene createScene(){
     frostyGlassData.percentageDiffuseMap = zeroMap;
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
-    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(-1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
-    Plane* frontWall = new Plane(vec3(0,0,-0.35), vec3(-1,0,0), vec3(0,-1,0), whiteDiffuseMaterial);
-    Plane* leftWall = new Plane(vec3(-1,0,0), vec3(0,1,0), vec3(0,0,1), redDiffuseMaterial);
-    Plane* rightWall = new Plane(vec3(1,0,0), vec3(0,0,1), vec3(0,1,0), greenDiffuseMaterial);
+    MaterialData sakuraData;
+    sakuraData.albedoMap = sakuraMap;
+    DiffuseMaterial* sakuraMaterial = new DiffuseMaterial(sakuraData);
+
+    MaterialData chineseData;
+    chineseData.albedoMap = chineseMap;
+    DiffuseMaterial* chineseMaterial = new DiffuseMaterial(chineseData);
+
+    MaterialData cobbleData;
+    cobbleData.albedoMap = cobbleMap;
+    DiffuseMaterial* cobbleMaterial = new DiffuseMaterial(cobbleData);
+
+    MaterialData bunnyData;
+    bunnyData.albedoMap = bunnyMap;
+    bunnyData.roughnessMap = pointOneMap;
+    bunnyData.refractiveIndex = 1.5;
+    TransparentMaterial* bunnyMaterial = new TransparentMaterial(bunnyData);
+    
+    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), cobbleMaterial);
+    Rectangle* frontWall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, chineseMaterial);
+    Rectangle* leftWall = new Rectangle(vec3(-1,0.425,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55, sakuraMaterial);
+    Rectangle* rightWall = new Rectangle(vec3(1,0.425,1.575), vec3(0,0,-1), vec3(0,-1,0), 3.85, 1.55, sakuraMaterial);
     Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
-    Plane* backWall = new Plane(vec3(0,0,3.5), vec3(0,1,0), vec3(1,0,0), redDiffuseMaterial);
+    Rectangle* backWall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, redDiffuseMaterial);
 
     Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
     Rectangle* backPane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
@@ -273,8 +304,8 @@ Scene createScene(){
 
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
     
-    bool smoothShading = false;
-    ObjectUnion* loadedModel = loadObjectModel("./models/dragonHQ.obj", mirrorMaterial, smoothShading);
+    bool smoothShading = true;
+    ObjectUnion* loadedModel = loadObjectModel("./models/bunny.obj", whiteShinyMaterial, smoothShading);
 
     int numberOfObjects = 8;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, loadedModel, lightSource};

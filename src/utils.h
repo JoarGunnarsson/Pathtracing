@@ -50,6 +50,7 @@ struct Hit{
     vec3 intersectionPoint;
     vec3 incomingVector;
     vec3 normalVector;
+    vec3 outgoingVector;
 };
 
 
@@ -81,13 +82,13 @@ double solveQuadratic(const double b, const double c){
         return -1.0;
     }
     double root_discriminant = sqrt(discriminant);
-    double maximum_solution = - 1.0 / 2.0 * (b - root_discriminant);
-    double minimum_solution = - 1.0 / 2.0 * (b + root_discriminant);
 
+    double minimum_solution = - 1.0 / 2.0 * (b + root_discriminant);
     if (minimum_solution > constants::EPSILON){
         return minimum_solution;
     }
 
+    double maximum_solution = - 1.0 / 2.0 * (b - root_discriminant);
     if (maximum_solution > constants::EPSILON){
         return maximum_solution;
     }

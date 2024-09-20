@@ -19,7 +19,7 @@ struct brdfData{
 };
 
 
-struct microfacetArgs{
+struct microfacetSampleArgs{
     vec3 sampledHalfVector;
     vec3 normalVector;
     vec3 incidentVector;
@@ -33,6 +33,17 @@ struct microfacetArgs{
     int numberOfObjects;
     bool outside;
 };
+
+
+struct microfacetData{
+    bool outside;
+    double alpha;
+    double eta;
+    vec3 fresnelNormal;
+    vec3 halfVector;
+    double F_r;
+};
+
 
 class ValueMap{
     public:
@@ -323,10 +334,6 @@ class MicrofacetMaterial : public Material{
     public:
         using Material::Material;
 
-    vec3 eval(const Hit& hit, const double u, const double v) override{
-        return BLACK;
-    }
-
     double chi(const double x){
         return x > 0 ? 1 : 0;
     }
@@ -343,83 +350,14 @@ class MicrofacetMaterial : public Material{
         return G1(halfVector, normalVector, incidentVector, alpha) * G1(halfVector, normalVector, outgoingVector, alpha);
     }
 
-    vec3 specularSample(const vec3& normalVector, const double alpha){
-        double r1 = randomUniform(0, 1);
-        double r2 = randomUniform(0, 1);
-        double phi = 2 * M_PI * r2;
-        double tanTheta2 = - alpha * alpha * std::log(1 - r1);
-        double cosTheta2 = 1.0 / (1.0 + tanTheta2);
-        
-        double cosTheta = sqrt(cosTheta2);
-        double sinTheta = sqrt(1 - cosTheta2);
-
-        vec3 xHat;
-        vec3 yHat;
-        setPerpendicularVectors(normalVector, xHat, yHat);
-        return xHat * sinTheta * cos(phi) + yHat * sinTheta * sin(phi) + normalVector * cosTheta;
-    }
-
-    brdfData sampleDiffuse(const microfacetArgs& args){
-        brdfData data;
-        data.brdfMultiplier = albedoMap -> get(args.u, args.v);
-        data.outgoingVector = sampleCosineHemisphere(args.normalVector);
-        data.type = REFLECTED;
-        return data;
-    }
-
-    brdfData sampleReflection(const microfacetArgs& args){
-        brdfData data;
-        vec3 reflectionColor = isDielectric ? WHITE : albedoMap -> get(args.u, args.v);
-        data.outgoingVector = reflectVector(-args.incidentVector, args.sampledHalfVector);
-        data.brdfMultiplier = reflectionColor * G(args.sampledHalfVector, args.normalVector, args.incidentVector, data.outgoingVector, args.alpha) * args.cosineFactor;
-        data.type = REFLECTED;
-        return data;
-    }
-
-    vec3 computeAttenuatedColor(const microfacetArgs& args, const vec3& outgoingVector){
-        Ray transmissionRay;
-        transmissionRay.directionVector = outgoingVector;
-        transmissionRay.startingPosition = args.intersectionPoint;
-        Hit transmissionHit = findClosestHit(transmissionRay, args.objects, args.numberOfObjects);
-        vec3 attenuationColor;
-        double distance = transmissionHit.distance;
-        if (distance > 0 && args.outside){
-            vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
-            attenuationColor = expVector(log_attenuation);
-        }
-        else{
-            attenuationColor = WHITE;
-        }
-
-        return attenuationColor;
-    }
-
-    brdfData sampleTransmission(const microfacetArgs& args){
-        vec3 refractedVector = refractVector(-args.incidentVector, -args.sampledHalfVector, args.eta);
-
-        if (refractedVector.length() == 0){
-            return sampleReflection(args);
-        }
-
-        vec3 attenuatedColor = computeAttenuatedColor(args, refractedVector);
-
-        brdfData data;
-        data.outgoingVector = refractedVector;
-
-        data.brdfMultiplier = attenuatedColor * G(args.sampledHalfVector,args.normalVector, args.incidentVector, data.outgoingVector, args.alpha) * args.cosineFactor;
-        data.type = TRANSMITTED;
-        return data;
-    }
-    
-    
-    brdfData sample(const Hit& hit, Object** objects, const int numberOfObjects, const double u, const double v) override{
-        double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
-        vec3 fresnelNormal;
-        bool outside = incomingDotNormal <= 0.0;
+    microfacetData prepareMicrofacetData(const Hit& hit, const double u, const double v){
         double n1;
         double k1;
         double n2;
         double k2;
+        vec3 fresnelNormal;
+        double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
+        bool outside = incomingDotNormal <= 0.0;
         if (outside){
             fresnelNormal = -hit.normalVector;
             n1 = constants::airRefractiveIndex;
@@ -440,33 +378,134 @@ class MicrofacetMaterial : public Material{
         vec3 sampledHalfVector = specularSample(-fresnelNormal, alpha);
                 
         double iDotH = dotVectors(hit.incomingVector, sampledHalfVector);
-        double iDotN = dotVectors(hit.incomingVector, fresnelNormal);
-        double nDotH = dotVectors(sampledHalfVector, fresnelNormal);
-
-        double cosineFactor = std::abs(iDotH / (iDotN * nDotH));
 
         double F_r = fresnelMultiplier(-iDotH, n1, k1, n2, k2, isDielectric);
 
-        double randomNum = randomUniform(0, 1);
-        bool reflectSpecular = randomNum < F_r;
+        microfacetData data;
+        data.outside = outside;
+        data.alpha = alpha;
+        data.eta = n1 / n2;
+        data.fresnelNormal = fresnelNormal;
+        data.halfVector = sampledHalfVector;
+        data.F_r = F_r;
+        return data;
+    }
+
+    vec3 eval(const Hit& hit, const double u, const double v) override{
+        microfacetData data = prepareMicrofacetData(hit, u, v);
         
-        microfacetArgs args;
-        args.sampledHalfVector = sampledHalfVector;
-        args.normalVector = -fresnelNormal;
+        double randomNum = randomUniform(0, 1);
+        bool reflectSpecular = randomNum < data.F_r;
+        if (reflectSpecular){
+            return BLACK;
+        }
+        double transmit = randomUniform(0, 1) > percentageDiffuseMap -> get(u, v);
+
+        if (transmit){
+            return BLACK;
+        }
+
+        return albedoMap -> get(u, v) / M_PI;
+    }
+
+    vec3 specularSample(const vec3& normalVector, const double alpha){
+        double r1 = randomUniform(0, 1);
+        double r2 = randomUniform(0, 1);
+        double phi = 2 * M_PI * r2;
+        double tanTheta2 = - alpha * alpha * std::log(1 - r1);
+        double cosTheta2 = 1.0 / (1.0 + tanTheta2);
+        
+        double cosTheta = sqrt(cosTheta2);
+        double sinTheta = sqrt(1 - cosTheta2);
+
+        vec3 xHat;
+        vec3 yHat;
+        setPerpendicularVectors(normalVector, xHat, yHat);
+        return xHat * sinTheta * cos(phi) + yHat * sinTheta * sin(phi) + normalVector * cosTheta;
+    }
+
+    brdfData sampleDiffuse(const microfacetSampleArgs& args){
+        brdfData data;
+        data.brdfMultiplier = albedoMap -> get(args.u, args.v);
+        data.outgoingVector = sampleCosineHemisphere(args.normalVector);
+        data.type = DIFFUSE;
+        return data;
+    }
+
+    brdfData sampleReflection(const microfacetSampleArgs& args){
+        brdfData data;
+        vec3 reflectionColor = isDielectric ? WHITE : albedoMap -> get(args.u, args.v);
+        data.outgoingVector = reflectVector(-args.incidentVector, args.sampledHalfVector);
+        data.brdfMultiplier = reflectionColor * G(args.sampledHalfVector, args.normalVector, args.incidentVector, data.outgoingVector, args.alpha) * args.cosineFactor;
+        data.type = REFLECTED;
+        return data;
+    }
+
+    vec3 computeAttenuatedColor(const microfacetSampleArgs& args, const vec3& outgoingVector){
+        Ray transmissionRay;
+        transmissionRay.directionVector = outgoingVector;
+        transmissionRay.startingPosition = args.intersectionPoint;
+        Hit transmissionHit = findClosestHit(transmissionRay, args.objects, args.numberOfObjects);
+        vec3 attenuationColor;
+        double distance = transmissionHit.distance;
+        if (distance > 0 && args.outside){
+            vec3 log_attenuation = absorptionAlbedo * attenuationCoefficient * (-distance);
+            attenuationColor = expVector(log_attenuation);
+        }
+        else{
+            attenuationColor = WHITE;
+        }
+
+        return attenuationColor;
+    }
+
+    brdfData sampleTransmission(const microfacetSampleArgs& args){
+        vec3 refractedVector = refractVector(-args.incidentVector, -args.sampledHalfVector, args.eta);
+
+        if (refractedVector.length() == 0){
+            return sampleReflection(args);
+        }
+
+        vec3 attenuatedColor = computeAttenuatedColor(args, refractedVector);
+
+        brdfData data;
+        data.outgoingVector = refractedVector;
+
+        data.brdfMultiplier = attenuatedColor * G(args.sampledHalfVector,args.normalVector, args.incidentVector, data.outgoingVector, args.alpha) * args.cosineFactor;
+        data.type = TRANSMITTED;
+        return data;
+    }
+    
+    
+    brdfData sample(const Hit& hit, Object** objects, const int numberOfObjects, const double u, const double v) override{
+        microfacetData data = prepareMicrofacetData(hit, u, v);
+                
+        double iDotH = dotVectors(hit.incomingVector, data.halfVector);
+        double iDotN = dotVectors(hit.incomingVector, data.fresnelNormal);
+        double nDotH = dotVectors(data.halfVector, data.fresnelNormal);
+
+        double cosineFactor = std::abs(iDotH / (iDotN * nDotH));
+
+        double randomNum = randomUniform(0, 1);
+        bool reflectSpecular = randomNum < data.F_r;
+        
+        microfacetSampleArgs args;
+        args.sampledHalfVector = data.halfVector;
+        args.normalVector = -data.fresnelNormal;
         args.incidentVector = -hit.incomingVector;
         args.cosineFactor = cosineFactor;
         args.u = u;
         args.v = v;
-        args.alpha = alpha;
+        args.alpha = data.alpha;
         if (reflectSpecular){
             return sampleReflection(args);
         }
         else{
             args.intersectionPoint = hit.intersectionPoint;
-            args.eta = n1 / n2;;
+            args.eta = data.eta;
             args.objects = objects;
             args.numberOfObjects = numberOfObjects;
-            args.outside = outside;
+            args.outside = data.outside;
             double randomNum2 = randomUniform(0, 1);
             bool diffuse = randomNum2 < percentageDiffuseMap -> get(u, v);
             return diffuse ? sampleDiffuse(args) : sampleTransmission(args);
