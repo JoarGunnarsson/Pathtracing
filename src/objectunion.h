@@ -241,21 +241,44 @@ class ObjectUnion : public Object{
     public:
         Object** objects;
         int numberOfObjects;
+        double* cumulativeArea;
+        int* lightSourceConversionIndices;
+        int numberOfLightSources;
         vec3 position;
         double size;
         Sphere boundingSphere;
         BoundingVolumeHierarchy bvh;
         bool useBVH;
-        bool containsLight = false;
+        bool containsLightSource = false;
         ObjectUnion(Object** _objects, int _numberOfObjects, vec3 _position, double _size, bool constructBVH=false) : Object(){
             objects = _objects;
             numberOfObjects = _numberOfObjects;
             position = _position;
             size = _size;
+
             area = 0;
             for (int i = 0; i < numberOfObjects; i++){
                 area += objects[i] -> area;
+                if (objects[i] -> isLightSource()){
+                    numberOfLightSources++;
+                }
             }
+
+            cumulativeArea = new double[numberOfObjects];
+            lightSourceConversionIndices = new int[numberOfLightSources];
+            int j = 0;
+            for (int i = 0; i < numberOfObjects; i++){
+                if (!objects[i] -> isLightSource()){
+                    continue;
+                }
+                cumulativeArea[j] = objects[i] -> area;
+                if (j != 0){
+                    cumulativeArea[j] += cumulativeArea[j-1];
+                }
+                lightSourceConversionIndices[j] = i;
+                j++;
+            }
+
             Material material;
             boundingSphere = Sphere(position, _size, &material);
             useBVH = constructBVH;
@@ -266,7 +289,7 @@ class ObjectUnion : public Object{
             for (int i = 0; i < numberOfObjects; i++){
                 objects[i] -> objectID = i;
                 if (objects[i] -> isLightSource()){
-                  containsLight = true;
+                  containsLightSource = true;
                 }
             }
         }
@@ -275,10 +298,12 @@ class ObjectUnion : public Object{
             for (int i = 0; i < numberOfObjects; i++){
                 delete objects[i];
             }
+            delete cumulativeArea;
+            delete lightSourceConversionIndices;
         }
 
         bool isLightSource() override{
-            return containsLight;
+            return containsLightSource;
         }
 
         vec3 eval(const Hit& hit) override{
@@ -314,26 +339,40 @@ class ObjectUnion : public Object{
         }
 
         int sampleRandomObjectIndex(){
-            double randomAreaSplit = randomUniform(0, 1) * area;
-            double summedArea = 0;
-            int sampledIndex = 0;
-            for (int i = 0; i < numberOfObjects; i++){
-                summedArea += objects[i] -> area;
-                if (summedArea >= randomAreaSplit){
-                    sampledIndex = i;
+            double randomAreaSplit = randomUniform(0, area);
+            int max = numberOfLightSources - 1;
+            int min = 0;
+            int index;
+
+            if (cumulativeArea[0] >= randomAreaSplit){
+                return lightSourceConversionIndices[0];
+            }
+
+            while (min <= max){
+                index = (max - min) / 2 + min;
+
+                if (cumulativeArea[index] < randomAreaSplit){
+                    min = index + 1;
+                }
+                else if (cumulativeArea[index] == randomAreaSplit || (cumulativeArea[index] >= randomAreaSplit && cumulativeArea[index-1] < randomAreaSplit)){
                     break;
                 }
+                else{
+                    max = index - 1;
+                }
             }
-            return sampledIndex;
+
+            return lightSourceConversionIndices[index];
         }
 
         vec3 generateRandomSurfacePoint() override{
             return objects[sampleRandomObjectIndex()] -> generateRandomSurfacePoint();
         }
 
-        vec3 randomLightPoint(const Hit& hit, double& inversePDF) override{
-            vec3 randomPoint = generateRandomSurfacePoint();
-            inversePDF = area * areaToAnglePDFFactor(randomPoint, hit);
+        vec3 randomLightPoint(const vec3& intersectionPoint, double& inversePDF) override{
+            int randomIndex = sampleRandomObjectIndex();
+            vec3 randomPoint = objects[randomIndex] -> generateRandomSurfacePoint();
+            inversePDF = cumulativeArea[numberOfLightSources-1] * areaToAnglePDFFactor(randomPoint, intersectionPoint, randomIndex);
             return randomPoint;
         }
 };

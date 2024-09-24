@@ -53,11 +53,6 @@ class ValueMap{
         int height;
         double vMax;
         ValueMap(){
-            data = new double(0);
-            width = 1;
-            height = 1;
-            uMax = 1;
-            vMax = 1;
         }
         ValueMap(double* _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
             data = _data;
@@ -81,7 +76,7 @@ class ValueMap1D : public ValueMap{
             return 0;
         }
         int uIdx = int((double) width * posFmod(u / uMax, 1.0));
-        int vIdx = int((double) height * (1-posFmod(v / vMax, 1.0)));
+        int vIdx = int((double) height * (posFmod((vMax - v) / vMax, 1.0)));
         int index = (vIdx * width + uIdx);
         return data[index];
     }

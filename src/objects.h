@@ -81,17 +81,17 @@ class Object{
             return point;
         }
 
-        double areaToAnglePDFFactor(const vec3& surfacePoint, const Hit& hit){
-            vec3 normalVector = getNormalVector(surfacePoint, hit.objectID);
-            vec3 differenceVector = hit.intersectionPoint - surfacePoint;
+        double areaToAnglePDFFactor(const vec3& surfacePoint, const vec3& intersectionPoint, const int objectID){
+            vec3 normalVector = getNormalVector(surfacePoint, objectID);
+            vec3 differenceVector = intersectionPoint - surfacePoint;
             vec3 vectorToPoint = normalizeVector(differenceVector);
             double inversePDF = dotVectors(normalVector, vectorToPoint) / differenceVector.length_squared();
             return std::max(0.0, inversePDF);
         }
 
-        virtual vec3 randomLightPoint(const Hit& hit, double& inversePDF){
+        virtual vec3 randomLightPoint(const vec3& intersectionPoint, double& inversePDF){
             vec3 randomPoint = generateRandomSurfacePoint();
-            inversePDF = area * areaToAnglePDFFactor(randomPoint, hit);
+            inversePDF = area * areaToAnglePDFFactor(randomPoint, intersectionPoint, 0);
             return randomPoint;
         }
 };
@@ -148,11 +148,11 @@ class Sphere: public Object{
             return sampleSpherical() * radius + position;
         }
 
-        vec3 randomLightPoint(const Hit& hit, double& inversePDF) override{
-            double distance = (hit.intersectionPoint - position).length();
+        vec3 randomLightPoint(const vec3& intersectionPoint, double& inversePDF) override{
+            double distance = (intersectionPoint - position).length();
             if (distance <= radius){
                 vec3 randomPoint = generateRandomSurfacePoint();
-                inversePDF = areaToAnglePDFFactor(randomPoint, hit) * area;
+                inversePDF = area * areaToAnglePDFFactor(randomPoint, intersectionPoint, 0);
                 return randomPoint;
             }
         
@@ -167,7 +167,7 @@ class Sphere: public Object{
             
             vec3 xHat;
             vec3 yHat;
-            vec3 zHat = getNormalVector(hit.intersectionPoint, hit.objectID);
+            vec3 zHat = getNormalVector(intersectionPoint, 0);
             setPerpendicularVectors(zHat, xHat, yHat);
             double phi = randomUniform(0, 2.0*M_PI);
             vec3 randomPoint = xHat * sinAlpha * cos(phi) + yHat * sinAlpha * sin(phi) + zHat * cosAlpha;
