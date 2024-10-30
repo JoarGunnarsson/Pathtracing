@@ -244,17 +244,12 @@ class ObjectUnion : public Object{
         double* cumulativeArea;
         int* lightSourceConversionIndices;
         int numberOfLightSources;
-        vec3 position;
-        double size;
-        Sphere boundingSphere;
         BoundingVolumeHierarchy bvh;
         bool useBVH;
         bool containsLightSource = false;
-        ObjectUnion(Object** _objects, int _numberOfObjects, vec3 _position, double _size, bool constructBVH=false) : Object(){
+        ObjectUnion(Object** _objects, int _numberOfObjects, bool constructBVH=false) : Object(){
             objects = _objects;
             numberOfObjects = _numberOfObjects;
-            position = _position;
-            size = _size;
 
             area = 0;
             for (int i = 0; i < numberOfObjects; i++){
@@ -279,8 +274,6 @@ class ObjectUnion : public Object{
                 j++;
             }
 
-            Material material;
-            boundingSphere = Sphere(position, _size, &material);
             useBVH = constructBVH;
             if (constructBVH){
                 bvh = BoundingVolumeHierarchy(_objects, _numberOfObjects, 12);
@@ -294,12 +287,14 @@ class ObjectUnion : public Object{
             }
         }
 
-        ~ObjectUnion(){
+        ~ObjectUnion() override{
             for (int i = 0; i < numberOfObjects; i++){
-                delete objects[i];
+                if (objects[i] -> alive){delete objects[i];}
             }
-            delete cumulativeArea;
-            delete lightSourceConversionIndices;
+
+            delete[] objects;
+            delete[] cumulativeArea;
+            delete[] lightSourceConversionIndices;
         }
 
         bool isLightSource() override{
@@ -321,11 +316,6 @@ class ObjectUnion : public Object{
         Hit findClosestObjectHit(const Ray& ray) override{
             if (useBVH){
                 return bvh.intersect(ray);
-            }
-
-            Hit boundingHit = boundingSphere.findClosestObjectHit(ray);
-            if (boundingHit.distance < constants::EPSILON){
-                return boundingHit;
             }
 
             Hit hit = findClosestHit(ray, objects, numberOfObjects);
@@ -603,7 +593,7 @@ ObjectUnion* loadObjectModel(std::string fileName, Material* material, const boo
 
     Object** triangles = new Object*[nums.numTriangles];
     populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, allowSmoothShading);
-    ObjectUnion* loadedObject = new ObjectUnion(triangles, nums.numTriangles, desiredCenter, desiredSize, true);
+    ObjectUnion* loadedObject = new ObjectUnion(triangles, nums.numTriangles, true);
     return loadedObject;
 }
 

@@ -15,9 +15,17 @@ class Object{
         Material* material;
         double area;
         int objectID = 0;
+        bool alive = true;
         Object(){}
         Object(Material* _material){
             material = _material;
+        }
+        virtual ~Object(){
+            if (material -> alive){
+                delete material;
+            }
+            
+            alive = false;
         }
 
         virtual vec3 maxAxisPoint(){

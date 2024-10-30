@@ -170,29 +170,23 @@ Scene createScene(){
     ValueMap3D* goldMap = new ValueMap3D(GOLD);
     ValueMap3D* brownMap = new ValueMap3D(CHOCOLATE_BROWN);
 
-    double* zero = new double(0);
-    double* one = new double(1);
-    double* ten = new double(10);
-    double* pointOne = new double(0.1);
-    double* pointThree = new double(0.3);
-    double* pointFive = new double(0.3);
-    double* pointSeven = new double(0.7);
-    ValueMap1D* zeroMap = new ValueMap1D(zero);
-    ValueMap1D* oneMap = new ValueMap1D(one);
-    ValueMap1D* tenMap = new ValueMap1D(ten);
-    ValueMap1D* pointOneMap = new ValueMap1D(pointOne);
-    ValueMap1D* pointThreeMap = new ValueMap1D(pointThree);
-    ValueMap1D* pointFiveMap = new ValueMap1D(pointFive);
-    ValueMap1D* pointSevenMap = new ValueMap1D(pointSeven);
+    ValueMap1D* zeroMap = new ValueMap1D(0.0);
+    ValueMap1D* oneMap = new ValueMap1D(1.0);
+    ValueMap1D* tenMap = new ValueMap1D(10.0);
+    ValueMap1D* pointOneMap = new ValueMap1D(0.1);
+    ValueMap1D* pointThreeMap = new ValueMap1D(0.3);
+    ValueMap1D* pointFiveMap = new ValueMap1D(0.5);
+    ValueMap1D* pointSevenMap = new ValueMap1D(0.7);
 
     /*
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
     ValueMap3D* sakuraMap = createValueMap3D("./maps/sakura.map");
     ValueMap3D* chineseMap = createValueMap3D("./maps/temple.map");
     ValueMap3D* cobbleMap = createValueMap3D("./maps/cobblestone.map");
-    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
+    
     */
     ValueMap3D* bunnyMap = createValueMap3D("./maps/bunny.map", 1, -1);
+    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
 
     MaterialData defaultMaterialData;
     defaultMaterialData.albedoMap = whiteMap;
@@ -236,7 +230,7 @@ Scene createScene(){
 
     MaterialData goldData;
     goldData.albedoMap = goldMap;
-    goldData.roughnessMap = pointOneMap;
+    goldData.roughnessMap = new ValueMap1D(0.1);
     goldData.refractiveIndex = 0.277;
     goldData.extinctionCoefficient = 2.92;
     goldData.isDielectric = false;
@@ -244,30 +238,31 @@ Scene createScene(){
 
     MaterialData suzanneData;
     suzanneData.albedoMap = whiteMap;
-    suzanneData.roughnessMap = zeroMap;
-    suzanneData.percentageDiffuseMap = oneMap;
+    suzanneData.roughnessMap = new ValueMap1D(0.0);
+    suzanneData.percentageDiffuseMap = new ValueMap1D(1.0);
     suzanneData.refractiveIndex = 1.5;
     MicrofacetMaterial* suzanneMaterial = new MicrofacetMaterial(suzanneData);
 
     MaterialData lightMaterialData;
     lightMaterialData.albedoMap = whiteMap;
     lightMaterialData.emmissionColorMap = warmWhiteMap;
-    lightMaterialData.lightIntensityMap = tenMap;
+    lightMaterialData.lightIntensityMap = new ValueMap1D(10.0);
     lightMaterialData.isLightSource = true;
     DiffuseMaterial* lightSourceMaterial = new DiffuseMaterial(lightMaterialData);
 
+    /*
     MaterialData glassData;
     glassData.refractiveIndex = 1.5;
     TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
 
+
     MaterialData frostyGlassData;
     frostyGlassData.albedoMap = pureWhiteMap;
     frostyGlassData.refractiveIndex = 1.5;
-    frostyGlassData.roughnessMap = pointOneMap;
-    frostyGlassData.percentageDiffuseMap = zeroMap;
+    frostyGlassData.roughnessMap = new ValueMap1D(0.1);
+    frostyGlassData.percentageDiffuseMap = new ValueMap1D(0.0);
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
-    /*
     MaterialData sakuraData;
     sakuraData.albedoMap = sakuraMap;
     DiffuseMaterial* sakuraMaterial = new DiffuseMaterial(sakuraData);
@@ -280,6 +275,7 @@ Scene createScene(){
     cobbleData.albedoMap = cobbleMap;
     DiffuseMaterial* cobbleMaterial = new DiffuseMaterial(cobbleData);
     */
+   
     MaterialData bunnyData;
     bunnyData.albedoMap = bunnyMap;
     DiffuseMaterial* bunnyMaterial = new DiffuseMaterial(bunnyData);
@@ -292,23 +288,25 @@ Scene createScene(){
     Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
     Rectangle* backWall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, whiteDiffuseMaterial);
 
+    /*
     Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
     Rectangle* backPane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
     Object** pane1Objects = new Object*[2]{frontPane1, backPane1};
-    ObjectUnion* pane1 = new ObjectUnion(pane1Objects, 2, vec3(0,0,0), 1.0);
+    ObjectUnion* pane1 = new ObjectUnion(pane1Objects, 2);
 
     Rectangle* frontPane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
     Rectangle* backPane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
     Object** pane2Objects = new Object*[2]{frontPane2, backPane2};
-    ObjectUnion* pane2 = new ObjectUnion(pane2Objects, 2, vec3(0,0,0), 1.0);
+    ObjectUnion* pane2 = new ObjectUnion(pane2Objects, 2);
+    */
 
-    Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, greenDiffuseMaterial);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, lightSourceMaterial);
+    //Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, greenDiffuseMaterial);
+    //Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, lightSourceMaterial);
 
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
     
     bool smoothShading = true;
-    ObjectUnion* loadedModel = loadObjectModel("./models/bunny.obj", bunnyMaterial, smoothShading);
+    ObjectUnion* loadedModel = loadObjectModel("./models/suzanne.obj", bunnyMaterial, smoothShading);
 
     int numberOfObjects = 8;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, loadedModel, lightSource};
@@ -322,6 +320,15 @@ Scene createScene(){
     scene.camera = camera;
     scene.numberOfObjects = numberOfObjects;
     return scene;
+}
+
+
+void clearScene(Scene& scene){
+    delete scene.camera;
+    for (int i = 0; i < scene.numberOfObjects; i++){
+        if (scene.objects[i] -> alive){delete scene.objects[i];}
+    }
+    delete[] scene.objects;
 }
 
 
@@ -350,5 +357,6 @@ int main() {
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     //TODO: remember to free the scene.
+    clearScene(scene);
     return 0;
 }

@@ -4,6 +4,7 @@
 #include "colors.h"
 #include "utils.h"
 #include "constants.h"
+#include "valuemap.h"
 
 
 class Object;
@@ -45,119 +46,20 @@ struct microfacetData{
 };
 
 
-class ValueMap{
-    public:
-        double* data;
-        int width;
-        double uMax;
-        int height;
-        double vMax;
-        ValueMap(){
-        }
-        ValueMap(double* _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
-            data = _data;
-            width = _width;
-            height = _height;
-            uMax = _uMax;
-            vMax = _vMax;
-        }
-        ~ValueMap(){
-            delete[] data;
-        }
-};
-
-
-class ValueMap1D : public ValueMap{
-    public:
-        using ValueMap::ValueMap;
-
-    double get(const double u, const double v) {
-        if (isnan(u) or isnan(v)){
-            return 0;
-        }
-        int uIdx = int((double) width * posFmod(u / uMax, 1.0));
-        int vIdx = int((double) height * (posFmod((vMax - v) / vMax, 1.0)));
-        int index = (vIdx * width + uIdx);
-        return data[index];
-    }
-};
-
-
-class ValueMap3D : public ValueMap{
-    public:
-        using ValueMap::ValueMap;
-
-    vec3 get(const double u, const double v){
-        if (isnan(u) or isnan(v)){
-            return vec3(0,0,0);
-        }
-        int uIdx = int((double) width * posFmod(u / uMax, 1.0));
-        int vIdx = int((double) height * posFmod(v / vMax, 1.0));
-        int startIndex = 3 * (vIdx * width + uIdx);
-        return vec3(data[startIndex], data[startIndex + 1], data[startIndex + 2]);
-    }
-};
-
-
-ValueMap1D* createValueMap1D(std::string fileName, double uMax=1, double vMax=1){
-    std::fstream mapFile(fileName, std::ios_base::in); 
-    int width;
-    int height;
-    int dimension;
-    mapFile >> width;
-    mapFile >> height;
-    mapFile >> dimension;
-    int N = width * height * dimension;
-    double valueHolder;
-    double* dataArray = new double[N];
-    for (int i = 0; i < N; i++){
-        mapFile >> dataArray[i];
-    }
-
-    return new ValueMap1D(dataArray, width, height, uMax, vMax);;
-}
-
-
-
-ValueMap3D* createValueMap3D(std::string fileName, double uMax=1, double vMax=1){
-    std::fstream mapFile(fileName, std::ios_base::in); 
-    int width;
-    int height;
-    int dimension;
-    mapFile >> width;
-    mapFile >> height;
-    mapFile >> dimension;
-    int N = width * height * dimension;
-    double valueHolder;
-    double* dataArray = new double[N];
-    for (int i = 0; i < N; i++){
-        mapFile >> dataArray[i];
-    }
-    return new ValueMap3D(dataArray, width, height, uMax, vMax);;
-}
-
-
 struct MaterialData{
-    ValueMap3D* whiteMap = new ValueMap3D(WHITE);
-    double* zero = new double(0);
-    ValueMap1D* zeroMap = new ValueMap1D(zero);
-    double* ohFive = new double(0.5);
-    ValueMap1D* ohFiveMap = new ValueMap1D(ohFive);
-    double* one = new double(1);
-    ValueMap1D* oneMap = new ValueMap1D(one);
-
-    ValueMap3D* albedoMap = whiteMap;
+    ValueMap3D* albedoMap = new ValueMap3D(WHITE);
     double refractiveIndex = 1;
     double extinctionCoefficient = 0;
     double attenuationCoefficient = 0;
     vec3 absorptionAlbedo = WHITE;
-    ValueMap3D* emmissionColorMap = whiteMap;
-    ValueMap1D* lightIntensityMap = zeroMap;
+    ValueMap3D* emmissionColorMap = new ValueMap3D(WHITE);
+    ValueMap1D* lightIntensityMap = new ValueMap1D(0);
     bool isDielectric = true;
-    ValueMap1D* roughnessMap = zeroMap;
-    ValueMap1D* percentageDiffuseMap = oneMap;
+    ValueMap1D* roughnessMap = new ValueMap1D(0);
+    ValueMap1D* percentageDiffuseMap = new ValueMap1D(1);
     bool isLightSource = false;
 };
+
 
 class Material{
     public:
@@ -172,7 +74,7 @@ class Material{
         bool isLightSource;
         ValueMap1D* roughnessMap;
         ValueMap1D* percentageDiffuseMap;
-        Material(){}
+        bool alive = true;
         Material(MaterialData data){
             albedoMap = data.albedoMap;
             refractiveIndex = data.refractiveIndex;
@@ -191,6 +93,15 @@ class Material{
 
             roughnessMap = data.roughnessMap;
             percentageDiffuseMap = data.percentageDiffuseMap;
+        }
+        virtual ~Material(){
+            if (!albedoMap -> alive){delete albedoMap;}
+            if (!emmissionColorMap -> alive){delete emmissionColorMap;}
+            if (!lightIntensityMap -> alive){delete lightIntensityMap;}
+            if (!roughnessMap -> alive){delete roughnessMap;}
+            if (!percentageDiffuseMap -> alive){delete percentageDiffuseMap;}
+
+            alive = false;
         }
 
     virtual vec3 eval(const Hit& hit, const double u, const double v){
