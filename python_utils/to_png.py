@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
-
+image_name = sys.argv[1]
 arr = []
 with open("temp/result_data.txt", "r") as file:
     file_contents = file.read()
@@ -28,4 +29,4 @@ if len(image) < size * width:
 
 image = np.array(image, dtype=np.uint8)
 image = np.reshape(image, (size, width, 3))
-plt.imsave("Images/result.png", image)
+plt.imsave(f"Images/{image_name}", image)

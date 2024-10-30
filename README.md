@@ -19,8 +19,12 @@ Below are a few different example scenes, showcasing different objects and mater
 To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
 
 ```
-./main.sh
+./main.sh [-compile] [-name <name>] [-h]"
 ```
+
+Adding the -compile flag compiles the project before running, and using the -name flag sets the resulting image name (default: 'result.png').
+
+
 
 ### Notes
 
