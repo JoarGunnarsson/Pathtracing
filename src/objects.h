@@ -12,12 +12,12 @@ Hit findClosestHit(const Ray& ray, Object** objects, const int size);
 
 class Object{
     public:
-        Material* material;
+        Material*material;
         double area;
         int objectID = 0;
         bool alive = true;
         Object(){}
-        Object(Material* _material){
+        Object(Material*_material){
             material = _material;
         }
         virtual ~Object(){
@@ -111,13 +111,13 @@ class Sphere: public Object{
         double radius;
         double radiusSquared;
         Sphere(){}
-        Sphere(vec3 _position, double _radius) : Object(){
+        Sphere(const vec3& _position, const double _radius) : Object(){
             position = _position;
             radius = _radius;
             area = 4 * M_PI * radius * radius;
             radiusSquared = radius * radius;
         }
-        Sphere(vec3 _position, double _radius, Material* _material) : Object(_material){
+        Sphere(const vec3& _position, const double _radius, Material*_material) : Object(_material){
             position = _position;
             radius = _radius;
             area = 4 * M_PI * radius * radius;
@@ -192,7 +192,7 @@ class Plane: public Object{
         vec3 normalVector;
         bool transparentBack;
         Plane(){}
-        Plane(vec3 _position, vec3 _v1, vec3 _v2, Material* _material) : Object(_material){
+        Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material) : Object(_material){
             position = _position;
             v1 = normalizeVector(_v1);
             v2 = normalizeVector(_v2);
@@ -238,7 +238,7 @@ class Rectangle: public Plane{
         double L1;
         double L2;
         Rectangle(){}
-        Rectangle(vec3 _position, vec3 _v1, vec3 _v2, double _L1, double _L2, Material* _material) : Plane(_position, _v1, _v2, _material){
+        Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2, Material*_material) : Plane(_position, _v1, _v2, _material){
             L1 = _L1;
             L2 = _L2;
             area = L1 * L2;
@@ -306,7 +306,7 @@ class Triangle: public Object{
 
         bool smoothShaded = false;
         Triangle(){}
-        Triangle(vec3 _p1, vec3 _p2, vec3 _p3, Material* _material) : Object(_material){
+        Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material*_material) : Object(_material){
             p1 = _p1;
             p2 = _p2;
             p3 = _p3;
@@ -330,8 +330,8 @@ class Triangle: public Object{
             area = 0.5 * std::abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
 
             uv1 = vec3(0, 0, 0);
-            uv2 = vec3(1, 0, 0);
-            uv3 = vec3(0, 1, 0);
+            uv2 = vec3(0, 0, 0);
+            uv3 = vec3(0, 0, 0);
 
             n1 = normalVector;
             n2 = normalVector;

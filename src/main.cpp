@@ -306,7 +306,7 @@ Scene createScene(){
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
     
     bool smoothShading = true;
-    ObjectUnion* loadedModel = loadObjectModel("./models/suzanne.obj", bunnyMaterial, smoothShading);
+    ObjectUnion* loadedModel = loadObjectModel("./models/bunny.obj", bunnyMaterial, smoothShading);
 
     int numberOfObjects = 8;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, loadedModel, lightSource};

@@ -40,7 +40,7 @@ struct microfacetData{
     bool outside;
     double alpha;
     double eta;
-    vec3 fresnelNormal;
+    vec3 normalIntoInterface;
     vec3 halfVector;
     double F_r;
 };
@@ -173,32 +173,32 @@ class TransparentMaterial : public virtual Material{
 
     brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects, const double u, const double v) override{
         double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
-        vec3 fresnelNormal;
+        vec3 normalIntoInterface;
         bool inside = incomingDotNormal > 0.0;
         double n1;
         double k1;
         double n2;
         double k2;
         if (!inside){
-            fresnelNormal = -hit.normalVector;
+            normalIntoInterface = -hit.normalVector;
             n1 = constants::airRefractiveIndex;
             k1 = 0;
             n2 = refractiveIndex;
             k2 = extinctionCoefficient;
         }
         else{
-            fresnelNormal = hit.normalVector;
+            normalIntoInterface = hit.normalVector;
             n1 = refractiveIndex;
             k1 = extinctionCoefficient;
             n2 = constants::airRefractiveIndex;
             k2 = 0;
         }
 
-        vec3 transmittedVector = refractVector(hit.incomingVector, fresnelNormal, n1 / n2);
+        vec3 transmittedVector = refractVector(hit.incomingVector, normalIntoInterface, n1 / n2);
 
         double F_r = 1;
         if (transmittedVector.length_squared() != 0){
-            double cosIncident = dotVectors(hit.incomingVector, fresnelNormal);
+            double cosIncident = dotVectors(hit.incomingVector, normalIntoInterface);
             F_r = fresnelMultiplier(cosIncident, n1, k1, n2, k2, isDielectric);
         }
 
@@ -209,7 +209,7 @@ class TransparentMaterial : public virtual Material{
         if (isReflected){
             data.type = REFLECTED;
             data.brdfMultiplier = isDielectric ? WHITE : albedoMap -> get(u, v);
-            data.outgoingVector = reflectVector(hit.incomingVector, fresnelNormal);
+            data.outgoingVector = reflectVector(hit.incomingVector, normalIntoInterface);
         }
         else{
             data.type = TRANSMITTED;
@@ -261,18 +261,18 @@ class MicrofacetMaterial : public Material{
         double k1;
         double n2;
         double k2;
-        vec3 fresnelNormal;
+        vec3 normalIntoInterface;
         double incomingDotNormal = dotVectors(hit.incomingVector, hit.normalVector);
         bool outside = incomingDotNormal <= 0.0;
         if (outside){
-            fresnelNormal = -hit.normalVector;
+            normalIntoInterface = -hit.normalVector;
             n1 = constants::airRefractiveIndex;
             k1 = 0;
             n2 = refractiveIndex;
             k2 = extinctionCoefficient;
         }
         else{
-            fresnelNormal = hit.normalVector;
+            normalIntoInterface = hit.normalVector;
             n1 = refractiveIndex;
             k1 = extinctionCoefficient;
             n2 = constants::airRefractiveIndex;
@@ -281,7 +281,7 @@ class MicrofacetMaterial : public Material{
 
         double alpha = std::max(roughnessMap -> get(u, v), constants::EPSILON);
 
-        vec3 sampledHalfVector = specularSample(-fresnelNormal, alpha);
+        vec3 sampledHalfVector = specularSample(-normalIntoInterface, alpha);
                 
         double iDotH = dotVectors(hit.incomingVector, sampledHalfVector);
 
@@ -291,7 +291,7 @@ class MicrofacetMaterial : public Material{
         data.outside = outside;
         data.alpha = alpha;
         data.eta = n1 / n2;
-        data.fresnelNormal = fresnelNormal;
+        data.normalIntoInterface = normalIntoInterface;
         data.halfVector = sampledHalfVector;
         data.F_r = F_r;
         return data;
@@ -387,8 +387,8 @@ class MicrofacetMaterial : public Material{
         microfacetData data = prepareMicrofacetData(hit, u, v);
                 
         double iDotH = dotVectors(hit.incomingVector, data.halfVector);
-        double iDotN = dotVectors(hit.incomingVector, data.fresnelNormal);
-        double nDotH = dotVectors(data.halfVector, data.fresnelNormal);
+        double iDotN = dotVectors(hit.incomingVector, data.normalIntoInterface);
+        double nDotH = dotVectors(data.halfVector, data.normalIntoInterface);
 
         double cosineFactor = std::abs(iDotH / (iDotN * nDotH));
 
@@ -397,7 +397,7 @@ class MicrofacetMaterial : public Material{
         
         microfacetSampleArgs args;
         args.sampledHalfVector = data.halfVector;
-        args.normalVector = -data.fresnelNormal;
+        args.normalVector = -data.normalIntoInterface;
         args.incidentVector = -hit.incomingVector;
         args.cosineFactor = cosineFactor;
         args.u = u;

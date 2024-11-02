@@ -9,6 +9,9 @@
 
 
 vec3 getMaxPoint(Object** triangles, int numberOfTriangles){
+    if (numberOfTriangles == 0){
+        return vec3(0,0,0);
+    }
     vec3 maxPoint = triangles[0] -> maxAxisPoint();
     for (int i = 1; i < numberOfTriangles; i++){
         vec3 thisMaxPoint = triangles[i] -> maxAxisPoint();
@@ -21,6 +24,9 @@ vec3 getMaxPoint(Object** triangles, int numberOfTriangles){
 
 
 vec3 getMinPoint(Object** triangles, int numberOfTriangles){
+    if (numberOfTriangles == 0){
+        return vec3(0,0,0);
+    }
     vec3 minPoint = triangles[0] -> minAxisPoint();
     for (int i = 1; i < numberOfTriangles; i++){
         vec3 thisMinPoint = triangles[i] -> minAxisPoint();
@@ -247,7 +253,7 @@ class ObjectUnion : public Object{
         BoundingVolumeHierarchy bvh;
         bool useBVH;
         bool containsLightSource = false;
-        ObjectUnion(Object** _objects, int _numberOfObjects, bool constructBVH=false) : Object(){
+        ObjectUnion(Object** _objects, const int _numberOfObjects, const bool constructBVH=false) : Object(){
             objects = _objects;
             numberOfObjects = _numberOfObjects;
 
@@ -376,28 +382,41 @@ struct dataSizes{
 };
 
 
-std::string getNthWord(std::string line, std::string delimiter, int n){
-    int endLocation = 0;
-    int startLocation = 0;
-    for (int i = 0; i < n + 1; i++){
-        int newEndLocation = line.find(delimiter, endLocation)+1;
-        if (newEndLocation <= endLocation && !(newEndLocation == 0 && endLocation == 0)){
-            return line.substr(endLocation, line.size() - endLocation);
+int numberOfCharOccurances(const std::string& line, const char character){
+    int count = 0;
+    for (int i = 0; i < line.length(); i++){
+        if (line[i] == character){
+            count++;
         }
-        startLocation = endLocation;
-        endLocation = newEndLocation;
     }
-    return line.substr(startLocation, endLocation - startLocation - 1);
+    return count;
 }
 
 
-dataSizes getVertexDataSizes(std::string fileName){
+std::string getNthWord(const std::string& line, const char delimiter, const int n){
+    int numberOfWords = numberOfCharOccurances(line, delimiter);
+
+    if (n > numberOfWords){
+        return "";
+    }
+
+    int start = 0;
+    int end = 0;
+    for (int i = 0; i < n+1; i++){
+        start = end;
+        end = line.find(delimiter, start)+1;
+    }
+    return line.substr(start, end - start - 1);
+}
+
+
+dataSizes getVertexDataSizes(const std::string& fileName){
     std::ifstream modelFile(fileName);
     std::string line;
     dataSizes nums;
     
     while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
+        std::string firstWord = getNthWord(line, ' ', 0);
 
         bool isVertex = firstWord == "v";
         bool isVertexUV = firstWord == "vt";
@@ -436,7 +455,7 @@ dataSizes getVertexDataSizes(std::string fileName){
 }
 
 
-void populateVertexArrays(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray){
+void populateVertexArrays(const std::string& fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray){
     int vertexIdx = 0;
     int vertexUVIdx = 0;
     int vertexNormalIdx = 0;
@@ -444,28 +463,28 @@ void populateVertexArrays(std::string fileName, vec3* vertexArray, vec3* vertexU
     std::ifstream modelFile(fileName);
     std::string line;
     while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
+        std::string firstWord = getNthWord(line, ' ', 0);
         bool isVertex = firstWord == "v";
         bool isVertexUV = firstWord == "vt";
         bool isVertexNormal = firstWord == "vn";
 
         if (isVertex){
-            double v1 = std::stod(getNthWord(line, " ", 1));
-            double v2 = std::stod(getNthWord(line, " ", 2));
-            double v3 = std::stod(getNthWord(line, " ", 3));
+            double v1 = std::stod(getNthWord(line, ' ', 1));
+            double v2 = std::stod(getNthWord(line, ' ', 2));
+            double v3 = std::stod(getNthWord(line, ' ', 3));
             vertexArray[vertexIdx] = vec3(v1, v2, v3);
             vertexIdx++;
         }
         else if (isVertexUV){
-            double u = std::stod(getNthWord(line, " ", 1));
-            double v = std::stod(getNthWord(line, " ", 2));
+            double u = std::stod(getNthWord(line, ' ', 1));
+            double v = std::stod(getNthWord(line, ' ', 2));
             vertexUVArray[vertexUVIdx] = vec3(u, v, 0);
             vertexUVIdx++;
         }
         else if (isVertexNormal){
-            double n1 = std::stod(getNthWord(line, " ", 1));
-            double n2 = std::stod(getNthWord(line, " ", 2));
-            double n3 = std::stod(getNthWord(line, " ", 3));
+            double n1 = std::stod(getNthWord(line, ' ', 1));
+            double n2 = std::stod(getNthWord(line, ' ', 2));
+            double n3 = std::stod(getNthWord(line, ' ', 3));
             vertexNormalArray[vertexNormalIdx] = vec3(n1, n2, n3);
             vertexNormalIdx++;
         }
@@ -473,7 +492,7 @@ void populateVertexArrays(std::string fileName, vec3* vertexArray, vec3* vertexU
 }
 
 
-vec3 computeAveragePosition(vec3* vertexArray, const int numberOfVertices){
+vec3 computeAveragePosition(const vec3* vertexArray, const int numberOfVertices){
     vec3 avg = vec3(0,0,0);
     for (int i = 0; i < numberOfVertices; i++){
         avg += vertexArray[i];
@@ -482,7 +501,7 @@ vec3 computeAveragePosition(vec3* vertexArray, const int numberOfVertices){
 }
 
 
-double maximumDistance(vec3 center, vec3* vertexArray, const int numberOfVertices){
+double maximumDistance(const vec3& center, const vec3* vertexArray, const int numberOfVertices){
     double maxDistance = 0;
     for (int i = 0; i < numberOfVertices; i++){
         double distance = (vertexArray[i] - center).length();
@@ -493,7 +512,7 @@ double maximumDistance(vec3 center, vec3* vertexArray, const int numberOfVertice
     return maxDistance;
 }
 
-void changeVectors(vec3 desiredCenter, double desiredSize, vec3* vertexArray, const int numberOfVertices){
+void changeVectors(const vec3& desiredCenter, const double desiredSize, vec3* vertexArray, const int numberOfVertices){
     vec3 averagePosition = computeAveragePosition(vertexArray, numberOfVertices);
     double maxDistance = maximumDistance(averagePosition, vertexArray, numberOfVertices);
 
@@ -503,83 +522,149 @@ void changeVectors(vec3 desiredCenter, double desiredSize, vec3* vertexArray, co
 }
 
 
-void populateVertexVectors(const std::string vertexData, vec3& v, vec3& uv, vec3& n, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray){
-    std::string vIdx = getNthWord(vertexData, "/", 0);
-    std::string UVIdx = getNthWord(vertexData, "/", 1);
-    std::string nIdx = getNthWord(vertexData, "/", 2);
-    v = vertexArray[std::stoi(vIdx)-1];
-    uv = vertexUVArray[std::stoi(UVIdx)-1];
-    n = vertexNormalArray[std::stoi(nIdx)-1];
-}
+struct populateVertexVectorData{
+    const std::string vertexData;
+    vec3 v;
+    bool vSuccess = false;
+    vec3 uv;
+    bool uvSuccess = false;
+    vec3 n;
+    bool nSuccess = false;
+    const vec3* vertexArray;
+    const vec3* vertexUVArray;
+    const vec3* vertexNormalArray;
+
+    populateVertexVectorData(const std::string& data, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray)
+        : vertexData(data), vertexArray(vertexArray), vertexUVArray(vertexUVArray), vertexNormalArray(vertexNormalArray) {}
+};
 
 
-Triangle* constructTriangle(std::string triangleData, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray, const bool allowSmoothShading){
-    std::string v1Data = getNthWord(triangleData, " ", idx1);
-    vec3 v1;
-    vec3 uv1;
-    vec3 n1;
-    populateVertexVectors(v1Data, v1, uv1, n1, vertexArray, vertexUVArray, vertexNormalArray);
-
-    std::string v2Data = getNthWord(triangleData, " ", idx2);
-    vec3 v2;
-    vec3 uv2;
-    vec3 n2;
-    populateVertexVectors(v2Data, v2, uv2, n2, vertexArray, vertexUVArray, vertexNormalArray);
-
-    std::string v3Data = getNthWord(triangleData, " ", idx3);
-    vec3 v3;
-    vec3 uv3;
-    vec3 n3;
-    populateVertexVectors(v3Data, v3, uv3, n3, vertexArray, vertexUVArray, vertexNormalArray);
-
-    Triangle* triangle = new Triangle(v1, v2, v3, material);
-
-    triangle -> setVertexUV(uv1, uv2, uv3);
-    if (allowSmoothShading){
-        triangle -> setVertexNormals(n1, n2, n3);
+void populateVertexVectors(populateVertexVectorData& args){
+    std::string vIdx = getNthWord(args.vertexData, '/', 0);
+    std::string UVIdx = getNthWord(args.vertexData, '/', 1);
+    std::string nIdx = getNthWord(args.vertexData, '/', 2);
+    
+    if (vIdx != ""){
+        args.v = args.vertexArray[std::stoi(vIdx)-1];
+        args.vSuccess = true;
     }
-    return triangle;
+
+    if (UVIdx != ""){
+        args.uv = args.vertexUVArray[std::stoi(UVIdx)-1];
+        args.uvSuccess = true;
+    }
+
+    if (nIdx != ""){
+        args.n = args.vertexNormalArray[std::stoi(nIdx)-1];
+        args.nSuccess = true;
+    }
 }
 
 
-void populateTriangleArray(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray, Object** triangleArray, Material* material, const bool allowSmoothShading){
+struct TriangleConstructionArgs{
+    const std::string triangleData;
+    const int idx1;
+    const int idx2;
+    const int idx3;
+    Material* material;
+    const vec3* vertexArray;
+    const vec3* vertexUVArray;
+    const vec3* vertexNormalArray;
+    const bool enableSmoothShading;
+
+    TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertexArray,
+    const vec3* vertexUVArray, const vec3* vertexNormalArray, const bool enableSmoothShading) : triangleData(data), idx1(idx1), idx2(idx2),
+    idx3(idx3), material(material), vertexArray(vertexArray), vertexUVArray(vertexUVArray), vertexNormalArray(vertexNormalArray), enableSmoothShading(enableSmoothShading) {}
+};
+
+
+struct TriangleCreationResult{
+    Triangle* triangle;
+    bool success = false;
+};
+
+
+TriangleCreationResult constructTriangle(TriangleConstructionArgs& args){
+    std::string v1Data = getNthWord(args.triangleData, ' ', args.idx1);
+    populateVertexVectorData data1 = populateVertexVectorData(v1Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
+    populateVertexVectors(data1);
+
+    std::string v2Data = getNthWord(args.triangleData, ' ', args.idx2);
+    populateVertexVectorData data2 = populateVertexVectorData(v2Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
+    populateVertexVectors(data2);
+
+    std::string v3Data = getNthWord(args.triangleData, ' ', args.idx3);
+    populateVertexVectorData data3 = populateVertexVectorData(v3Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
+    populateVertexVectors(data3);
+
+    bool loadedVerticesSuccessfully = data1.vSuccess && data2.vSuccess && data3.vSuccess;
+    
+    TriangleCreationResult result;
+
+    if (!loadedVerticesSuccessfully){
+        return result;
+    }
+
+    Triangle* triangle = new Triangle(data1.v, data2.v, data3.v, args.material);
+
+    bool loadedUVSuccessfully = data1.uvSuccess && data2.uvSuccess && data3.uvSuccess;
+    if (loadedUVSuccessfully){triangle -> setVertexUV(data1.uv, data2.uv, data3.uv);}
+
+    bool loadedNormalsSuccessfully  = data1.nSuccess && data2.nSuccess && data3.nSuccess;
+    if (loadedNormalsSuccessfully && args.enableSmoothShading){
+        triangle -> setVertexNormals(data1.n, data2.n, data3.n);
+    }
+    result.success = true;
+    result.triangle = triangle;
+    return result;
+}
+
+
+int populateTriangleArray(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray, Object** triangleArray, Material* material, const bool enableSmoothShading){
     std::ifstream modelFile(fileName);
     std::string line;
     int shapeIdx = 0;
     while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, " ", 0);
+        std::string firstWord = getNthWord(line, ' ', 0);
+        
         bool isShape = firstWord == "f";
         if (!isShape){
             continue;
         }
-        int numberOfSpaces = 0;
-        for (int i = 0; i < line.size(); i++){
-            if (line.substr(i, 1) == " "){
-                numberOfSpaces++;
-            }
-        }
+        int numberOfSpaces = numberOfCharOccurances(line, ' ');
         bool isTriangle = numberOfSpaces == 3;
         bool isQuad = numberOfSpaces == 4;
         if (isTriangle){
-            
-            Triangle* triangle = constructTriangle(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx] = triangle;
+            TriangleConstructionArgs args = TriangleConstructionArgs(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
+            TriangleCreationResult result = constructTriangle(args);
+            if (!result.success){
+                continue;
+            }
+            triangleArray[shapeIdx] = result.triangle;
             shapeIdx++;
         }
 
         else if (isQuad){
-            Triangle* triangle1 = constructTriangle(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx] = triangle1;
-
-            Triangle* triangle2 = constructTriangle(line, 1, 3, 4, material, vertexArray, vertexUVArray, vertexNormalArray, allowSmoothShading);
-            triangleArray[shapeIdx+1] = triangle2;
-            shapeIdx += 2;
+            TriangleConstructionArgs args1 = TriangleConstructionArgs(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
+            TriangleCreationResult result1 = constructTriangle(args1);
+            if (result1.success){
+                triangleArray[shapeIdx] = result1.triangle;
+                shapeIdx++;
+            }
+            
+            TriangleConstructionArgs args2 = TriangleConstructionArgs(line, 1, 3, 4, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
+            TriangleCreationResult result2 = constructTriangle(args2);
+            if (result1.success){
+                triangleArray[shapeIdx] = result2.triangle;
+                shapeIdx++;
+            }
         }
     }
+    return shapeIdx;
 }
 
 
-ObjectUnion* loadObjectModel(std::string fileName, Material* material, const bool allowSmoothShading){
+ObjectUnion* loadObjectModel(std::string fileName, Material* material, const bool enableSmoothShading){
     dataSizes nums = getVertexDataSizes(fileName);
 
     vec3 vertexArray[nums.numVertices];
@@ -592,8 +677,8 @@ ObjectUnion* loadObjectModel(std::string fileName, Material* material, const boo
     changeVectors(desiredCenter, desiredSize, vertexArray, nums.numVertices);
 
     Object** triangles = new Object*[nums.numTriangles];
-    populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, allowSmoothShading);
-    ObjectUnion* loadedObject = new ObjectUnion(triangles, nums.numTriangles, true);
+    int validTriangles = populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, enableSmoothShading);
+    ObjectUnion* loadedObject = new ObjectUnion(triangles, validTriangles, true);
     return loadedObject;
 }
 

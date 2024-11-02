@@ -9,6 +9,7 @@ class vec3 {
         double e[3];
 
         vec3() : e{0,0,0} {}
+        
         vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
 
         inline vec3 operator-() const { 
@@ -102,6 +103,14 @@ class vec3 {
             return result;
         }
 };
+
+
+inline vec3 operator*(double value, const vec3& v) {
+    const double v0 = v[0] * value;
+    const double v1 = v[1] * value;
+    const double v2 = v[2] * value;
+    return vec3(v0, v1, v2);
+}
 
 
 inline double dotVectors(const vec3& v1, const vec3& v2){
