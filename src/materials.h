@@ -74,7 +74,7 @@ class Material{
         bool isLightSource;
         ValueMap1D* roughnessMap;
         ValueMap1D* percentageDiffuseMap;
-        bool alive = true;
+        Material(){}
         Material(MaterialData data){
             if (!data.albedoMap){
                 data.albedoMap = new ValueMap3D(WHITE);
@@ -114,16 +114,15 @@ class Material{
             roughnessMap = data.roughnessMap;
             percentageDiffuseMap = data.percentageDiffuseMap;
         }
-        
-        virtual ~Material(){
-            if (!albedoMap -> alive){delete albedoMap;}
-            if (!emmissionColorMap -> alive){delete emmissionColorMap;}
-            if (!lightIntensityMap -> alive){delete lightIntensityMap;}
-            if (!roughnessMap -> alive){delete roughnessMap;}
-            if (!percentageDiffuseMap -> alive){delete percentageDiffuseMap;}
 
-            alive = false;
-        }
+    void prepareDeletion(PointerManager* pm){
+        pm -> addPointer(albedoMap);
+        pm -> addPointer(emmissionColorMap);
+        pm -> addPointer(lightIntensityMap);
+        pm -> addPointer(roughnessMap);
+        pm -> addPointer(percentageDiffuseMap);
+        pm -> addPointer(this);
+    }
 
     virtual vec3 eval(const Hit& hit, const double u, const double v){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
@@ -143,7 +142,7 @@ class Material{
 };
 
 
-class DiffuseMaterial : public virtual Material{
+class DiffuseMaterial : public Material{
     public:
         using Material::Material;
 
@@ -164,7 +163,7 @@ class DiffuseMaterial : public virtual Material{
 };
 
 
-class ReflectiveMaterial : public virtual Material{
+class ReflectiveMaterial : public Material{
     public:
         using Material::Material;
 
@@ -184,7 +183,7 @@ class ReflectiveMaterial : public virtual Material{
 };
 
 
-class TransparentMaterial : public virtual Material{
+class TransparentMaterial : public Material{
     public:
         using Material::Material;
 

@@ -12,20 +12,16 @@ Hit findClosestHit(const Ray& ray, Object** objects, const int size);
 
 class Object{
     public:
-        Material*material;
+        Material* material;
         double area;
         int objectID = 0;
-        bool alive = true;
         Object(){}
-        Object(Material*_material){
+        Object(Material* _material){
             material = _material;
         }
-        virtual ~Object(){
-            if (material -> alive){
-                delete material;
-            }
-            
-            alive = false;
+
+        virtual void prepareDeletion(PointerManager* pm){
+            material -> prepareDeletion(pm);
         }
 
         virtual vec3 maxAxisPoint(){

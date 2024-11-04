@@ -11,23 +11,24 @@ class ValueMap{
         double uMax;
         int height;
         double vMax;
-        bool alive = true;
-        ValueMap(){
-        }
+        ValueMap(){}
+
         ValueMap(const int _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
             double* _data_ptr = new double[1]{double(_data)};
             initialise(_data_ptr, _width, _height, _uMax, _vMax);
         }
+
         ValueMap(const double _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
             double* _data_ptr = new double[1]{_data};
             initialise(_data_ptr, _width, _height, _uMax, _vMax);
         }
+
         ValueMap(double* _data, const int _width=1, const int _height=1, const double _uMax=1, const double _vMax=1){
             initialise(_data, _width, _height, _uMax, _vMax);
         }
+        
         ~ValueMap(){
             delete[] data;
-            alive = false;
         }
         
     private: 

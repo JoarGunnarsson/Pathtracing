@@ -268,10 +268,9 @@ Scene createScene(){
     DiffuseMaterial* cobbleMaterial = new DiffuseMaterial(cobbleData);
     */
    
-    MaterialData bunnyData;
-    bunnyData.albedoMap = bunnyMap;
-    MicrofacetMaterial* bunnyMaterial = new MicrofacetMaterial(bunnyData);
-    
+    MaterialData modelData;
+    modelData.albedoMap = bunnyMap;
+    DiffuseMaterial* modelMaterial = new DiffuseMaterial(modelData);
     
     Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), whiteDiffuseMaterial);
     Rectangle* frontWall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, whiteDiffuseMaterial);
@@ -298,15 +297,16 @@ Scene createScene(){
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
     
     bool enableSmoothShading = true;
-    ObjectUnion* loadedModel = loadObjectModel("./models/bunny.obj", bunnyMaterial, enableSmoothShading);
+    ObjectUnion* loadedModel = loadObjectModel("./models/dragon.obj", goldMaterial, enableSmoothShading);
 
     int numberOfObjects = 8;
-    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, loadedModel, lightSource};
+    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, lightSource, loadedModel};
 
     vec3 cameraPosition = vec3(0, 1, 3);
     vec3 viewingDirection = vec3(0.0, -0.3, -1);
     vec3 screenYVector = vec3(0, 1, 0);
     Camera* camera = new Camera(cameraPosition, viewingDirection, screenYVector);
+
     Scene scene;
     scene.objects = objects;
     scene.camera = camera;
@@ -316,11 +316,15 @@ Scene createScene(){
 
 
 void clearScene(Scene& scene){
-    delete scene.camera;
+    PointerManager* pm = new PointerManager();
     for (int i = 0; i < scene.numberOfObjects; i++){
-        if (scene.objects[i] -> alive){delete scene.objects[i];}
+        scene.objects[i] -> prepareDeletion(pm);
+        delete scene.objects[i];
     }
+
     delete[] scene.objects;
+    delete pm;
+    delete scene.camera;
 }
 
 
