@@ -47,16 +47,16 @@ struct microfacetData{
 
 
 struct MaterialData{
-    ValueMap3D* albedoMap = new ValueMap3D(WHITE);
+    ValueMap3D* albedoMap = nullptr;
     double refractiveIndex = 1;
     double extinctionCoefficient = 0;
     double attenuationCoefficient = 0;
     vec3 absorptionAlbedo = WHITE;
-    ValueMap3D* emmissionColorMap = new ValueMap3D(WHITE);
-    ValueMap1D* lightIntensityMap = new ValueMap1D(0);
+    ValueMap3D* emmissionColorMap = nullptr;
+    ValueMap1D* lightIntensityMap = nullptr;
     bool isDielectric = true;
-    ValueMap1D* roughnessMap = new ValueMap1D(0);
-    ValueMap1D* percentageDiffuseMap = new ValueMap1D(1);
+    ValueMap1D* roughnessMap = nullptr; 
+    ValueMap1D* percentageDiffuseMap = nullptr;
     bool isLightSource = false;
 };
 
@@ -76,6 +76,26 @@ class Material{
         ValueMap1D* percentageDiffuseMap;
         bool alive = true;
         Material(MaterialData data){
+            if (!data.albedoMap){
+                data.albedoMap = new ValueMap3D(WHITE);
+            }
+
+            if (!data.emmissionColorMap){
+                data.emmissionColorMap = new ValueMap3D(WHITE);
+            }
+
+            if (!data.lightIntensityMap){
+                data.lightIntensityMap = new ValueMap1D(0);
+            }
+
+            if (!data.roughnessMap){
+                data.roughnessMap = new ValueMap1D(0);
+            }
+
+            if (!data.percentageDiffuseMap){
+                data.percentageDiffuseMap = new ValueMap1D(1);
+            }
+
             albedoMap = data.albedoMap;
             refractiveIndex = data.refractiveIndex;
             attenuationCoefficient = data.attenuationCoefficient;
@@ -94,6 +114,7 @@ class Material{
             roughnessMap = data.roughnessMap;
             percentageDiffuseMap = data.percentageDiffuseMap;
         }
+        
         virtual ~Material(){
             if (!albedoMap -> alive){delete albedoMap;}
             if (!emmissionColorMap -> alive){delete emmissionColorMap;}

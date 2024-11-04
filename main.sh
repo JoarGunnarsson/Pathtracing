@@ -14,8 +14,8 @@ show_help() {
 
 
 compile(){
-     echo "Compiling."
-    g++ -std=c++11 src/main.cpp -o main -O3
+    echo "Compiling."
+    clang++ -std=c++11 src/main.cpp -o main -O3
     echo "Finished compiling."
 }
 

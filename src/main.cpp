@@ -170,14 +170,6 @@ Scene createScene(){
     ValueMap3D* goldMap = new ValueMap3D(GOLD);
     ValueMap3D* brownMap = new ValueMap3D(CHOCOLATE_BROWN);
 
-    ValueMap1D* zeroMap = new ValueMap1D(0.0);
-    ValueMap1D* oneMap = new ValueMap1D(1.0);
-    ValueMap1D* tenMap = new ValueMap1D(10.0);
-    ValueMap1D* pointOneMap = new ValueMap1D(0.1);
-    ValueMap1D* pointThreeMap = new ValueMap1D(0.3);
-    ValueMap1D* pointFiveMap = new ValueMap1D(0.5);
-    ValueMap1D* pointSevenMap = new ValueMap1D(0.7);
-
     /*
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
     ValueMap3D* sakuraMap = createValueMap3D("./maps/sakura.map");
@@ -278,7 +270,7 @@ Scene createScene(){
    
     MaterialData bunnyData;
     bunnyData.albedoMap = bunnyMap;
-    DiffuseMaterial* bunnyMaterial = new DiffuseMaterial(bunnyData);
+    MicrofacetMaterial* bunnyMaterial = new MicrofacetMaterial(bunnyData);
     
     
     Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), whiteDiffuseMaterial);

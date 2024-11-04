@@ -30,4 +30,4 @@ Adding the -compile flag compiles the project before running, and using the -nam
 
 This project does not explicitly support objects intersecting other objects, and can result in inaccurate results in regard to transparent.
 
-Furthermore, this project was tested and compiled on MacOS using the g++ compiler, and is not guaranteed to work on other platforms.
+Furthermore, this project was tested and compiled on MacOS using the clang compiler, and is not guaranteed to work on other platforms or with other compilers.
