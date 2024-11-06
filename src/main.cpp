@@ -32,34 +32,34 @@ vec3 directLighting(Hit& hit, Object** objects, const int numberOfObjects){
         return BLACK;
     }
     
-    int randomIndex = randomInt(0, numberOfLightSources);
+    int randomIndex = random_int(0, numberOfLightSources);
     int lightIndex = lightSourceIdxArray[randomIndex];
 
     double inversePDF;
-    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit.intersectionPoint, inversePDF);
+    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit.intersection_point, inversePDF);
 
-    vec3 vectorTowardsLight = randomPoint - hit.intersectionPoint;
+    vec3 vectorTowardsLight = randomPoint - hit.intersection_point;
     double distanceToLight = vectorTowardsLight.length();
-    vectorTowardsLight = normalizeVector(vectorTowardsLight);
-    hit.outgoingVector = vectorTowardsLight;
+    vectorTowardsLight = normalize_vector(vectorTowardsLight);
+    hit.outgoing_vector = vectorTowardsLight;
     
     Ray lightRay;
-    lightRay.startingPosition = hit.intersectionPoint;
-    lightRay.directionVector =  vectorTowardsLight;
+    lightRay.starting_position = hit.intersection_point;
+    lightRay.direction_vector =  vectorTowardsLight;
 
     Hit lightHit = findClosestHit(lightRay, objects, numberOfObjects);
-    bool inShadow = lightHit.intersectedObjectIndex != lightIndex;
+    bool inShadow = lightHit.intersected_object_index != lightIndex;
     bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
-    bool hitFromBehind = dotVectors(vectorTowardsLight, hit.normalVector) < 0.0;
-    bool insideObject = dotVectors(hit.incomingVector, hit.normalVector) > 0.0;
+    bool hitFromBehind = dot_vectors(vectorTowardsLight, hit.normal_vector) < 0.0;
+    bool insideObject = dot_vectors(hit.incoming_vector, hit.normal_vector) > 0.0;
     if ( inShadow || !sameDistance || hitFromBehind || insideObject){
         return BLACK;
     }
 
-    vec3 brdfMultiplier = objects[hit.intersectedObjectIndex] -> eval(hit);
+    vec3 brdfMultiplier = objects[hit.intersected_object_index] -> eval(hit);
     vec3 lightEmitance = objects[lightIndex] -> getLightEmittance(lightHit);
 
-    double cosine = dotVectors(hit.normalVector, vectorTowardsLight);
+    double cosine = dot_vectors(hit.normal_vector, vectorTowardsLight);
     cosine = std::max(0.0, cosine);
 
     return brdfMultiplier * cosine * lightEmitance * inversePDF * (double) numberOfLightSources;
@@ -81,8 +81,8 @@ vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
         bool isSpecularRay = ray.type == REFLECTED || ray.type == TRANSMITTED;
 
         if (!constants::enableNextEventEstimation || depth == 0 || isSpecularRay){
-            vec3 lightEmitance = objects[rayHit.intersectedObjectIndex] -> getLightEmittance(rayHit);
-            color += lightEmitance * brdfAccumulator * (dotVectors(ray.directionVector, rayHit.normalVector) < 0);
+            vec3 lightEmitance = objects[rayHit.intersected_object_index] -> getLightEmittance(rayHit);
+            color += lightEmitance * brdfAccumulator * (dot_vectors(ray.direction_vector, rayHit.normal_vector) < 0);
         }
         bool allowRecursion;
         double randomThreshold;
@@ -93,7 +93,7 @@ vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
         }
         else{
             randomThreshold = std::min(throughput.max(), 0.9);
-            double randomValue = randomUniform(0, 1);
+            double randomValue = random_uniform(0, 1);
             allowRecursion = randomValue < randomThreshold;
         }
         
@@ -106,11 +106,11 @@ vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
             color += direct * brdfAccumulator / randomThreshold;
         }
 
-        brdfData brdfResult = objects[rayHit.intersectedObjectIndex] -> sample(rayHit, objects, numberOfObjects);
+        brdfData brdfResult = objects[rayHit.intersected_object_index] -> sample(rayHit, objects, numberOfObjects);
 
         throughput *= brdfResult.brdfMultiplier / randomThreshold;
-        ray.startingPosition = rayHit.intersectionPoint;
-        ray.directionVector = brdfResult.outgoingVector;
+        ray.starting_position = rayHit.intersection_point;
+        ray.direction_vector = brdfResult.outgoingVector;
         ray.type = brdfResult.type;
 
         brdfAccumulator *= brdfResult.brdfMultiplier / randomThreshold;
@@ -123,11 +123,11 @@ vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
 vec3 computePixelColor(const int x, const int y, Scene scene){
     vec3 pixelColor = vec3(0,0,0);
     Ray ray;
-    ray.startingPosition = scene.camera -> position;
+    ray.starting_position = scene.camera -> position;
     for (int i = 0; i < constants::samplesPerPixel; i++){
-        double x_offset = randomNormal() / 2.0;
-        double y_offset = randomNormal() / 2.0;
-        ray.directionVector = scene.camera -> getStartingDirections(x + x_offset, y + y_offset);
+        double x_offset = random_normal() / 2.0;
+        double y_offset = random_normal() / 2.0;
+        ray.direction_vector = scene.camera -> getStartingDirections(x + x_offset, y + y_offset);
         vec3 sampledColor = raytrace(ray, scene.objects, scene.numberOfObjects);
         pixelColor += sampledColor;    
     }

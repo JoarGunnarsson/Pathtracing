@@ -113,27 +113,27 @@ inline vec3 operator*(double value, const vec3& v) {
 }
 
 
-inline double dotVectors(const vec3& v1, const vec3& v2){
+inline double dot_vectors(const vec3& v1, const vec3& v2){
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
 
-vec3 crossVectors(const vec3& v1, const vec3& v2){
+vec3 cross_vectors(const vec3& v1, const vec3& v2){
     return vec3(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
 
-inline vec3 normalizeVector(const vec3& v){
+inline vec3 normalize_vector(const vec3& v){
     return v / v.length();
 }
 
 
-inline vec3 expVector(const vec3& v){
+inline vec3 exp_vector(const vec3& v){
     return vec3(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
 }
 
 
-void displayVector(vec3 v){
+void display_vector(vec3 v){
     std::cout << "[";
     for (int i = 0; i < 3; i++){
         std::cout << v[i];

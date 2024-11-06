@@ -67,13 +67,13 @@ class BoundingBox{
         double t[6];
         bool insideBounds[6];
         for (int i = 0; i < 3; i++){
-            if (std::abs(ray.directionVector[i]) < constants::EPSILON){
+            if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
                 t[i] = -1;
                 insideBounds[i] = false;
                 continue;
             }
-            t[i] = (p1[i] - ray.startingPosition[i]) / ray.directionVector[i];
-            vec3 hitPoint = ray.directionVector * t[i] + ray.startingPosition;
+            t[i] = (p1[i] - ray.starting_position[i]) / ray.direction_vector[i];
+            vec3 hitPoint = ray.direction_vector * t[i] + ray.starting_position;
             vec3 differenceVector = hitPoint - p1;
             if (i == 0){
                 insideBounds[i] = isWithinBounds(differenceVector[1], 0, length) && isWithinBounds(differenceVector[2], 0, height);
@@ -87,13 +87,13 @@ class BoundingBox{
         }
 
         for (int i = 0; i < 3; i++){
-            if (std::abs(ray.directionVector[i]) < constants::EPSILON){
+            if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
                 t[i+3] = -1;
                 insideBounds[i+3] = false;
                 continue;
             }
-            t[i+3] = (p2[i] - ray.startingPosition[i]) / ray.directionVector[i];
-            vec3 hitPoint = ray.directionVector * t[i+3] + ray.startingPosition;
+            t[i+3] = (p2[i] - ray.starting_position[i]) / ray.direction_vector[i];
+            vec3 hitPoint = ray.direction_vector * t[i+3] + ray.starting_position;
             vec3 differenceVector = hitPoint - p2;
             if (i == 0){
                 insideBounds[i+3] = isWithinBounds(differenceVector[1], -length, 0) && isWithinBounds(differenceVector[2], -height, 0);
@@ -185,7 +185,7 @@ class Node{
             Hit closestHit = findClosestHit(ray, triangles, numberOfTriangles);
             if (closestHit.distance > constants::EPSILON && (closestHit.distance < hit.distance || hit.distance == -1)){
                 hit.distance = closestHit.distance;
-                hit.objectID = closestHit.objectID;
+                hit.object_ID = closestHit.object_ID;
             }
             return;
         }
@@ -234,7 +234,7 @@ class BoundingVolumeHierarchy{
 
             Hit hit;
             hit.distance = -1;
-            hit.objectID = -1;
+            hit.object_ID = -1;
             if (distanceToBoundingBox > constants::EPSILON){
                 rootNode -> intersect(ray, hit);
             }
@@ -307,15 +307,15 @@ class ObjectUnion : public Object{
         }
 
         vec3 eval(const Hit& hit) override{
-            return objects[hit.objectID]  -> eval(hit);
+            return objects[hit.object_ID]  -> eval(hit);
         }
 
         brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-            return objects[hit.objectID]  -> sample(hit, objectPtrList, numberOfObjects);
+            return objects[hit.object_ID]  -> sample(hit, objectPtrList, numberOfObjects);
         }
 
         vec3 getLightEmittance(const Hit& hit) override{
-            return objects[hit.objectID] -> getLightEmittance(hit);
+            return objects[hit.object_ID] -> getLightEmittance(hit);
         }
 
         Hit findClosestObjectHit(const Ray& ray) override{
@@ -324,8 +324,8 @@ class ObjectUnion : public Object{
             }
 
             Hit hit = findClosestHit(ray, objects, numberOfObjects);
-            hit.objectID = hit.intersectedObjectIndex;
-            hit.intersectedObjectIndex = -1;
+            hit.object_ID = hit.intersected_object_index;
+            hit.intersected_object_index = -1;
             return hit;
         }
         
@@ -334,7 +334,7 @@ class ObjectUnion : public Object{
         }
 
         int sampleRandomObjectIndex(){
-            double randomAreaSplit = randomUniform(0, area);
+            double randomAreaSplit = random_uniform(0, area);
             int max = numberOfLightSources - 1;
             int min = 0;
             int index;

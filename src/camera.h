@@ -16,15 +16,15 @@ class Camera{
         Camera(){}
         Camera(vec3 _position=vec3(0,0,0), vec3 _viewingDirection=vec3(0,0,1), vec3 _yVector=vec3(0,1,0)){
             position = _position;
-            viewingDirection = normalizeVector(_viewingDirection);
-            if (dotVectors(viewingDirection, _yVector) != 0){
-                vec3 perpendicularVector = crossVectors(viewingDirection, _yVector);
-                _yVector = crossVectors(perpendicularVector, viewingDirection);
+            viewingDirection = normalize_vector(_viewingDirection);
+            if (dot_vectors(viewingDirection, _yVector) != 0){
+                vec3 perpendicularVector = cross_vectors(viewingDirection, _yVector);
+                _yVector = cross_vectors(perpendicularVector, viewingDirection);
             }
-            yVector = normalizeVector(_yVector);
+            yVector = normalize_vector(_yVector);
             screenWidth = 1.0;
             screenHeight = screenWidth * (double) constants::HEIGHT / (double) constants::WIDTH; 
-            screenXVector = crossVectors(viewingDirection, yVector);
+            screenXVector = cross_vectors(viewingDirection, yVector);
             screenPosition = position + viewingDirection;
         }
 
@@ -41,7 +41,7 @@ class Camera{
     vec3 getStartingDirections(double x, double y){
         vec3 pixelVector = indexToPosition(x, y);
         vec3  directionVector = pixelVector - position;
-        return normalizeVector(directionVector);
+        return normalize_vector(directionVector);
  }
 }; 
 
