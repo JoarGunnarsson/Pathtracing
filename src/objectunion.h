@@ -8,33 +8,33 @@
 #include "objects.h"
 
 
-vec3 getMaxPoint(Object** triangles, int numberOfTriangles){
-    if (numberOfTriangles == 0){
+vec3 get_max_point(Object** triangles, int number_of_triangles){
+    if (number_of_triangles == 0){
         return vec3(0,0,0);
     }
-    vec3 maxPoint = triangles[0] -> maxAxisPoint();
-    for (int i = 1; i < numberOfTriangles; i++){
-        vec3 thisMaxPoint = triangles[i] -> maxAxisPoint();
+    vec3 max_point = triangles[0] -> max_axis_point();
+    for (int i = 1; i < number_of_triangles; i++){
+        vec3 this_max_point = triangles[i] -> max_axis_point();
         for (int j = 0; j < 3; j++){
-            maxPoint.e[j] = std::max(thisMaxPoint[j], maxPoint[j]);
+            max_point.e[j] = std::max(this_max_point[j], max_point[j]);
         }
     }
-    return maxPoint;
+    return max_point;
 }
 
 
-vec3 getMinPoint(Object** triangles, int numberOfTriangles){
-    if (numberOfTriangles == 0){
+vec3 get_min_point(Object** triangles, int number_of_triangles){
+    if (number_of_triangles == 0){
         return vec3(0,0,0);
     }
-    vec3 minPoint = triangles[0] -> minAxisPoint();
-    for (int i = 1; i < numberOfTriangles; i++){
-        vec3 thisMinPoint = triangles[i] -> minAxisPoint();
+    vec3 min_point = triangles[0] -> min_axis_point();
+    for (int i = 1; i < number_of_triangles; i++){
+        vec3 this_min_point = triangles[i] -> min_axis_point();
         for (int j = 0; j < 3; j++){
-            minPoint.e[j] = std::min(thisMinPoint[j], minPoint[j]);
+            min_point.e[j] = std::min(this_min_point[j], min_point[j]);
         }
     }
-    return minPoint;
+    return min_point;
 }
 
 
@@ -45,158 +45,158 @@ class BoundingBox{
         double width;
         double height;
         double length;
-        double axisLength[3];
+        double axis_length[3];
         BoundingBox(){}
-        BoundingBox(Object** _triangles, int numberOfTriangles){
-            p1 = getMinPoint(_triangles, numberOfTriangles);
-            p2 = getMaxPoint(_triangles, numberOfTriangles);
+        BoundingBox(Object** _triangles, int number_of_triangles){
+            p1 = get_min_point(_triangles, number_of_triangles);
+            p2 = get_max_point(_triangles, number_of_triangles);
 
             width = p2[0] - p1[0];
             length = p2[1] - p1[1];
             height = p2[2] - p1[2];
-            axisLength[0] = width;
-            axisLength[1] = length;
-            axisLength[2] = height;
+            axis_length[0] = width;
+            axis_length[1] = length;
+            axis_length[2] = height;
         }
     
-    inline bool isWithinBounds(const double x, const double lower, const double higher){
+    inline bool is_within_bounds(const double x, const double lower, const double higher){
         return lower <= x && x <= higher;
     }
 
     double intersect(const Ray& ray){
         double t[6];
-        bool insideBounds[6];
+        bool inside_bounds[6];
         for (int i = 0; i < 3; i++){
             if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
                 t[i] = -1;
-                insideBounds[i] = false;
+                inside_bounds[i] = false;
                 continue;
             }
             t[i] = (p1[i] - ray.starting_position[i]) / ray.direction_vector[i];
-            vec3 hitPoint = ray.direction_vector * t[i] + ray.starting_position;
-            vec3 differenceVector = hitPoint - p1;
+            vec3 hit_point = ray.direction_vector * t[i] + ray.starting_position;
+            vec3 difference_vector = hit_point - p1;
             if (i == 0){
-                insideBounds[i] = isWithinBounds(differenceVector[1], 0, length) && isWithinBounds(differenceVector[2], 0, height);
+                inside_bounds[i] = is_within_bounds(difference_vector[1], 0, length) && is_within_bounds(difference_vector[2], 0, height);
             }
             else if (i ==  1){
-                insideBounds[i] = isWithinBounds(differenceVector[0], 0, width) && isWithinBounds(differenceVector[2], 0, height);
+                inside_bounds[i] = is_within_bounds(difference_vector[0], 0, width) && is_within_bounds(difference_vector[2], 0, height);
             }
             else if (i == 2){
-                insideBounds[i] = isWithinBounds(differenceVector[0], 0, width) && isWithinBounds(differenceVector[1], 0, length);
+                inside_bounds[i] = is_within_bounds(difference_vector[0], 0, width) && is_within_bounds(difference_vector[1], 0, length);
             }
         }
 
         for (int i = 0; i < 3; i++){
             if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
                 t[i+3] = -1;
-                insideBounds[i+3] = false;
+                inside_bounds[i+3] = false;
                 continue;
             }
             t[i+3] = (p2[i] - ray.starting_position[i]) / ray.direction_vector[i];
-            vec3 hitPoint = ray.direction_vector * t[i+3] + ray.starting_position;
-            vec3 differenceVector = hitPoint - p2;
+            vec3 hit_point = ray.direction_vector * t[i+3] + ray.starting_position;
+            vec3 difference_vector = hit_point - p2;
             if (i == 0){
-                insideBounds[i+3] = isWithinBounds(differenceVector[1], -length, 0) && isWithinBounds(differenceVector[2], -height, 0);
+                inside_bounds[i+3] = is_within_bounds(difference_vector[1], -length, 0) && is_within_bounds(difference_vector[2], -height, 0);
             }
             else if (i ==  1){
-                insideBounds[i+3] = isWithinBounds(differenceVector[0], -width, 0) && isWithinBounds(differenceVector[2], -height, 0);
+                inside_bounds[i+3] = is_within_bounds(difference_vector[0], -width, 0) && is_within_bounds(difference_vector[2], -height, 0);
             }
             else if (i == 2){
-                insideBounds[i+3] = isWithinBounds(differenceVector[0], -width, 0) && isWithinBounds(differenceVector[1], -length, 0);
+                inside_bounds[i+3] = is_within_bounds(difference_vector[0], -width, 0) && is_within_bounds(difference_vector[1], -length, 0);
             }
         }
 
-        double minT = -1;
+        double min_t = -1;
         for (int i = 0; i < 6; i++){
-            if (insideBounds[i] && (minT == -1 || minT > t[i]) && t[i] > constants::EPSILON){
-                minT = t[i];
+            if (inside_bounds[i] && (min_t == -1 || min_t > t[i]) && t[i] > constants::EPSILON){
+                min_t = t[i];
             }
         }
 
-        return minT;
+        return min_t;
     }    
 };
 
 
-void sortByAxis(Object** triangles, int numberOfTriangles, int axis){
-    std::sort(triangles, triangles + numberOfTriangles, [axis](Object* obj1, Object* obj2){ 
-        return (obj1 -> computeCentroid())[axis] < (obj2 -> computeCentroid())[axis]; 
+void sort_by_axis(Object** triangles, int number_of_triangles, int axis){
+    std::sort(triangles, triangles + number_of_triangles, [axis](Object* obj1, Object* obj2){ 
+        return (obj1 -> compute_centroid())[axis] < (obj2 -> compute_centroid())[axis]; 
         });
 }
 
 
 class Node{
     public:
-        int leafSize;
-        bool isLeafNode;
+        int leaf_size;
+        bool is_leaf_node;
         Node* node1;
         Node* node2;
         int depth;
         Object** triangles;
-        int numberOfTriangles;
-        BoundingBox boundingBox;
+        int number_of_triangles;
+        BoundingBox bounding_box;
         Node(){}
-        Node(Object** _triangles, int _numberOfTriangles, int _leafSize=12, int depth=0){
-            leafSize = _leafSize;
-            boundingBox = BoundingBox(_triangles, _numberOfTriangles);
-            if (_numberOfTriangles <= leafSize){
+        Node(Object** _triangles, int _number_of_triangles, int _leaf_size=12, int depth=0){
+            leaf_size = _leaf_size;
+            bounding_box = BoundingBox(_triangles, _number_of_triangles);
+            if (_number_of_triangles <= leaf_size){
                 triangles = _triangles;
-                numberOfTriangles = _numberOfTriangles;
-                isLeafNode = true;
+                number_of_triangles = _number_of_triangles;
+                is_leaf_node = true;
                 return;
             }
-            isLeafNode = false;
-            int axis = getSplitAxis();
+            is_leaf_node = false;
+            int axis = get_split_axis();
 
-            sortByAxis(_triangles, _numberOfTriangles, axis);
-            int splitIndex = _numberOfTriangles / 2;
+            sort_by_axis(_triangles, _number_of_triangles, axis);
+            int split_index = _number_of_triangles / 2;
 
-            Object** node1Triangles = new Object*[splitIndex];
-            Object** node2Triangles = new Object*[_numberOfTriangles - splitIndex];
+            Object** node1_triangles = new Object*[split_index];
+            Object** node2_triangles = new Object*[_number_of_triangles - split_index];
 
-            for (int i = 0; i < splitIndex; i++){
-                node1Triangles[i] = _triangles[i];
+            for (int i = 0; i < split_index; i++){
+                node1_triangles[i] = _triangles[i];
             }
-            for (int i = splitIndex; i < _numberOfTriangles; i++){
-                node2Triangles[i - splitIndex] = _triangles[i];
+            for (int i = split_index; i < _number_of_triangles; i++){
+                node2_triangles[i - split_index] = _triangles[i];
             }
 
-            node1 = new Node(node1Triangles, splitIndex, _leafSize, depth+1);
-            node2 = new Node(node2Triangles, _numberOfTriangles - splitIndex, _leafSize, depth+1);
+            node1 = new Node(node1_triangles, split_index, _leaf_size, depth+1);
+            node2 = new Node(node2_triangles, _number_of_triangles - split_index, _leaf_size, depth+1);
         }
 
-    int getSplitAxis(){
+    int get_split_axis(){
         int axis;
-        double maxLength = 0;
+        double max_length = 0;
         for (int i = 0; i < 3; i++){
-            if (boundingBox.axisLength[i] >= maxLength){
+            if (bounding_box.axis_length[i] >= max_length){
                 axis = i;
-                maxLength = boundingBox.axisLength[i];
+                max_length = bounding_box.axis_length[i];
             }
         }
         return axis;
     }
 
     void intersect(const Ray& ray, Hit& hit){
-        if (isLeafNode){
-            if (numberOfTriangles == 0){
+        if (is_leaf_node){
+            if (number_of_triangles == 0){
                 return;
             }
-            Hit closestHit = findClosestHit(ray, triangles, numberOfTriangles);
-            if (closestHit.distance > constants::EPSILON && (closestHit.distance < hit.distance || hit.distance == -1)){
-                hit.distance = closestHit.distance;
-                hit.object_ID = closestHit.object_ID;
+            Hit closest_hit = find_closest_hit(ray, triangles, number_of_triangles);
+            if (closest_hit.distance > constants::EPSILON && (closest_hit.distance < hit.distance || hit.distance == -1)){
+                hit.distance = closest_hit.distance;
+                hit.object_ID = closest_hit.object_ID;
             }
             return;
         }
 
-        double d1 = node1 -> boundingBox.intersect(ray);
-        double d2 = node2 -> boundingBox.intersect(ray);
+        double d1 = node1 -> bounding_box.intersect(ray);
+        double d2 = node2 -> bounding_box.intersect(ray);
         
-        bool node1Hit = d1 > constants::EPSILON && (d1 < hit.distance || hit.distance == -1);
-        bool node2Hit = d2 > constants::EPSILON && (d2 < hit.distance || hit.distance == -1);
+        bool node1_hit = d1 > constants::EPSILON && (d1 < hit.distance || hit.distance == -1);
+        bool node2_hit = d2 > constants::EPSILON && (d2 < hit.distance || hit.distance == -1);
         
-        if (node1Hit && node2Hit){
+        if (node1_hit && node2_hit){
             if (d1 > d2){
                 node1 -> intersect(ray, hit);
                 if (d2 < hit.distance || hit.distance == -1){
@@ -211,10 +211,10 @@ class Node{
             }
 
         }
-        else if (node1Hit){
+        else if (node1_hit){
             node1 -> intersect(ray, hit);
         }
-        else if (node2Hit){
+        else if (node2_hit){
             node2 -> intersect(ray, hit);
         }
     }
@@ -223,20 +223,20 @@ class Node{
 
 class BoundingVolumeHierarchy{
     public:
-        Node* rootNode;
+        Node* root_node;
         BoundingVolumeHierarchy(){}
-        BoundingVolumeHierarchy(Object** triangles, int numberOfTriangles, int leafSize){
-            rootNode = new Node(triangles, numberOfTriangles, leafSize);
+        BoundingVolumeHierarchy(Object** triangles, int number_of_triangles, int leaf_size){
+            root_node = new Node(triangles, number_of_triangles, leaf_size);
         }
 
         Hit intersect(const Ray& ray){
-            double distanceToBoundingBox = rootNode -> boundingBox.intersect(ray);
+            double distance_to_bounding_box = root_node -> bounding_box.intersect(ray);
 
             Hit hit;
             hit.distance = -1;
             hit.object_ID = -1;
-            if (distanceToBoundingBox > constants::EPSILON){
-                rootNode -> intersect(ray, hit);
+            if (distance_to_bounding_box > constants::EPSILON){
+                root_node -> intersect(ray, hit);
             }
             return hit;
         }
@@ -246,110 +246,110 @@ class BoundingVolumeHierarchy{
 class ObjectUnion : public Object{
     public:
         Object** objects;
-        int numberOfObjects;
-        double* cumulativeArea;
-        int* lightSourceConversionIndices;
-        int numberOfLightSources;
+        int number_of_objects;
+        double* cumulative_area;
+        int* light_source_conversion_indices;
+        int number_of_light_sources;
         BoundingVolumeHierarchy bvh;
-        bool useBVH;
-        bool containsLightSource = false;
-        ObjectUnion(Object** _objects, const int _numberOfObjects, const bool constructBVH=false) : Object(){
+        bool use_BVH;
+        bool contains_light_source = false;
+        ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH=false) : Object(){
             objects = _objects;
-            numberOfObjects = _numberOfObjects;
+            number_of_objects = _number_of_objects;
 
             area = 0;
-            for (int i = 0; i < numberOfObjects; i++){
+            for (int i = 0; i < number_of_objects; i++){
                 area += objects[i] -> area;
-                if (objects[i] -> isLightSource()){
-                    numberOfLightSources++;
+                if (objects[i] -> is_light_source()){
+                    number_of_light_sources++;
                 }
             }
 
-            cumulativeArea = new double[numberOfObjects];
-            lightSourceConversionIndices = new int[numberOfLightSources];
+            cumulative_area = new double[number_of_objects];
+            light_source_conversion_indices = new int[number_of_light_sources];
             int j = 0;
-            for (int i = 0; i < numberOfObjects; i++){
-                if (!objects[i] -> isLightSource()){
+            for (int i = 0; i < number_of_objects; i++){
+                if (!objects[i] -> is_light_source()){
                     continue;
                 }
-                cumulativeArea[j] = objects[i] -> area;
+                cumulative_area[j] = objects[i] -> area;
                 if (j != 0){
-                    cumulativeArea[j] += cumulativeArea[j-1];
+                    cumulative_area[j] += cumulative_area[j-1];
                 }
-                lightSourceConversionIndices[j] = i;
+                light_source_conversion_indices[j] = i;
                 j++;
             }
 
-            useBVH = constructBVH;
-            if (constructBVH){
-                bvh = BoundingVolumeHierarchy(_objects, _numberOfObjects, 12);
+            use_BVH = construct_BVH;
+            if (construct_BVH){
+                bvh = BoundingVolumeHierarchy(_objects, _number_of_objects, 12);
             }
 
-            for (int i = 0; i < numberOfObjects; i++){
-                objects[i] -> objectID = i;
-                if (objects[i] -> isLightSource()){
-                  containsLightSource = true;
+            for (int i = 0; i < number_of_objects; i++){
+                objects[i] -> object_ID = i;
+                if (objects[i] -> is_light_source()){
+                  contains_light_source = true;
                 }
             }
         }
 
         ~ObjectUnion(){
-            for (int i = 0; i < numberOfObjects; i++){
+            for (int i = 0; i < number_of_objects; i++){
                 delete objects[i];
             }
             delete[] objects;
-            delete[] cumulativeArea;
-            delete[] lightSourceConversionIndices;
+            delete[] cumulative_area;
+            delete[] light_source_conversion_indices;
         }
 
-        bool isLightSource() override{
-            return containsLightSource;
+        bool is_light_source() override{
+            return contains_light_source;
         }
 
         vec3 eval(const Hit& hit) override{
             return objects[hit.object_ID]  -> eval(hit);
         }
 
-        brdfData sample(const Hit& hit, Object** objectPtrList, const int numberOfObjects) override{
-            return objects[hit.object_ID]  -> sample(hit, objectPtrList, numberOfObjects);
+        BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects) override{
+            return objects[hit.object_ID]  -> sample(hit, scene_objects, number_of_objects);
         }
 
-        vec3 getLightEmittance(const Hit& hit) override{
-            return objects[hit.object_ID] -> getLightEmittance(hit);
+        vec3 get_light_emittance(const Hit& hit) override{
+            return objects[hit.object_ID] -> get_light_emittance(hit);
         }
 
-        Hit findClosestObjectHit(const Ray& ray) override{
-            if (useBVH){
+        Hit find_closest_object_hit(const Ray& ray) override{
+            if (use_BVH){
                 return bvh.intersect(ray);
             }
 
-            Hit hit = findClosestHit(ray, objects, numberOfObjects);
+            Hit hit = find_closest_hit(ray, objects, number_of_objects);
             hit.object_ID = hit.intersected_object_index;
             hit.intersected_object_index = -1;
             return hit;
         }
         
-        vec3 getNormalVector(const vec3& surfacePoint, const int objectID) override{
-            return objects[objectID] -> getNormalVector(surfacePoint, objectID);
+        vec3 get_normal_vector(const vec3& surfacePoint, const int object_ID) override{
+            return objects[object_ID] -> get_normal_vector(surfacePoint, object_ID);
         }
 
-        int sampleRandomObjectIndex(){
-            double randomAreaSplit = random_uniform(0, area);
-            int max = numberOfLightSources - 1;
+        int sample_random_object_index(){
+            double random_area_split = random_uniform(0, area);
+            int max = number_of_light_sources - 1;
             int min = 0;
             int index;
 
-            if (cumulativeArea[0] >= randomAreaSplit){
-                return lightSourceConversionIndices[0];
+            if (cumulative_area[0] >= random_area_split){
+                return light_source_conversion_indices[0];
             }
 
             while (min <= max){
                 index = (max - min) / 2 + min;
 
-                if (cumulativeArea[index] < randomAreaSplit){
+                if (cumulative_area[index] < random_area_split){
                     min = index + 1;
                 }
-                else if (cumulativeArea[index] == randomAreaSplit || (cumulativeArea[index] >= randomAreaSplit && cumulativeArea[index-1] < randomAreaSplit)){
+                else if (cumulative_area[index] == random_area_split || (cumulative_area[index] >= random_area_split && cumulative_area[index-1] < random_area_split)){
                     break;
                 }
                 else{
@@ -357,31 +357,31 @@ class ObjectUnion : public Object{
                 }
             }
 
-            return lightSourceConversionIndices[index];
+            return light_source_conversion_indices[index];
         }
 
-        vec3 generateRandomSurfacePoint() override{
-            return objects[sampleRandomObjectIndex()] -> generateRandomSurfacePoint();
+        vec3 generate_random_surface_point() override{
+            return objects[sample_random_object_index()] -> generate_random_surface_point();
         }
 
-        vec3 randomLightPoint(const vec3& intersectionPoint, double& inversePDF) override{
-            int randomIndex = sampleRandomObjectIndex();
-            vec3 randomPoint = objects[randomIndex] -> generateRandomSurfacePoint();
-            inversePDF = cumulativeArea[numberOfLightSources-1] * areaToAnglePDFFactor(randomPoint, intersectionPoint, randomIndex);
-            return randomPoint;
+        vec3 random_light_point(const vec3& intersection_point, double& inversePDF) override{
+            int random_index = sample_random_object_index();
+            vec3 random_point = objects[random_index] -> generate_random_surface_point();
+            inversePDF = cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(random_point, intersection_point, random_index);
+            return random_point;
         }
 };
 
 
-struct dataSizes{
-    int numVertices = 0;
-    int numVertexUVs = 0;
-    int numVertexNormals = 0;
-    int numTriangles = 0;
+struct DataSizes{
+    int num_vertices = 0;
+    int num_vertex_UVs = 0;
+    int num_vertex_normals = 0;
+    int num_triangles = 0;
 };
 
 
-int numberOfCharOccurances(const std::string& line, const char character){
+int number_of_char_occurances(const std::string& line, const char character){
     int count = 0;
     for (int i = 0; i < line.length(); i++){
         if (line[i] == character){
@@ -392,10 +392,10 @@ int numberOfCharOccurances(const std::string& line, const char character){
 }
 
 
-std::string getNthWord(const std::string& line, const char delimiter, const int n){
-    int numberOfWords = numberOfCharOccurances(line, delimiter);
+std::string get_nth_word(const std::string& line, const char delimiter, const int n){
+    int number_of_words = number_of_char_occurances(line, delimiter);
 
-    if (n > numberOfWords){
+    if (n > number_of_words){
         return "";
     }
 
@@ -409,44 +409,44 @@ std::string getNthWord(const std::string& line, const char delimiter, const int 
 }
 
 
-dataSizes getVertexDataSizes(const std::string& fileName){
-    std::ifstream modelFile(fileName);
+DataSizes get_vertex_data_sizes(const std::string& file_name){
+    std::ifstream model_file(file_name);
     std::string line;
-    dataSizes nums;
+    DataSizes nums;
     
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, ' ', 0);
+    while(std::getline(model_file, line)){
+        std::string first_word = get_nth_word(line, ' ', 0);
 
-        bool isVertex = firstWord == "v";
-        bool isVertexUV = firstWord == "vt";
-        bool isVertexNormal = firstWord == "vn";
-        bool isShape = firstWord == "f";
+        bool is_vertex = first_word == "v";
+        bool is_vertex_UV = first_word == "vt";
+        bool is_vertex_normal = first_word == "vn";
+        bool is_shape = first_word == "f";
         
-        if (isVertex){
-            nums.numVertices++;
+        if (is_vertex){
+            nums.num_vertices++;
         }
-        else if (isVertexUV){
-            nums.numVertexUVs++;
+        else if (is_vertex_UV){
+            nums.num_vertex_UVs++;
         }
-        else if (isVertexNormal){
-            nums.numVertexNormals++;
+        else if (is_vertex_normal){
+            nums.num_vertex_normals++;
         }
-        else if (isShape){
-            int numberOfSpaces = 0;
+        else if (is_shape){
+            int number_of_spaces = 0;
             for (int i = 0; i < line.size(); i++){
                 if (line.substr(i, 1) == " "){
-                    numberOfSpaces++;
+                    number_of_spaces++;
                 }
             }
             
-            bool isTriangle = numberOfSpaces == 3;
-            bool isQuad = numberOfSpaces == 4;
-            if (isTriangle){
-                nums.numTriangles++;
+            bool is_triangle = number_of_spaces == 3;
+            bool is_quad = number_of_spaces == 4;
+            if (is_triangle){
+                nums.num_triangles++;
             }
 
-            else if (isQuad){
-                nums.numTriangles += 2;
+            else if (is_quad){
+                nums.num_triangles += 2;
             }
         }
     }
@@ -454,126 +454,126 @@ dataSizes getVertexDataSizes(const std::string& fileName){
 }
 
 
-void populateVertexArrays(const std::string& fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray){
-    int vertexIdx = 0;
-    int vertexUVIdx = 0;
-    int vertexNormalIdx = 0;
+void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array){
+    int vertex_idx = 0;
+    int vertex_UV_idx = 0;
+    int vertex_normal_idx = 0;
 
-    std::ifstream modelFile(fileName);
+    std::ifstream model_file(file_name);
     std::string line;
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, ' ', 0);
-        bool isVertex = firstWord == "v";
-        bool isVertexUV = firstWord == "vt";
-        bool isVertexNormal = firstWord == "vn";
+    while(std::getline(model_file, line)){
+        std::string first_word = get_nth_word(line, ' ', 0);
+        bool is_vertex = first_word == "v";
+        bool is_vertex_UV = first_word == "vt";
+        bool is_vertex_normal = first_word == "vn";
 
-        if (isVertex){
-            double v1 = std::stod(getNthWord(line, ' ', 1));
-            double v2 = std::stod(getNthWord(line, ' ', 2));
-            double v3 = std::stod(getNthWord(line, ' ', 3));
-            vertexArray[vertexIdx] = vec3(v1, v2, v3);
-            vertexIdx++;
+        if (is_vertex){
+            double v1 = std::stod(get_nth_word(line, ' ', 1));
+            double v2 = std::stod(get_nth_word(line, ' ', 2));
+            double v3 = std::stod(get_nth_word(line, ' ', 3));
+            vertex_array[vertex_idx] = vec3(v1, v2, v3);
+            vertex_idx++;
         }
-        else if (isVertexUV){
-            double u = std::stod(getNthWord(line, ' ', 1));
-            double v = std::stod(getNthWord(line, ' ', 2));
-            vertexUVArray[vertexUVIdx] = vec3(u, v, 0);
-            vertexUVIdx++;
+        else if (is_vertex_UV){
+            double u = std::stod(get_nth_word(line, ' ', 1));
+            double v = std::stod(get_nth_word(line, ' ', 2));
+            vertex_UV_array[vertex_UV_idx] = vec3(u, v, 0);
+            vertex_UV_idx++;
         }
-        else if (isVertexNormal){
-            double n1 = std::stod(getNthWord(line, ' ', 1));
-            double n2 = std::stod(getNthWord(line, ' ', 2));
-            double n3 = std::stod(getNthWord(line, ' ', 3));
-            vertexNormalArray[vertexNormalIdx] = vec3(n1, n2, n3);
-            vertexNormalIdx++;
+        else if (is_vertex_normal){
+            double n1 = std::stod(get_nth_word(line, ' ', 1));
+            double n2 = std::stod(get_nth_word(line, ' ', 2));
+            double n3 = std::stod(get_nth_word(line, ' ', 3));
+            vertex_normal_array[vertex_normal_idx] = vec3(n1, n2, n3);
+            vertex_normal_idx++;
         }
     }
 }
 
 
-vec3 computeAveragePosition(const vec3* vertexArray, const int numberOfVertices){
+vec3 compute_average_position(const vec3* vertex_array, const int number_of_vertices){
     vec3 avg = vec3(0,0,0);
-    for (int i = 0; i < numberOfVertices; i++){
-        avg += vertexArray[i];
+    for (int i = 0; i < number_of_vertices; i++){
+        avg += vertex_array[i];
     }
-    return avg / numberOfVertices;
+    return avg / number_of_vertices;
 }
 
 
-double maximumDistance(const vec3& center, const vec3* vertexArray, const int numberOfVertices){
-    double maxDistance = 0;
-    for (int i = 0; i < numberOfVertices; i++){
-        double distance = (vertexArray[i] - center).length();
-        if (distance > maxDistance){
-            maxDistance = distance;
+double maximum_distance(const vec3& center, const vec3* vertex_array, const int number_of_vertices){
+    double max_distance = 0;
+    for (int i = 0; i < number_of_vertices; i++){
+        double distance = (vertex_array[i] - center).length();
+        if (distance > max_distance){
+            max_distance = distance;
         }
     }
-    return maxDistance;
+    return max_distance;
 }
 
-void changeVectors(const vec3& desiredCenter, const double desiredSize, vec3* vertexArray, const int numberOfVertices){
-    vec3 averagePosition = computeAveragePosition(vertexArray, numberOfVertices);
-    double maxDistance = maximumDistance(averagePosition, vertexArray, numberOfVertices);
+void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array, const int number_of_vertices){
+    vec3 average_position = compute_average_position(vertex_array, number_of_vertices);
+    double max_distance = maximum_distance(average_position, vertex_array, number_of_vertices);
 
-    for (int i = 0; i < numberOfVertices; i++){
-        vertexArray[i] = ((vertexArray[i] - averagePosition) / maxDistance + desiredCenter) * desiredSize;
+    for (int i = 0; i < number_of_vertices; i++){
+        vertex_array[i] = ((vertex_array[i] - average_position) / max_distance + desired_center) * desired_size;
     }
 }
 
 
-struct populateVertexVectorData{
-    const std::string vertexData;
+struct PopulateVertexVectorData{
+    const std::string vertex_data;
     vec3 v;
-    bool vSuccess = false;
+    bool v_success = false;
     vec3 uv;
-    bool uvSuccess = false;
+    bool uv_success = false;
     vec3 n;
-    bool nSuccess = false;
-    const vec3* vertexArray;
-    const vec3* vertexUVArray;
-    const vec3* vertexNormalArray;
+    bool n_success = false;
+    const vec3* vertex_array;
+    const vec3* vertex_UV_array;
+    const vec3* vertex_normal_array;
 
-    populateVertexVectorData(const std::string& data, const vec3* vertexArray, const vec3* vertexUVArray, const vec3* vertexNormalArray)
-        : vertexData(data), vertexArray(vertexArray), vertexUVArray(vertexUVArray), vertexNormalArray(vertexNormalArray) {}
+    PopulateVertexVectorData(const std::string& data, const vec3* vertex_array, const vec3* vertex_UV_array, const vec3* vertex_normal_array)
+        : vertex_data(data), vertex_array(vertex_array), vertex_UV_array(vertex_UV_array), vertex_normal_array(vertex_normal_array) {}
 };
 
 
-void populateVertexVectors(populateVertexVectorData& args){
-    std::string vIdx = getNthWord(args.vertexData, '/', 0);
-    std::string UVIdx = getNthWord(args.vertexData, '/', 1);
-    std::string nIdx = getNthWord(args.vertexData, '/', 2);
+void populate_vertex_vectors(PopulateVertexVectorData& args){
+    std::string v_idx = get_nth_word(args.vertex_data, '/', 0);
+    std::string UV_idx = get_nth_word(args.vertex_data, '/', 1);
+    std::string n_idx = get_nth_word(args.vertex_data, '/', 2);
     
-    if (vIdx != ""){
-        args.v = args.vertexArray[std::stoi(vIdx)-1];
-        args.vSuccess = true;
+    if (v_idx != ""){
+        args.v = args.vertex_array[std::stoi(v_idx)-1];
+        args.v_success = true;
     }
 
-    if (UVIdx != ""){
-        args.uv = args.vertexUVArray[std::stoi(UVIdx)-1];
-        args.uvSuccess = true;
+    if (UV_idx != ""){
+        args.uv = args.vertex_UV_array[std::stoi(UV_idx)-1];
+        args.uv_success = true;
     }
 
-    if (nIdx != ""){
-        args.n = args.vertexNormalArray[std::stoi(nIdx)-1];
-        args.nSuccess = true;
+    if (n_idx != ""){
+        args.n = args.vertex_normal_array[std::stoi(n_idx)-1];
+        args.n_success = true;
     }
 }
 
 
 struct TriangleConstructionArgs{
-    const std::string triangleData;
+    const std::string triangle_data;
     const int idx1;
     const int idx2;
     const int idx3;
     Material* material;
-    const vec3* vertexArray;
-    const vec3* vertexUVArray;
-    const vec3* vertexNormalArray;
-    const bool enableSmoothShading;
+    const vec3* vertex_array;
+    const vec3* vertex_UV_array;
+    const vec3* vertex_normal_array;
+    const bool enable_smooth_shading;
 
-    TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertexArray,
-    const vec3* vertexUVArray, const vec3* vertexNormalArray, const bool enableSmoothShading) : triangleData(data), idx1(idx1), idx2(idx2),
-    idx3(idx3), material(material), vertexArray(vertexArray), vertexUVArray(vertexUVArray), vertexNormalArray(vertexNormalArray), enableSmoothShading(enableSmoothShading) {}
+    TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertex_array,
+    const vec3* vertex_UV_array, const vec3* vertex_normal_array, const bool enable_smooth_shading) : triangle_data(data), idx1(idx1), idx2(idx2),
+    idx3(idx3), material(material), vertex_array(vertex_array), vertex_UV_array(vertex_UV_array), vertex_normal_array(vertex_normal_array), enable_smooth_shading(enable_smooth_shading) {}
 };
 
 
@@ -583,35 +583,35 @@ struct TriangleCreationResult{
 };
 
 
-TriangleCreationResult constructTriangle(TriangleConstructionArgs& args){
-    std::string v1Data = getNthWord(args.triangleData, ' ', args.idx1);
-    populateVertexVectorData data1 = populateVertexVectorData(v1Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
-    populateVertexVectors(data1);
+TriangleCreationResult construct_triangle(TriangleConstructionArgs& args){
+    std::string v1_data = get_nth_word(args.triangle_data, ' ', args.idx1);
+    PopulateVertexVectorData data1 = PopulateVertexVectorData(v1_data, args.vertex_array, args.vertex_UV_array, args.vertex_normal_array);
+    populate_vertex_vectors(data1);
 
-    std::string v2Data = getNthWord(args.triangleData, ' ', args.idx2);
-    populateVertexVectorData data2 = populateVertexVectorData(v2Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
-    populateVertexVectors(data2);
+    std::string v2_data = get_nth_word(args.triangle_data, ' ', args.idx2);
+    PopulateVertexVectorData data2 = PopulateVertexVectorData(v2_data, args.vertex_array, args.vertex_UV_array, args.vertex_normal_array);
+    populate_vertex_vectors(data2);
 
-    std::string v3Data = getNthWord(args.triangleData, ' ', args.idx3);
-    populateVertexVectorData data3 = populateVertexVectorData(v3Data, args.vertexArray, args.vertexUVArray, args.vertexNormalArray);
-    populateVertexVectors(data3);
+    std::string v3_data = get_nth_word(args.triangle_data, ' ', args.idx3);
+    PopulateVertexVectorData data3 = PopulateVertexVectorData(v3_data, args.vertex_array, args.vertex_UV_array, args.vertex_normal_array);
+    populate_vertex_vectors(data3);
 
-    bool loadedVerticesSuccessfully = data1.vSuccess && data2.vSuccess && data3.vSuccess;
+    bool loaded_vertices_successfully = data1.v_success && data2.v_success && data3.v_success;
     
     TriangleCreationResult result;
 
-    if (!loadedVerticesSuccessfully){
+    if (!loaded_vertices_successfully){
         return result;
     }
 
     Triangle* triangle = new Triangle(data1.v, data2.v, data3.v, args.material);
 
-    bool loadedUVSuccessfully = data1.uvSuccess && data2.uvSuccess && data3.uvSuccess;
-    if (loadedUVSuccessfully){triangle -> setVertexUV(data1.uv, data2.uv, data3.uv);}
+    bool loaded_UV_successfully = data1.uv_success && data2.uv_success && data3.uv_success;
+    if (loaded_UV_successfully){triangle -> set_vertex_UV(data1.uv, data2.uv, data3.uv);}
 
-    bool loadedNormalsSuccessfully  = data1.nSuccess && data2.nSuccess && data3.nSuccess;
-    if (loadedNormalsSuccessfully && args.enableSmoothShading){
-        triangle -> setVertexNormals(data1.n, data2.n, data3.n);
+    bool loaded_normals_successfully  = data1.n_success && data2.n_success && data3.n_success;
+    if (loaded_normals_successfully && args.enable_smooth_shading){
+        triangle -> set_vertex_normals(data1.n, data2.n, data3.n);
     }
     result.success = true;
     result.triangle = triangle;
@@ -619,66 +619,66 @@ TriangleCreationResult constructTriangle(TriangleConstructionArgs& args){
 }
 
 
-int populateTriangleArray(std::string fileName, vec3* vertexArray, vec3* vertexUVArray, vec3* vertexNormalArray, Object** triangleArray, Material* material, const bool enableSmoothShading){
-    std::ifstream modelFile(fileName);
+int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array, Object** triangle_array, Material* material, const bool enable_smooth_shading){
+    std::ifstream model_file(file_name);
     std::string line;
-    int shapeIdx = 0;
-    while(std::getline(modelFile, line)){
-        std::string firstWord = getNthWord(line, ' ', 0);
+    int shape_idx = 0;
+    while(std::getline(model_file, line)){
+        std::string first_word = get_nth_word(line, ' ', 0);
         
-        bool isShape = firstWord == "f";
-        if (!isShape){
+        bool is_shape = first_word == "f";
+        if (!is_shape){
             continue;
         }
-        int numberOfSpaces = numberOfCharOccurances(line, ' ');
-        bool isTriangle = numberOfSpaces == 3;
-        bool isQuad = numberOfSpaces == 4;
-        if (isTriangle){
-            TriangleConstructionArgs args = TriangleConstructionArgs(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
-            TriangleCreationResult result = constructTriangle(args);
+        int number_of_spaces = number_of_char_occurances(line, ' ');
+        bool is_triangle = number_of_spaces == 3;
+        bool is_quad = number_of_spaces == 4;
+        if (is_triangle){
+            TriangleConstructionArgs args = TriangleConstructionArgs(line, 1, 2, 3, material, vertex_array, vertex_UV_array, vertex_normal_array, enable_smooth_shading);
+            TriangleCreationResult result = construct_triangle(args);
             if (!result.success){
                 continue;
             }
-            triangleArray[shapeIdx] = result.triangle;
-            shapeIdx++;
+            triangle_array[shape_idx] = result.triangle;
+            shape_idx++;
         }
 
-        else if (isQuad){
-            TriangleConstructionArgs args1 = TriangleConstructionArgs(line, 1, 2, 3, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
-            TriangleCreationResult result1 = constructTriangle(args1);
+        else if (is_quad){
+            TriangleConstructionArgs args1 = TriangleConstructionArgs(line, 1, 2, 3, material, vertex_array, vertex_UV_array, vertex_normal_array, enable_smooth_shading);
+            TriangleCreationResult result1 = construct_triangle(args1);
             if (result1.success){
-                triangleArray[shapeIdx] = result1.triangle;
-                shapeIdx++;
+                triangle_array[shape_idx] = result1.triangle;
+                shape_idx++;
             }
             
-            TriangleConstructionArgs args2 = TriangleConstructionArgs(line, 1, 3, 4, material, vertexArray, vertexUVArray, vertexNormalArray, enableSmoothShading);
-            TriangleCreationResult result2 = constructTriangle(args2);
+            TriangleConstructionArgs args2 = TriangleConstructionArgs(line, 1, 3, 4, material, vertex_array, vertex_UV_array, vertex_normal_array, enable_smooth_shading);
+            TriangleCreationResult result2 = construct_triangle(args2);
             if (result1.success){
-                triangleArray[shapeIdx] = result2.triangle;
-                shapeIdx++;
+                triangle_array[shape_idx] = result2.triangle;
+                shape_idx++;
             }
         }
     }
-    return shapeIdx;
+    return shape_idx;
 }
 
 
-ObjectUnion* loadObjectModel(std::string fileName, Material* material, const bool enableSmoothShading){
-    dataSizes nums = getVertexDataSizes(fileName);
+ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading){
+    DataSizes nums = get_vertex_data_sizes(file_name);
 
-    vec3 vertexArray[nums.numVertices];
-    vec3 vertexUVArray[nums.numVertexUVs];
-    vec3 vertexNormalArray[nums.numVertexNormals];
-    populateVertexArrays(fileName, vertexArray, vertexUVArray, vertexNormalArray);
+    vec3 vertex_array[nums.num_vertices];
+    vec3 vertex_UV_array[nums.num_vertex_UVs];
+    vec3 vertex_normal_array[nums.num_vertex_normals];
+    populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
 
-    double desiredSize = 0.7;
-    vec3 desiredCenter = vec3(0, 0.2, 1);
-    changeVectors(desiredCenter, desiredSize, vertexArray, nums.numVertices);
+    double desired_size = 0.7;
+    vec3 desired_center = vec3(0, 0.2, 1);
+    change_vectors(desired_center, desired_size, vertex_array, nums.num_vertices);
 
-    Object** triangles = new Object*[nums.numTriangles];
-    int validTriangles = populateTriangleArray(fileName, vertexArray, vertexUVArray, vertexNormalArray, triangles, material, enableSmoothShading);
-    ObjectUnion* loadedObject = new ObjectUnion(triangles, validTriangles, true);
-    return loadedObject;
+    Object** triangles = new Object*[nums.num_triangles];
+    int num_valid_triangles = populate_triangle_array(file_name, vertex_array, vertex_UV_array, vertex_normal_array, triangles, material, enable_smooth_shading);
+    ObjectUnion* loaded_object = new ObjectUnion(triangles, num_valid_triangles, true);
+    return loaded_object;
 }
 
 #endif

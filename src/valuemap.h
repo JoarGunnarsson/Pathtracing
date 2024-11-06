@@ -98,7 +98,7 @@ ValueMap1D* create_value_map_1D(const char* fileName, double u_max = 1, double v
 }
 
 
-ValueMap3D* createValueMap3D(const char* fileName, double u_max = 1, double v_max = 1) {
+ValueMap3D* create_value_map_3D(const char* fileName, double u_max = 1, double v_max = 1) {
     FILE* mapFile = fopen(fileName, "r");
     if (!mapFile) {
         return nullptr;

@@ -7,41 +7,41 @@
 class Camera{
     public:
         vec3 position;
-        vec3 viewingDirection;
-        vec3 yVector;
-        vec3 screenPosition;
-        vec3 screenXVector;
-        double screenWidth;
-        double screenHeight;
+        vec3 viewing_direction;
+        vec3 screen_y_vector;
+        vec3 screen_position;
+        vec3 screen_x_vector;
+        double screen_width;
+        double screen_height;
         Camera(){}
-        Camera(vec3 _position=vec3(0,0,0), vec3 _viewingDirection=vec3(0,0,1), vec3 _yVector=vec3(0,1,0)){
+        Camera(vec3 _position=vec3(0,0,0), vec3 _viewing_direction=vec3(0,0,1), vec3 _y_vector=vec3(0,1,0)){
             position = _position;
-            viewingDirection = normalize_vector(_viewingDirection);
-            if (dot_vectors(viewingDirection, _yVector) != 0){
-                vec3 perpendicularVector = cross_vectors(viewingDirection, _yVector);
-                _yVector = cross_vectors(perpendicularVector, viewingDirection);
+            viewing_direction = normalize_vector(_viewing_direction);
+            if (dot_vectors(viewing_direction, _y_vector) != 0){
+                vec3 perpendicularVector = cross_vectors(viewing_direction, _y_vector);
+                _y_vector = cross_vectors(perpendicularVector, viewing_direction);
             }
-            yVector = normalize_vector(_yVector);
-            screenWidth = 1.0;
-            screenHeight = screenWidth * (double) constants::HEIGHT / (double) constants::WIDTH; 
-            screenXVector = cross_vectors(viewingDirection, yVector);
-            screenPosition = position + viewingDirection;
+            screen_y_vector = normalize_vector(_y_vector);
+            screen_width = 1.0;
+            screen_height = screen_width * (double) constants::HEIGHT / (double) constants::WIDTH; 
+            screen_x_vector = cross_vectors(viewing_direction, screen_y_vector);
+            screen_position = position + viewing_direction;
         }
 
-    vec3 indexToPosition(double x, double y){
-        double localXCoordinate = x * screenWidth / (double) constants::WIDTH - (double) screenWidth / 2.0;
-        vec3 localX = screenXVector * localXCoordinate;
+    vec3 index_to_position(double x, double y){
+        double local_x_coordinate = x * screen_width / (double) constants::WIDTH - (double) screen_width / 2.0;
+        vec3 localX = screen_x_vector * local_x_coordinate;
 
-        double localYCoordinate = y * screenHeight / (double) constants::HEIGHT - (double) screenHeight / 2.0;
+        double local_y_coordinate = y * screen_height / (double) constants::HEIGHT - (double) screen_height / 2.0;
+        vec3 localY = screen_y_vector * local_y_coordinate;
 
-        vec3 localY = yVector * localYCoordinate;
-        return localX + localY + screenPosition;
+        return localX + localY + screen_position;
     }
 
-    vec3 getStartingDirections(double x, double y){
-        vec3 pixelVector = indexToPosition(x, y);
-        vec3  directionVector = pixelVector - position;
-        return normalize_vector(directionVector);
+    vec3 get_starting_directions(double x, double y){
+        vec3 pixel_vector = index_to_position(x, y);
+        vec3  direction_vector = pixel_vector - position;
+        return normalize_vector(direction_vector);
  }
 }; 
 

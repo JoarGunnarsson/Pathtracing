@@ -1,5 +1,5 @@
-#ifndef utils
-#define utils
+#ifndef UTILS_H
+#define UTILS_H
 #include "vec3.h"
 #include "constants.h"
 #include <random>

@@ -12,131 +12,131 @@
 struct Scene{
     Object** objects;
     Camera* camera;
-    int numberOfObjects;
+    int number_of_objects;
     MaterialManager* material_manager;
 };
 
 
-vec3 directLighting(Hit& hit, Object** objects, const int numberOfObjects){
-    int lightSourceIdxArray[numberOfObjects];
+vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
+    int light_source_idx_array[number_of_objects];
 
-    int numberOfLightSources = 0;
+    int number_of_light_sources = 0;
     
-    for (int i = 0; i < numberOfObjects; i++){
-        if (objects[i] -> isLightSource()){
-            lightSourceIdxArray[numberOfLightSources] = i;
-            numberOfLightSources++;
+    for (int i = 0; i < number_of_objects; i++){
+        if (objects[i] -> is_light_source()){
+            light_source_idx_array[number_of_light_sources] = i;
+            number_of_light_sources++;
         }
     }
-    if (numberOfLightSources == 0){
+    if (number_of_light_sources == 0){
         return BLACK;
     }
     
-    int randomIndex = random_int(0, numberOfLightSources);
-    int lightIndex = lightSourceIdxArray[randomIndex];
+    int random_index = random_int(0, number_of_light_sources);
+    int light_index = light_source_idx_array[random_index];
 
-    double inversePDF;
-    vec3 randomPoint = objects[lightIndex] -> randomLightPoint(hit.intersection_point, inversePDF);
+    double inverse_PDF;
+    vec3 random_point = objects[light_index] -> random_light_point(hit.intersection_point, inverse_PDF);
 
-    vec3 vectorTowardsLight = randomPoint - hit.intersection_point;
-    double distanceToLight = vectorTowardsLight.length();
-    vectorTowardsLight = normalize_vector(vectorTowardsLight);
-    hit.outgoing_vector = vectorTowardsLight;
+    vec3 vector_towards_light = random_point - hit.intersection_point;
+    double distance_to_light = vector_towards_light.length();
+    vector_towards_light = normalize_vector(vector_towards_light);
+    hit.outgoing_vector = vector_towards_light;
     
-    Ray lightRay;
-    lightRay.starting_position = hit.intersection_point;
-    lightRay.direction_vector =  vectorTowardsLight;
+    Ray light_ray;
+    light_ray.starting_position = hit.intersection_point;
+    light_ray.direction_vector =  vector_towards_light;
 
-    Hit lightHit = findClosestHit(lightRay, objects, numberOfObjects);
-    bool inShadow = lightHit.intersected_object_index != lightIndex;
-    bool sameDistance = std::abs(distanceToLight - lightHit.distance) <= constants::EPSILON;
-    bool hitFromBehind = dot_vectors(vectorTowardsLight, hit.normal_vector) < 0.0;
-    bool insideObject = dot_vectors(hit.incoming_vector, hit.normal_vector) > 0.0;
-    if ( inShadow || !sameDistance || hitFromBehind || insideObject){
+    Hit light_hit = find_closest_hit(light_ray, objects, number_of_objects);
+    bool in_shadow = light_hit.intersected_object_index != light_index;
+    bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
+    bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;
+    bool inside_object = dot_vectors(hit.incoming_vector, hit.normal_vector) > 0.0;
+    if ( in_shadow || !same_distance || hit_from_behind || inside_object){
         return BLACK;
     }
 
-    vec3 brdfMultiplier = objects[hit.intersected_object_index] -> eval(hit);
-    vec3 lightEmitance = objects[lightIndex] -> getLightEmittance(lightHit);
+    vec3 brdf_multiplier = objects[hit.intersected_object_index] -> eval(hit);
+    vec3 light_emitance = objects[light_index] -> get_light_emittance(light_hit);
 
-    double cosine = dot_vectors(hit.normal_vector, vectorTowardsLight);
+    double cosine = dot_vectors(hit.normal_vector, vector_towards_light);
     cosine = std::max(0.0, cosine);
 
-    return brdfMultiplier * cosine * lightEmitance * inversePDF * (double) numberOfLightSources;
+    return brdf_multiplier * cosine * light_emitance * inverse_PDF * (double) number_of_light_sources;
 }
 
 
-vec3 raytrace(Ray ray, Object** objects, const int numberOfObjects){
+vec3 raytrace(Ray ray, Object** objects, const int number_of_objects){
     vec3 color = vec3(0,0,0);
-    vec3 brdfAccumulator = vec3(1,1,1);
+    vec3 brdf_accumulator = vec3(1,1,1);
     vec3 throughput = vec3(1,1,1);
-    int forceRecusionLimit = 3;
-    double randomThreshold = 1;
-    for (int depth = 0; depth <= constants::maxRecursionDepth; depth++){
-        Hit rayHit = findClosestHit(ray, objects, numberOfObjects);
-        if (rayHit.distance <= constants::EPSILON){
+    int force_recusion_limit = 3;
+    double random_threshold = 1;
+    for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
+        Hit ray_hit = find_closest_hit(ray, objects, number_of_objects);
+        if (ray_hit.distance <= constants::EPSILON){
             break;
         }
         
-        bool isSpecularRay = ray.type == REFLECTED || ray.type == TRANSMITTED;
+        bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
 
-        if (!constants::enableNextEventEstimation || depth == 0 || isSpecularRay){
-            vec3 lightEmitance = objects[rayHit.intersected_object_index] -> getLightEmittance(rayHit);
-            color += lightEmitance * brdfAccumulator * (dot_vectors(ray.direction_vector, rayHit.normal_vector) < 0);
+        if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
+            vec3 light_emitance = objects[ray_hit.intersected_object_index] -> get_light_emittance(ray_hit);
+            color += light_emitance * brdf_accumulator * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
         }
-        bool allowRecursion;
-        double randomThreshold;
+        bool allow_recursion;
+        double random_threshold;
 
-        if (depth < forceRecusionLimit){
-            randomThreshold = 1;
-            allowRecursion = true;
+        if (depth < force_recusion_limit){
+            random_threshold = 1;
+            allow_recursion = true;
         }
         else{
-            randomThreshold = std::min(throughput.max(), 0.9);
-            double randomValue = random_uniform(0, 1);
-            allowRecursion = randomValue < randomThreshold;
+            random_threshold = std::min(throughput.max(), 0.9);
+            double random_value = random_uniform(0, 1);
+            allow_recursion = random_value < random_threshold;
         }
         
-        if (!allowRecursion){
+        if (!allow_recursion){
             break;
         }   
 
-        if (constants::enableNextEventEstimation){
-            vec3 direct = directLighting(rayHit, objects, numberOfObjects);
-            color += direct * brdfAccumulator / randomThreshold;
+        if (constants::enable_next_event_estimation){
+            vec3 direct = direct_lighting(ray_hit, objects, number_of_objects);
+            color += direct * brdf_accumulator / random_threshold;
         }
 
-        brdfData brdfResult = objects[rayHit.intersected_object_index] -> sample(rayHit, objects, numberOfObjects);
+        BrdfData brdf_result = objects[ray_hit.intersected_object_index] -> sample(ray_hit, objects, number_of_objects);
 
-        throughput *= brdfResult.brdfMultiplier / randomThreshold;
-        ray.starting_position = rayHit.intersection_point;
-        ray.direction_vector = brdfResult.outgoingVector;
-        ray.type = brdfResult.type;
+        throughput *= brdf_result.brdf_multiplier / random_threshold;
+        ray.starting_position = ray_hit.intersection_point;
+        ray.direction_vector = brdf_result.outgoing_vector;
+        ray.type = brdf_result.type;
 
-        brdfAccumulator *= brdfResult.brdfMultiplier / randomThreshold;
+        brdf_accumulator *= brdf_result.brdf_multiplier / random_threshold;
     }
     return color;
 
  }
 
 
-vec3 computePixelColor(const int x, const int y, Scene scene){
-    vec3 pixelColor = vec3(0,0,0);
+vec3 compute_pixel_color(const int x, const int y, Scene scene){
+    vec3 pixel_color = vec3(0,0,0);
     Ray ray;
     ray.starting_position = scene.camera -> position;
-    for (int i = 0; i < constants::samplesPerPixel; i++){
+    for (int i = 0; i < constants::samples_per_pixel; i++){
         double x_offset = random_normal() / 2.0;
         double y_offset = random_normal() / 2.0;
-        ray.direction_vector = scene.camera -> getStartingDirections(x + x_offset, y + y_offset);
-        vec3 sampledColor = raytrace(ray, scene.objects, scene.numberOfObjects);
-        pixelColor += sampledColor;    
+        ray.direction_vector = scene.camera -> get_starting_directions(x + x_offset, y + y_offset);
+        vec3 sampled_color = raytrace(ray, scene.objects, scene.number_of_objects);
+        pixel_color += sampled_color;    
     }
 
-    return pixelColor / (double) constants::samplesPerPixel;
+    return pixel_color / (double) constants::samples_per_pixel;
 }
 
 
-void printPixelColor(vec3 rgb, std::ofstream& file){
+void print_pixel_color(vec3 rgb, std::ofstream& file){
     int r = int(rgb[0] * (double) 255);
     int g = int(rgb[1] * (double) 255);
     int b = int(rgb[2] * (double) 255);
@@ -144,13 +144,13 @@ void printPixelColor(vec3 rgb, std::ofstream& file){
 }
 
 
-void printProgress(double progress){
+void print_progress(double progress){
     if (progress < 1.0) {
-        int barWidth = 60;
+        int bar_width = 60;
 
         std::clog << "[";
-        int pos = barWidth * progress;
-        for (int i = 0; i < barWidth; ++i) {
+        int pos = bar_width * progress;
+        for (int i = 0; i < bar_width; ++i) {
             if (i < pos) std::clog << "=";
             else if (i == pos) std::clog << ">";
             else std::clog << " ";
@@ -162,95 +162,88 @@ void printProgress(double progress){
 
 Scene createScene(){
     /*
-    ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
-    ValueMap3D* sakuraMap = createValueMap3D("./maps/sakura.map");
-    ValueMap3D* templeMap = createValueMap3D("./maps/temple.map");
-    ValueMap3D* cobbleMap = createValueMap3D("./maps/cobblestone.map");
+    ValueMap3D* worldMap = create_value_map_3D("./maps/world.map");
+    ValueMap3D* sakuraMap = create_value_map_3D("./maps/sakura.map");
+    ValueMap3D* templeMap = create_value_map_3D("./maps/temple.map");
+    ValueMap3D* cobbleMap = create_value_map_3D("./maps/cobblestone.map");
     ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
     
     */
 
     MaterialManager* manager = new MaterialManager();
-    MaterialData whiteData;
-    whiteData.albedoMap = new ValueMap3D(WHITE * 0.8);
-    DiffuseMaterial* whiteDiffuseMaterial = new DiffuseMaterial(whiteData);
-    manager -> add_material(whiteDiffuseMaterial);
+    MaterialData white_data;
+    white_data.albedo_map = new ValueMap3D(WHITE * 0.8);
+    DiffuseMaterial* white_diffuse_material = new DiffuseMaterial(white_data);
+    manager -> add_material(white_diffuse_material);
     
-    MaterialData whiteReflectiveData;
-    whiteReflectiveData.albedoMap = new ValueMap3D(WHITE * 0.8);
-    ReflectiveMaterial* whiteReflectiveMaterial = new ReflectiveMaterial(whiteReflectiveData);   
-    manager -> add_material(whiteReflectiveMaterial);
+    MaterialData white_reflective_data;
+    white_reflective_data.albedo_map = new ValueMap3D(WHITE * 0.8);
+    ReflectiveMaterial* white_reflective_material = new ReflectiveMaterial(white_reflective_data);   
+    manager -> add_material(white_reflective_material);
 
-    MaterialData stripedData;
-    double* stripes = new double[6]{0.8, 0.8, 0.8, 0, 0, 0};
-    ValueMap3D* stripedMap = new ValueMap3D(stripes, 2, 1, 0.1, 1);
-    stripedData.albedoMap = stripedMap;
-    DiffuseMaterial* stripedMaterial = new DiffuseMaterial(stripedData);
-    manager -> add_material(stripedMaterial);
+    MaterialData red_material_data;
+    red_material_data.albedo_map = new ValueMap3D(RED);
+    DiffuseMaterial* red_diffuse_material = new DiffuseMaterial(red_material_data);
+    manager -> add_material(red_diffuse_material);
 
-    MaterialData redMaterialData;
-    redMaterialData.albedoMap = new ValueMap3D(RED);
-    DiffuseMaterial* redDiffuseMaterial = new DiffuseMaterial(redMaterialData);
-    manager -> add_material(redDiffuseMaterial);
+    MaterialData green_material_data;
+    green_material_data.albedo_map = new ValueMap3D(GREEN);
+    DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
+    manager -> add_material(green_diffuse_material);
 
-    MaterialData greenMaterialData;
-    greenMaterialData.albedoMap = new ValueMap3D(GREEN);
-    DiffuseMaterial* greenDiffuseMaterial = new DiffuseMaterial(greenMaterialData);
-    manager -> add_material(greenDiffuseMaterial);
+    MaterialData gold_data;
+    gold_data.albedo_map = new ValueMap3D(GOLD);
+    gold_data.roughness_map = new ValueMap1D(0.1);
+    gold_data.refractive_index = 0.277;
+    gold_data.extinction_coefficient = 2.92;
+    gold_data.is_dielectric = false;
+    MicrofacetMaterial* gold_material = new MicrofacetMaterial(gold_data);
+    manager -> add_material(gold_material);
 
-    MaterialData goldData;
-    goldData.albedoMap = new ValueMap3D(GOLD);
-    goldData.roughnessMap = new ValueMap1D(0.1);
-    goldData.refractiveIndex = 0.277;
-    goldData.extinctionCoefficient = 2.92;
-    goldData.isDielectric = false;
-    MicrofacetMaterial* goldMaterial = new MicrofacetMaterial(goldData);
-    manager -> add_material(goldMaterial);
-
-    MaterialData lightMaterialData;
-    lightMaterialData.albedoMap =  new ValueMap3D(WHITE * 0.8);
-    lightMaterialData.emmissionColorMap =  new ValueMap3D(WARM_WHITE);
-    lightMaterialData.lightIntensityMap = new ValueMap1D(10.0);
-    lightMaterialData.isLightSource = true;
-    DiffuseMaterial* lightSourceMaterial = new DiffuseMaterial(lightMaterialData);
-    manager -> add_material(lightSourceMaterial);
+    MaterialData light_material_data;
+    light_material_data.albedo_map =  new ValueMap3D(WHITE * 0.8);
+    light_material_data.emission_color_map =  new ValueMap3D(WARM_WHITE);
+    light_material_data.light_intensity_map = new ValueMap1D(10.0);
+    light_material_data.is_light_source = true;
+    DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
+    manager -> add_material(light_source_material);
 
     /*
     MaterialData glassData;
-    glassData.refractiveIndex = 1.5;
+    glassData.refractive_index = 1.5;
     TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
 
     MaterialData frostyGlassData;
-    frostyGlassData.albedoMap = pureWhiteMap;
-    frostyGlassData.refractiveIndex = 1.5;
-    frostyGlassData.roughnessMap = new ValueMap1D(0.1);
-    frostyGlassData.percentageDiffuseMap = new ValueMap1D(0.0);
+    frostyGlassData.albedo_map = pureWhiteMap;
+    frostyGlassData.refractive_index = 1.5;
+    frostyGlassData.roughness_map = new ValueMap1D(0.1);
+    frostyGlassData.percentage_diffuse_map = new ValueMap1D(0.0);
     MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
 
     MaterialData sakuraData;
-    sakuraData.albedoMap = sakuraMap;
+    sakuraData.albedo_map = sakuraMap;
     DiffuseMaterial* sakuraMaterial = new DiffuseMaterial(sakuraData);
 
     MaterialData templeData;
-    templeData.albedoMap = templeMap;
+    templeData.albedo_map = templeMap;
     DiffuseMaterial* templeMaterial = new DiffuseMaterial(templeData);
 
     MaterialData cobbleData;
-    cobbleData.albedoMap = cobbleMap;
+    cobbleData.albedo_map = cobbleMap;
     DiffuseMaterial* cobbleMaterial = new DiffuseMaterial(cobbleData);
     */
    
-    MaterialData modelData;
-    modelData.albedoMap = createValueMap3D("./maps/bunny.map", 1, -1);
-    DiffuseMaterial* modelMaterial = new DiffuseMaterial(modelData);
+    MaterialData model_data;
+    model_data.albedo_map = create_value_map_3D("./maps/bunny.map", 1, -1);
+    DiffuseMaterial* modelMaterial = new DiffuseMaterial(model_data);
     manager -> add_material(modelMaterial);
     
-    Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), whiteDiffuseMaterial);
-    Rectangle* frontWall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, whiteDiffuseMaterial);
-    Rectangle* leftWall = new Rectangle(vec3(-1,0.425,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55, redDiffuseMaterial);
-    Rectangle* rightWall = new Rectangle(vec3(1,0.425,1.575), vec3(0,0,-1), vec3(0,-1,0), 3.85, 1.55, greenDiffuseMaterial);
-    Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), whiteDiffuseMaterial);
-    Rectangle* backWall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, whiteDiffuseMaterial);
+    Plane* this_floor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
+    Rectangle* front_wall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, white_diffuse_material);
+    Rectangle* left_wall = new Rectangle(vec3(-1,0.425,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55, red_diffuse_material);
+    Rectangle* right_wall = new Rectangle(vec3(1,0.425,1.575), vec3(0,0,-1), vec3(0,-1,0), 3.85, 1.55, green_diffuse_material);
+    Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
+    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, white_diffuse_material);
 
     /*
     Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
@@ -264,32 +257,32 @@ Scene createScene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2Objects, 2);
     */
 
-    //Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, greenDiffuseMaterial);
-    //Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, lightSourceMaterial);
+    //Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, green_diffuse_material);
+    //Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, light_source_material);
 
-    Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
+    Rectangle* light_source = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
-    ObjectUnion* loadedModel = loadObjectModel("./models/dragon.obj", goldMaterial, true);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, true);
 
-    int numberOfObjects = 8;
-    Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, lightSource, loadedModel};
+    int number_of_objects = 8;
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
-    vec3 cameraPosition = vec3(0, 1, 3);
-    vec3 viewingDirection = vec3(0.0, -0.3, -1);
-    vec3 screenYVector = vec3(0, 1, 0);
-    Camera* camera = new Camera(cameraPosition, viewingDirection, screenYVector);
+    vec3 camera_position = vec3(0, 1, 3);
+    vec3 viewing_direction = vec3(0.0, -0.3, -1);
+    vec3 screen_y_vector = vec3(0, 1, 0);
+    Camera* camera = new Camera(camera_position, viewing_direction, screen_y_vector);
 
     Scene scene;
     scene.objects = objects;
     scene.camera = camera;
-    scene.numberOfObjects = numberOfObjects;
+    scene.number_of_objects = number_of_objects;
     scene.material_manager = manager;
     return scene;
 }
 
 
-void clearScene(Scene& scene){
-    for (int i = 0; i < scene.numberOfObjects; i++){
+void clear_scene(Scene& scene){
+    for (int i = 0; i < scene.number_of_objects; i++){
         delete scene.objects[i];
     }
 
@@ -301,29 +294,28 @@ void clearScene(Scene& scene){
 
 int main() {
 
-    std::ofstream dataFile;
-    dataFile.open("./temp/result_data.txt");
+    std::ofstream data_file;
+    data_file.open("./temp/result_data.txt");
     
-    dataFile << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
     Scene scene = createScene();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    int maxIters = 0;
     for (int y = constants::HEIGHT-1; y >= 0; y--) {
         double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;
-        printProgress(progress);
+        print_progress(progress);
         for (int x = 0; x < constants::WIDTH; x++) {
-            vec3 rgb = computePixelColor(x, y, scene);
-            printPixelColor(colorClip(rgb), dataFile);
+            vec3 rgb = compute_pixel_color(x, y, scene);
+            print_pixel_color(color_clip(rgb), data_file);
         }
     }
-    dataFile.close();
+    data_file.close();
     std::clog << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     //TODO: remember to free the scene.
-    clearScene(scene);
+    clear_scene(scene);
     return 0;
 }
