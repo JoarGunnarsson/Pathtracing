@@ -294,16 +294,12 @@ class ObjectUnion : public Object{
         }
 
         ~ObjectUnion(){
+            for (int i = 0; i < numberOfObjects; i++){
+                delete objects[i];
+            }
             delete[] objects;
             delete[] cumulativeArea;
             delete[] lightSourceConversionIndices;
-        }
-
-        void prepareDeletion(PointerManager* pm) override{
-            for (int i = 0; i < numberOfObjects; i++){
-                objects[i] -> prepareDeletion(pm);
-                delete objects[i];
-            }
         }
 
         bool isLightSource() override{

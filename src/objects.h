@@ -20,10 +20,6 @@ class Object{
             material = _material;
         }
 
-        virtual void prepareDeletion(PointerManager* pm){
-            material -> prepareDeletion(pm);
-        }
-
         virtual vec3 maxAxisPoint(){
             throw VirtualMethodNotAllowedException("maxAxisPoint is a pure virtual method and should not be called.");
             vec3 point;

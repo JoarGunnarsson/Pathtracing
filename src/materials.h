@@ -114,16 +114,15 @@ class Material{
             roughnessMap = data.roughnessMap;
             percentageDiffuseMap = data.percentageDiffuseMap;
         }
-
-    void prepareDeletion(PointerManager* pm){
-        pm -> addPointer(albedoMap);
-        pm -> addPointer(emmissionColorMap);
-        pm -> addPointer(lightIntensityMap);
-        pm -> addPointer(roughnessMap);
-        pm -> addPointer(percentageDiffuseMap);
-        pm -> addPointer(this);
+    
+    ~Material(){
+        delete albedoMap;
+        delete emmissionColorMap;
+        delete lightIntensityMap;
+        delete roughnessMap;
+        delete percentageDiffuseMap;
     }
-
+    
     virtual vec3 eval(const Hit& hit, const double u, const double v){
         throw VirtualMethodNotAllowedException("this is a pure virtual method and should not be called.");
         vec3 vec;
@@ -437,6 +436,25 @@ class MicrofacetMaterial : public Material{
             return diffuse ? sampleDiffuse(args) : sampleTransmission(args);
         }
     }
+};
+
+
+class MaterialManager{
+    const int MAX_MATERIALS = 100;
+    Material** material_array = new Material*[MAX_MATERIALS];
+    int current_idx = 0;
+
+    public:
+        MaterialManager(){}
+        ~MaterialManager(){
+            for (int i = 0; i < current_idx; i++){
+                delete material_array[i];
+            }
+        }
+
+        void add_material(Material* material){
+            material_array[current_idx++] = material;
+        };
 };
 
 #endif

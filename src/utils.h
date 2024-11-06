@@ -43,69 +43,6 @@ enum reflectionType{
 };
 
 
-class Deleter {
-public:
-    virtual ~Deleter(){}
-    virtual void deletePointer() = 0;
-    virtual bool checkEquals(void* other) = 0;
-};
-
-
-template <typename T>
-class TypedDeleter : public Deleter {
-    T* ptr;
-public:
-    TypedDeleter(T* p) : ptr(p) {}
-    void deletePointer() override {
-        delete ptr;
-        
-    }
-    bool checkEquals(void* other) override{
-        return other == (void*)ptr;
-    }
-};
-
-
-class PointerManager {
-    static const int MAX_POINTERS = 1000;
-    Deleter** deleters = new Deleter*[MAX_POINTERS];
-    int deleterCount;
-
-public:
-    PointerManager() : deleterCount(0) {}
-    
-    ~PointerManager(){
-        deleteAll();
-    }
-
-    template <typename T>
-    void addPointer(T* ptr) {
-        if (deleterCount >= MAX_POINTERS){
-            std::cerr << "Error: Array is full, cannot add more pointers for cleanup.\n";
-            return;
-        }
-        bool foundPtr = false;
-        for (int i = 0; i < deleterCount; i++){
-            if (deleters[i] -> checkEquals((void*)ptr)){
-                foundPtr = true;
-            }
-        }
-        if (!foundPtr){
-            deleters[deleterCount++] = new TypedDeleter<T>(ptr);
-        }
-    }
-
-    void deleteAll() {
-        std::cout << deleterCount << std::endl;
-        for (int i = 0; i < deleterCount; i++) {
-            deleters[i]->deletePointer();
-            delete deleters[i];
-        }
-        delete[] deleters;
-    }
-};
-
-
 struct Hit{
     int intersectedObjectIndex;
     int objectID;

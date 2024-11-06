@@ -13,6 +13,7 @@ struct Scene{
     Object** objects;
     Camera* camera;
     int numberOfObjects;
+    MaterialManager* material_manager;
 };
 
 
@@ -160,93 +161,64 @@ void printProgress(double progress){
 
 
 Scene createScene(){
-    ValueMap3D* whiteMap = new ValueMap3D(WHITE*0.8);
-    ValueMap3D* warmWhiteMap = new ValueMap3D(WARM_WHITE);
-    ValueMap3D* pureWhiteMap = new ValueMap3D(WHITE);
-    ValueMap3D* redMap = new ValueMap3D(RED*0.8);
-    ValueMap3D* greenMap = new ValueMap3D(GREEN*0.8);
-    ValueMap3D* blueMap = new ValueMap3D(BLUE*0.8);
-    ValueMap3D* blackMap = new ValueMap3D(BLACK);
-    ValueMap3D* goldMap = new ValueMap3D(GOLD);
-    ValueMap3D* brownMap = new ValueMap3D(CHOCOLATE_BROWN);
-
     /*
     ValueMap3D* worldMap = createValueMap3D("./maps/world.map");
     ValueMap3D* sakuraMap = createValueMap3D("./maps/sakura.map");
-    ValueMap3D* chineseMap = createValueMap3D("./maps/temple.map");
+    ValueMap3D* templeMap = createValueMap3D("./maps/temple.map");
     ValueMap3D* cobbleMap = createValueMap3D("./maps/cobblestone.map");
+    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
     
     */
-    ValueMap3D* bunnyMap = createValueMap3D("./maps/bunny.map", 1, -1);
-    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
 
-    MaterialData defaultMaterialData;
-    defaultMaterialData.albedoMap = whiteMap;
-    DiffuseMaterial* whiteDiffuseMaterial = new DiffuseMaterial(defaultMaterialData);
-    ReflectiveMaterial* whiteReflectiveMaterial = new ReflectiveMaterial(defaultMaterialData);   
+    MaterialManager* manager = new MaterialManager();
+    MaterialData whiteData;
+    whiteData.albedoMap = new ValueMap3D(WHITE * 0.8);
+    DiffuseMaterial* whiteDiffuseMaterial = new DiffuseMaterial(whiteData);
+    manager -> add_material(whiteDiffuseMaterial);
+    
+    MaterialData whiteReflectiveData;
+    whiteReflectiveData.albedoMap = new ValueMap3D(WHITE * 0.8);
+    ReflectiveMaterial* whiteReflectiveMaterial = new ReflectiveMaterial(whiteReflectiveData);   
+    manager -> add_material(whiteReflectiveMaterial);
 
     MaterialData stripedData;
     double* stripes = new double[6]{0.8, 0.8, 0.8, 0, 0, 0};
     ValueMap3D* stripedMap = new ValueMap3D(stripes, 2, 1, 0.1, 1);
     stripedData.albedoMap = stripedMap;
     DiffuseMaterial* stripedMaterial = new DiffuseMaterial(stripedData);
+    manager -> add_material(stripedMaterial);
 
     MaterialData redMaterialData;
-    redMaterialData.albedoMap = redMap;
+    redMaterialData.albedoMap = new ValueMap3D(RED);
     DiffuseMaterial* redDiffuseMaterial = new DiffuseMaterial(redMaterialData);
+    manager -> add_material(redDiffuseMaterial);
 
     MaterialData greenMaterialData;
-    greenMaterialData.albedoMap = greenMap;
+    greenMaterialData.albedoMap = new ValueMap3D(GREEN);
     DiffuseMaterial* greenDiffuseMaterial = new DiffuseMaterial(greenMaterialData);
-
-    MaterialData chocolateMaterialData;
-    chocolateMaterialData.albedoMap = brownMap;
-    chocolateMaterialData.refractiveIndex = 1.2;
-    MicrofacetMaterial* chocolateMaterial = new MicrofacetMaterial(chocolateMaterialData);
-
-    MaterialData whiteShinyData;
-    whiteShinyData.albedoMap = whiteMap;
-    whiteShinyData.refractiveIndex = 1.2;
-    whiteShinyData.extinctionCoefficient = 1.2;
-    whiteShinyData.isDielectric = false;
-
-    MicrofacetMaterial* whiteShinyMaterial = new MicrofacetMaterial(whiteShinyData);
-
-    MaterialData blueMaterialData;
-    blueMaterialData.albedoMap = blueMap;
-    blueMaterialData.isDielectric = false;
-    ReflectiveMaterial* blueReflectiveMaterial = new ReflectiveMaterial(blueMaterialData);
-
-    MaterialData mirrorData;
-    ReflectiveMaterial* mirrorMaterial = new ReflectiveMaterial(mirrorData);
+    manager -> add_material(greenDiffuseMaterial);
 
     MaterialData goldData;
-    goldData.albedoMap = goldMap;
+    goldData.albedoMap = new ValueMap3D(GOLD);
     goldData.roughnessMap = new ValueMap1D(0.1);
     goldData.refractiveIndex = 0.277;
     goldData.extinctionCoefficient = 2.92;
     goldData.isDielectric = false;
     MicrofacetMaterial* goldMaterial = new MicrofacetMaterial(goldData);
-
-    MaterialData suzanneData;
-    suzanneData.albedoMap = whiteMap;
-    suzanneData.roughnessMap = new ValueMap1D(0.0);
-    suzanneData.percentageDiffuseMap = new ValueMap1D(1.0);
-    suzanneData.refractiveIndex = 1.5;
-    MicrofacetMaterial* suzanneMaterial = new MicrofacetMaterial(suzanneData);
+    manager -> add_material(goldMaterial);
 
     MaterialData lightMaterialData;
-    lightMaterialData.albedoMap = whiteMap;
-    lightMaterialData.emmissionColorMap = warmWhiteMap;
+    lightMaterialData.albedoMap =  new ValueMap3D(WHITE * 0.8);
+    lightMaterialData.emmissionColorMap =  new ValueMap3D(WARM_WHITE);
     lightMaterialData.lightIntensityMap = new ValueMap1D(10.0);
     lightMaterialData.isLightSource = true;
     DiffuseMaterial* lightSourceMaterial = new DiffuseMaterial(lightMaterialData);
+    manager -> add_material(lightSourceMaterial);
 
     /*
     MaterialData glassData;
     glassData.refractiveIndex = 1.5;
     TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
-
 
     MaterialData frostyGlassData;
     frostyGlassData.albedoMap = pureWhiteMap;
@@ -259,9 +231,9 @@ Scene createScene(){
     sakuraData.albedoMap = sakuraMap;
     DiffuseMaterial* sakuraMaterial = new DiffuseMaterial(sakuraData);
 
-    MaterialData chineseData;
-    chineseData.albedoMap = chineseMap;
-    DiffuseMaterial* chineseMaterial = new DiffuseMaterial(chineseData);
+    MaterialData templeData;
+    templeData.albedoMap = templeMap;
+    DiffuseMaterial* templeMaterial = new DiffuseMaterial(templeData);
 
     MaterialData cobbleData;
     cobbleData.albedoMap = cobbleMap;
@@ -269,8 +241,9 @@ Scene createScene(){
     */
    
     MaterialData modelData;
-    modelData.albedoMap = bunnyMap;
+    modelData.albedoMap = createValueMap3D("./maps/bunny.map", 1, -1);
     DiffuseMaterial* modelMaterial = new DiffuseMaterial(modelData);
+    manager -> add_material(modelMaterial);
     
     Plane* thisFloor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), whiteDiffuseMaterial);
     Rectangle* frontWall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, whiteDiffuseMaterial);
@@ -296,8 +269,7 @@ Scene createScene(){
 
     Rectangle* lightSource = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, lightSourceMaterial);
     
-    bool enableSmoothShading = true;
-    ObjectUnion* loadedModel = loadObjectModel("./models/dragon.obj", goldMaterial, enableSmoothShading);
+    ObjectUnion* loadedModel = loadObjectModel("./models/dragon.obj", goldMaterial, true);
 
     int numberOfObjects = 8;
     Object** objects = new Object*[numberOfObjects]{thisFloor, frontWall, leftWall, rightWall, roof, backWall, lightSource, loadedModel};
@@ -311,19 +283,18 @@ Scene createScene(){
     scene.objects = objects;
     scene.camera = camera;
     scene.numberOfObjects = numberOfObjects;
+    scene.material_manager = manager;
     return scene;
 }
 
 
 void clearScene(Scene& scene){
-    PointerManager* pm = new PointerManager();
     for (int i = 0; i < scene.numberOfObjects; i++){
-        scene.objects[i] -> prepareDeletion(pm);
         delete scene.objects[i];
     }
 
     delete[] scene.objects;
-    delete pm;
+    delete scene.material_manager;
     delete scene.camera;
 }
 
