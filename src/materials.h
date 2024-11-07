@@ -51,7 +51,7 @@ struct MaterialData{
     double refractive_index = 1;
     double extinction_coefficient = 0;
     double attenuation_coefficient = 0;
-    vec3 absorption_albedo = WHITE;
+    vec3 absorption_albedo = colors::WHITE;
     ValueMap3D* emission_color_map = nullptr;
     ValueMap1D* light_intensity_map = nullptr;
     bool is_dielectric = true;
@@ -77,11 +77,11 @@ class Material{
         Material(){}
         Material(MaterialData data){
             if (!data.albedo_map){
-                data.albedo_map = new ValueMap3D(WHITE);
+                data.albedo_map = new ValueMap3D(colors::WHITE);
             }
 
             if (!data.emission_color_map){
-                data.emission_color_map = new ValueMap3D(WHITE);
+                data.emission_color_map = new ValueMap3D(colors::WHITE);
             }
 
             if (!data.light_intensity_map){
@@ -167,7 +167,7 @@ class ReflectiveMaterial : public Material{
         using Material::Material;
 
     vec3 eval(const Hit& hit, const double u, const double v) override{
-        return BLACK;
+        return colors::BLACK;
     }
 
     BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const double u, const double v) override{
@@ -175,7 +175,7 @@ class ReflectiveMaterial : public Material{
         vec3 outgoing_vector = reflect_vector(hit.incoming_vector, adjustedNormal);
         BrdfData data;
         data.outgoing_vector = outgoing_vector;
-        data.brdf_multiplier = is_dielectric ? WHITE : albedo_map -> get(u, v);
+        data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
         data.type = REFLECTED;
         return data;
     }
@@ -187,7 +187,7 @@ class TransparentMaterial : public Material{
         using Material::Material;
 
     vec3 eval(const Hit& hit, const double u, const double v) override{
-        return BLACK;
+        return colors::BLACK;
     }
 
     BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const double u, const double v) override{
@@ -227,7 +227,7 @@ class TransparentMaterial : public Material{
         BrdfData data;
         if (is_reflected){
             data.type = REFLECTED;
-            data.brdf_multiplier = is_dielectric ? WHITE : albedo_map -> get(u, v);
+            data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
             data.outgoing_vector = reflect_vector(hit.incoming_vector, normal_into_interface);
         }
         else{
@@ -243,7 +243,7 @@ class TransparentMaterial : public Material{
                 attenuation_color = exp_vector(log_attenuation);
             }
             else{
-                attenuation_color = WHITE;
+                attenuation_color = colors::WHITE;
             }
 
             data.brdf_multiplier = attenuation_color;
@@ -322,12 +322,12 @@ class MicrofacetMaterial : public Material{
         double random_num = random_uniform(0, 1);
         bool reflect_specular = random_num < data.F_r;
         if (reflect_specular){
-            return BLACK;
+            return colors::BLACK;
         }
         double transmit = random_uniform(0, 1) > percentage_diffuse_map -> get(u, v);
 
         if (transmit){
-            return BLACK;
+            return colors::BLACK;
         }
 
         return albedo_map -> get(u, v) / M_PI;
@@ -359,7 +359,7 @@ class MicrofacetMaterial : public Material{
 
     BrdfData sample_reflection(const MicrofacetSampleArgs& args){
         BrdfData data;
-        vec3 reflection_color = is_dielectric ? WHITE : albedo_map -> get(args.u, args.v);
+        vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
         data.outgoing_vector = reflect_vector(-args.incident_vector, args.sampled_half_vector);
         data.brdf_multiplier = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
         data.type = REFLECTED;
@@ -378,7 +378,7 @@ class MicrofacetMaterial : public Material{
             attenuation_color = exp_vector(log_attenuation);
         }
         else{
-            attenuation_color = WHITE;
+            attenuation_color = colors::WHITE;
         }
 
         return attenuation_color;

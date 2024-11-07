@@ -29,7 +29,7 @@ vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
         }
     }
     if (number_of_light_sources == 0){
-        return BLACK;
+        return colors::BLACK;
     }
     
     int random_index = random_int(0, number_of_light_sources);
@@ -53,7 +53,7 @@ vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
     bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;
     bool inside_object = dot_vectors(hit.incoming_vector, hit.normal_vector) > 0.0;
     if ( in_shadow || !same_distance || hit_from_behind || inside_object){
-        return BLACK;
+        return colors::BLACK;
     }
 
     vec3 brdf_multiplier = objects[hit.intersected_object_index] -> eval(hit);
@@ -172,27 +172,27 @@ Scene createScene(){
 
     MaterialManager* manager = new MaterialManager();
     MaterialData white_data;
-    white_data.albedo_map = new ValueMap3D(WHITE * 0.8);
+    white_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
     DiffuseMaterial* white_diffuse_material = new DiffuseMaterial(white_data);
     manager -> add_material(white_diffuse_material);
     
     MaterialData white_reflective_data;
-    white_reflective_data.albedo_map = new ValueMap3D(WHITE * 0.8);
+    white_reflective_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
     ReflectiveMaterial* white_reflective_material = new ReflectiveMaterial(white_reflective_data);   
     manager -> add_material(white_reflective_material);
 
     MaterialData red_material_data;
-    red_material_data.albedo_map = new ValueMap3D(RED);
+    red_material_data.albedo_map = new ValueMap3D(colors::RED);
     DiffuseMaterial* red_diffuse_material = new DiffuseMaterial(red_material_data);
     manager -> add_material(red_diffuse_material);
 
     MaterialData green_material_data;
-    green_material_data.albedo_map = new ValueMap3D(GREEN);
+    green_material_data.albedo_map = new ValueMap3D(colors::GREEN);
     DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
     manager -> add_material(green_diffuse_material);
 
     MaterialData gold_data;
-    gold_data.albedo_map = new ValueMap3D(GOLD);
+    gold_data.albedo_map = new ValueMap3D(colors::GOLD);
     gold_data.roughness_map = new ValueMap1D(0.1);
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
@@ -201,8 +201,8 @@ Scene createScene(){
     manager -> add_material(gold_material);
 
     MaterialData light_material_data;
-    light_material_data.albedo_map =  new ValueMap3D(WHITE * 0.8);
-    light_material_data.emission_color_map =  new ValueMap3D(WARM_WHITE);
+    light_material_data.albedo_map =  new ValueMap3D(colors::WHITE * 0.8);
+    light_material_data.emission_color_map =  new ValueMap3D(colors::WARM_WHITE);
     light_material_data.light_intensity_map = new ValueMap1D(10.0);
     light_material_data.is_light_source = true;
     DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);

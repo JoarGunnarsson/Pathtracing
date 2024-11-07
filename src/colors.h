@@ -1,5 +1,5 @@
-#ifndef colors
-#define colors
+#ifndef COLORS_H
+#define COLORS_H
 #include "vec3.h"
 
 
