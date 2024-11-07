@@ -160,13 +160,13 @@ void print_progress(double progress){
 }
 
 
-Scene createScene(){
+Scene create_scene(){
     /*
-    ValueMap3D* worldMap = create_value_map_3D("./maps/world.map");
-    ValueMap3D* sakuraMap = create_value_map_3D("./maps/sakura.map");
-    ValueMap3D* templeMap = create_value_map_3D("./maps/temple.map");
-    ValueMap3D* cobbleMap = create_value_map_3D("./maps/cobblestone.map");
-    ValueMap1D* worldRoughnessMap = createValueMap1D("./maps/world_roughness.map");
+    ValueMap3D* world_map = create_value_map_3D("./maps/world.map");
+    ValueMap3D* sakura_map = create_value_map_3D("./maps/sakura.map");
+    ValueMap3D* temple_map = create_value_map_3D("./maps/temple.map");
+    ValueMap3D* cobble_map = create_value_map_3D("./maps/cobblestone.map");
+    ValueMap1D* world_roughnessMap = create_value_map_1D("./maps/world_roughness.map");
     
     */
 
@@ -209,34 +209,34 @@ Scene createScene(){
     manager -> add_material(light_source_material);
 
     /*
-    MaterialData glassData;
-    glassData.refractive_index = 1.5;
-    TransparentMaterial* pane1Material = new TransparentMaterial(glassData);
+    MaterialData glass_data;
+    glass_data.refractive_index = 1.5;
+    TransparentMaterial* pane1_material = new TransparentMaterial(glass_data);
 
-    MaterialData frostyGlassData;
-    frostyGlassData.albedo_map = pureWhiteMap;
-    frostyGlassData.refractive_index = 1.5;
-    frostyGlassData.roughness_map = new ValueMap1D(0.1);
-    frostyGlassData.percentage_diffuse_map = new ValueMap1D(0.0);
-    MicrofacetMaterial* pane2Material = new MicrofacetMaterial(frostyGlassData);
+    MaterialData frosty_glass_data;
+    frosty_glassData.albedo_map = pure_white_map;
+    frosty_glassData.refractive_index = 1.5;
+    frosty_glassData.roughness_map = new ValueMap1D(0.1);
+    frosty_glassData.percentage_diffuse_map = new ValueMap1D(0.0);
+    MicrofacetMaterial* _material = new MicrofacetMaterial(frosty_glassData);
 
-    MaterialData sakuraData;
-    sakuraData.albedo_map = sakuraMap;
-    DiffuseMaterial* sakuraMaterial = new DiffuseMaterial(sakuraData);
+    MaterialData sakura_data;
+    sakura_data.albedo_map = sakura_map;
+    DiffuseMaterial* sakura_material = new DiffuseMaterial(sakura_data);
 
-    MaterialData templeData;
-    templeData.albedo_map = templeMap;
-    DiffuseMaterial* templeMaterial = new DiffuseMaterial(templeData);
+    MaterialData temple_data;
+    temple_data.albedo_map = temple_map;
+    DiffuseMaterial* temple_material = new DiffuseMaterial(temple_data);
 
-    MaterialData cobbleData;
-    cobbleData.albedo_map = cobbleMap;
-    DiffuseMaterial* cobbleMaterial = new DiffuseMaterial(cobbleData);
+    MaterialData cobble_data;
+    cobble_data.albedo_map = cobble_map;
+    DiffuseMaterial* cobble_material = new DiffuseMaterial(cobble_data);
     */
    
     MaterialData model_data;
     model_data.albedo_map = create_value_map_3D("./maps/bunny.map", 1, -1);
-    DiffuseMaterial* modelMaterial = new DiffuseMaterial(model_data);
-    manager -> add_material(modelMaterial);
+    DiffuseMaterial* model_material = new DiffuseMaterial(model_data);
+    manager -> add_material(model_material);
     
     Plane* this_floor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
     Rectangle* front_wall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, white_diffuse_material);
@@ -246,15 +246,15 @@ Scene createScene(){
     Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, white_diffuse_material);
 
     /*
-    Rectangle* frontPane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
-    Rectangle* backPane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1Material);
-    Object** pane1Objects = new Object*[2]{frontPane1, backPane1};
-    ObjectUnion* pane1 = new ObjectUnion(pane1Objects, 2);
+    Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
+    Rectangle* back_pane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
+    Object** pane1_objects = new Object*[2]{front_pane1, back_pane1};
+    ObjectUnion* pane1 = new ObjectUnion(pane1_objects, 2);
 
-    Rectangle* frontPane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
-    Rectangle* backPane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2Material);
-    Object** pane2Objects = new Object*[2]{frontPane2, backPane2};
-    ObjectUnion* pane2 = new ObjectUnion(pane2Objects, 2);
+    Rectangle* front_pane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2_material);
+    Rectangle* back_pane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2_material);
+    Object** pane2_objects = new Object*[2]{front_pane2, back_pane2};
+    ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
     //Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, green_diffuse_material);
@@ -299,7 +299,7 @@ int main() {
     
     data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
-    Scene scene = createScene();
+    Scene scene = create_scene();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (int y = constants::HEIGHT-1; y >= 0; y--) {
         double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;

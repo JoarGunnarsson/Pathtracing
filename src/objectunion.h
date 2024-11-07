@@ -95,8 +95,8 @@ class ObjectUnion : public Object{
             return hit;
         }
         
-        vec3 get_normal_vector(const vec3& surfacePoint, const int object_ID) override{
-            return objects[object_ID] -> get_normal_vector(surfacePoint, object_ID);
+        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
+            return objects[object_ID] -> get_normal_vector(surface_point, object_ID);
         }
 
         int sample_random_object_index(){
@@ -130,10 +130,10 @@ class ObjectUnion : public Object{
             return objects[sample_random_object_index()] -> generate_random_surface_point();
         }
 
-        vec3 random_light_point(const vec3& intersection_point, double& inversePDF) override{
+        vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) override{
             int random_index = sample_random_object_index();
             vec3 random_point = objects[random_index] -> generate_random_surface_point();
-            inversePDF = cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(random_point, intersection_point, random_index);
+            inverse_PDF = cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(random_point, intersection_point, random_index);
             return random_point;
         }
 };

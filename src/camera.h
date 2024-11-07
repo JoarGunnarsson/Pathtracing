@@ -18,8 +18,8 @@ class Camera{
             position = _position;
             viewing_direction = normalize_vector(_viewing_direction);
             if (dot_vectors(viewing_direction, _y_vector) != 0){
-                vec3 perpendicularVector = cross_vectors(viewing_direction, _y_vector);
-                _y_vector = cross_vectors(perpendicularVector, viewing_direction);
+                vec3 perpendicular_vector = cross_vectors(viewing_direction, _y_vector);
+                _y_vector = cross_vectors(perpendicular_vector, viewing_direction);
             }
             screen_y_vector = normalize_vector(_y_vector);
             screen_width = 1.0;
@@ -30,12 +30,12 @@ class Camera{
 
     vec3 index_to_position(double x, double y){
         double local_x_coordinate = x * screen_width / (double) constants::WIDTH - (double) screen_width / 2.0;
-        vec3 localX = screen_x_vector * local_x_coordinate;
+        vec3 local_x = screen_x_vector * local_x_coordinate;
 
         double local_y_coordinate = y * screen_height / (double) constants::HEIGHT - (double) screen_height / 2.0;
-        vec3 localY = screen_y_vector * local_y_coordinate;
+        vec3 local_y = screen_y_vector * local_y_coordinate;
 
-        return localX + localY + screen_position;
+        return local_x + local_y + screen_position;
     }
 
     vec3 get_starting_directions(double x, double y){

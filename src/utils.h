@@ -115,16 +115,16 @@ vec3 sample_hemisphere(const vec3& normal){
     return sample;
 }
 
-void set_perpendicular_vectors(const vec3& zHat, vec3& xHat, vec3& yHat){
+void set_perpendicular_vectors(const vec3& z_hat, vec3& x_hat, vec3& y_hat){
     vec3 non_parallel_vector = vec3(1.0, 0.0, 0.0);
-    if (std::abs(dot_vectors(non_parallel_vector, zHat)) == 1.0){
+    if (std::abs(dot_vectors(non_parallel_vector, z_hat)) == 1.0){
         non_parallel_vector = vec3(0.0, 1.0, 0.0);
     }
     
-    xHat = cross_vectors(zHat, non_parallel_vector);
-    xHat = normalize_vector(xHat);
-    yHat = cross_vectors(zHat, xHat);
-    yHat = normalize_vector(yHat);
+    x_hat = cross_vectors(z_hat, non_parallel_vector);
+    x_hat = normalize_vector(x_hat);
+    y_hat = cross_vectors(z_hat, x_hat);
+    y_hat = normalize_vector(y_hat);
 }
 
 vec3 sample_angled_hemisphere(const vec3& normal_vector, const double cos_max){

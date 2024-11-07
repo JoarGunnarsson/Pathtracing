@@ -150,8 +150,8 @@ class DiffuseMaterial : public Material{
     }
 
     BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const double u, const double v) override{
-        vec3 adjustedNormal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
-        vec3 outgoing_vector = sample_cosine_hemisphere(adjustedNormal);
+        vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
+        vec3 outgoing_vector = sample_cosine_hemisphere(adjusted_normal);
         vec3 brdf_multiplier = albedo_map -> get(u, v);
         BrdfData data;
         data.outgoing_vector = outgoing_vector;
@@ -171,8 +171,8 @@ class ReflectiveMaterial : public Material{
     }
 
     BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const double u, const double v) override{
-        vec3 adjustedNormal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
-        vec3 outgoing_vector = reflect_vector(hit.incoming_vector, adjustedNormal);
+        vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
+        vec3 outgoing_vector = reflect_vector(hit.incoming_vector, adjusted_normal);
         BrdfData data;
         data.outgoing_vector = outgoing_vector;
         data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
@@ -343,10 +343,10 @@ class MicrofacetMaterial : public Material{
         double cos_theta = sqrt(cos_theta2);
         double sin_theta = sqrt(1 - cos_theta2);
 
-        vec3 xHat;
-        vec3 yHat;
-        set_perpendicular_vectors(normal_vector, xHat, yHat);
-        return xHat * sin_theta * cos(phi) + yHat * sin_theta * sin(phi) + normal_vector * cos_theta;
+        vec3 x_hat;
+        vec3 y_hat;
+        set_perpendicular_vectors(normal_vector, x_hat, y_hat);
+        return x_hat * sin_theta * cos(phi) + y_hat * sin_theta * sin(phi) + normal_vector * cos_theta;
     }
 
     BrdfData sample_diffuse(const MicrofacetSampleArgs& args){
