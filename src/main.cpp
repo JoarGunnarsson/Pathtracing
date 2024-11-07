@@ -137,9 +137,9 @@ vec3 compute_pixel_color(const int x, const int y, Scene scene){
 
 
 void print_pixel_color(vec3 rgb, std::ofstream& file){
-    int r = int(rgb[0] * (double) 255);
-    int g = int(rgb[1] * (double) 255);
-    int b = int(rgb[2] * (double) 255);
+    double r = double(rgb[0]);
+    double g = double(rgb[1]);
+    double b = double(rgb[2]);
     file << r << ' ' << g << ' ' << b << '\n';
 }
 
@@ -208,6 +208,11 @@ Scene create_scene(){
     DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
     manager -> add_material(light_source_material);
 
+    MaterialData glass_data;
+    glass_data.refractive_index = 1.5;
+    TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
+    manager -> add_material(glass_material);
+
     /*
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
@@ -232,11 +237,12 @@ Scene create_scene(){
     cobble_data.albedo_map = cobble_map;
     DiffuseMaterial* cobble_material = new DiffuseMaterial(cobble_data);
     */
-   
+
     MaterialData model_data;
     model_data.albedo_map = create_value_map_3D("./maps/bunny.map", 1, -1);
     DiffuseMaterial* model_material = new DiffuseMaterial(model_data);
     manager -> add_material(model_material);
+
     
     Plane* this_floor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
     Rectangle* front_wall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, white_diffuse_material);
@@ -262,7 +268,7 @@ Scene create_scene(){
 
     Rectangle* light_source = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, true);
+    ObjectUnion* loaded_model = load_object_model("./models/suzanne.obj", gold_material, false);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
@@ -306,7 +312,7 @@ int main() {
         print_progress(progress);
         for (int x = 0; x < constants::WIDTH; x++) {
             vec3 rgb = compute_pixel_color(x, y, scene);
-            print_pixel_color(color_clip(rgb), data_file);
+            print_pixel_color(rgb, data_file);
         }
     }
     data_file.close();

@@ -3,6 +3,7 @@
 
 #include "objects.h"
 
+
 namespace BVH{
     vec3 get_max_point(Object** triangles, int number_of_triangles){
         if (number_of_triangles == 0){

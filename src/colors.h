@@ -20,8 +20,4 @@ namespace colors{
 }
 
 
-vec3 color_clip(vec3 rgb){
-    return rgb / (rgb.max()+1);
-}
-
 #endif
