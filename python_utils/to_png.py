@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+from filtering import gaussfft, medfilt
+
 
 def read_data():
     arr = []
@@ -12,38 +14,43 @@ def read_data():
     return arr
 
 
+def filter_one_image(img, scale=1):
+    filtered_channels = []
+    for channel in range(3):
+        filtered_image = medfilt(img[:, :, channel], scale)
+        filtered_channels.append(filtered_image[:, :, None])
+
+    result = np.concatenate(filtered_channels, axis=-1)
+    return result
+
+
 def create_image():
-    image = []
+    image_data = []
 
     data_array = read_data()
-    size_and_width = data_array[0][5:].split(" ")
+    width_and_height = data_array[0][5:].split(" ")
 
-    size, width = int(size_and_width[0]), int(size_and_width[1])
+    width, height = int(width_and_height[0]), int(width_and_height[1])
+
     for line in data_array[1:]:
         cleaned_line = line
-        rgb_values = cleaned_line.split(" ")
-        rgb_values = [float(x) for x in rgb_values if x != " " and x != ""]
-        image.append(rgb_values)
+        values = cleaned_line.split(" ")
+        rgb_values = [float(x) for x in values if x != " " and x != ""]
+        image_data.append(rgb_values)
     
-    if len(image) < size * width:
-        image[-1] = [0,0,0]
-        image.extend([[0, 0, 0]] * (size * width - len(image)))
-    image = np.array(image)
-    return np.reshape(image, (size, width, 3))
-
-
+    if len(image_data) < height * width:
+        image_data[-1] = [0,0,0]
     
-def tone_map(image):
-    w, h = image.shape[0], image.shape[1]
-    image = np.reshape(image, (w*h, 3))
 
-    max_white = np.max(image, axis=0) + 0.0001
-    
-    image = (image * (1 + image/max_white ** 2)) / (1 + image)
-    return np.reshape(image, (w, h, 3))
+    image = np.zeros((width * height, 3))
+    image[:len(image_data), :] = np.array(image_data)
+
+    image = np.reshape(image, (height, width, 3))
+
+    print(np.min(image), np.max(image))
+    return np.clip(image, 0, 1)
 
 
 image_name = sys.argv[1]
 image = create_image()
-image = tone_map(image)
 plt.imsave(f"Images/{image_name}", image)

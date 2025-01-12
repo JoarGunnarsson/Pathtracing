@@ -46,5 +46,5 @@ def write_data_to_file(file_name, img_data, width, height, dimension):
         file.write("\n".join(img_data))
 
 
-convertImageToMap("bunny.png", "bunny.map")
+convertImageToMap("sandstone_floor.webp", "sandstone_floor.map")
 #world_map_mask()

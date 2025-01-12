@@ -7,3 +7,5 @@ main
 *.obj
 *.map
 *.jpeg
+*.pyc
+__pycache__

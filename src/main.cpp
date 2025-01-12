@@ -2,6 +2,8 @@
 #include <fstream>
 #include <chrono>
 #include "vec3.h"
+#include "colors.h"
+#include "denoise.h"
 #include "objects.h"
 #include "camera.h"
 #include "utils.h"
@@ -9,11 +11,23 @@
 #include "objectunion.h"
 
 
+void print_pixel_color(const vec3& rgb, std::ofstream& file){
+    file << rgb[0] << ' ' << rgb[1] << ' ' << rgb[2] << '\n';
+}
+
+
 struct Scene{
     Object** objects;
     Camera* camera;
     int number_of_objects;
     MaterialManager* material_manager;
+};
+
+
+struct PixelData{
+    vec3 pixel_color = vec3(0,0,0);
+    vec3 pixel_position = vec3(0,0,0);
+    vec3 pixel_normal = vec3(0,0,0);
 };
 
 
@@ -66,7 +80,8 @@ vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
 }
 
 
-vec3 raytrace(Ray ray, Object** objects, const int number_of_objects){
+PixelData raytrace(Ray ray, Object** objects, const int number_of_objects){
+    PixelData data;
     vec3 color = vec3(0,0,0);
     vec3 brdf_accumulator = vec3(1,1,1);
     vec3 throughput = vec3(1,1,1);
@@ -76,6 +91,11 @@ vec3 raytrace(Ray ray, Object** objects, const int number_of_objects){
         Hit ray_hit = find_closest_hit(ray, objects, number_of_objects);
         if (ray_hit.distance <= constants::EPSILON){
             break;
+        }
+
+        if (depth == 0){
+            data.pixel_position = ray_hit.intersection_point;
+            data.pixel_normal = ray_hit.normal_vector;
         }
         
         bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
@@ -115,32 +135,35 @@ vec3 raytrace(Ray ray, Object** objects, const int number_of_objects){
 
         brdf_accumulator *= brdf_result.brdf_multiplier / random_threshold;
     }
-    return color;
 
+    data.pixel_color = color;
+    return data;
  }
 
 
-vec3 compute_pixel_color(const int x, const int y, Scene scene){
+PixelData compute_pixel_color(const int x, const int y, Scene scene, std::ofstream& file){
+    PixelData data;
     vec3 pixel_color = vec3(0,0,0);
     Ray ray;
     ray.starting_position = scene.camera -> position;
     for (int i = 0; i < constants::samples_per_pixel; i++){
         double x_offset = random_normal() / 2.0;
         double y_offset = random_normal() / 2.0;
-        ray.direction_vector = scene.camera -> get_starting_directions(x + x_offset, y + y_offset);
-        vec3 sampled_color = raytrace(ray, scene.objects, scene.number_of_objects);
-        pixel_color += sampled_color;    
+        double new_x = x + x_offset;
+        double new_y = y + y_offset;
+        ray.direction_vector = scene.camera -> get_starting_directions(new_x, new_y);
+        PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects);
+        if (i == 0){
+            data.pixel_position = sampled_data.pixel_position;
+            data.pixel_normal = sampled_data.pixel_normal;
+        }
+        pixel_color += sampled_data.pixel_color;    
     }
 
-    return pixel_color / (double) constants::samples_per_pixel;
-}
+    vec3 average_pixel_color = pixel_color / (double) constants::samples_per_pixel;
 
-
-void print_pixel_color(vec3 rgb, std::ofstream& file){
-    double r = double(rgb[0]);
-    double g = double(rgb[1]);
-    double b = double(rgb[2]);
-    file << r << ' ' << g << ' ' << b << '\n';
+    data.pixel_color = average_pixel_color;
+    return data;
 }
 
 
@@ -167,7 +190,6 @@ Scene create_scene(){
     ValueMap3D* temple_map = create_value_map_3D("./maps/temple.map");
     ValueMap3D* cobble_map = create_value_map_3D("./maps/cobblestone.map");
     ValueMap1D* world_roughnessMap = create_value_map_1D("./maps/world_roughness.map");
-    
     */
 
     MaterialManager* manager = new MaterialManager();
@@ -191,19 +213,29 @@ Scene create_scene(){
     DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
     manager -> add_material(green_diffuse_material);
 
+    MaterialData hieroglyph_data;
+    hieroglyph_data.albedo_map = create_value_map_3D("./maps/hieroglyph_wall.map", 1, 1);
+    DiffuseMaterial* hieroglyph_material = new DiffuseMaterial(hieroglyph_data);
+    manager -> add_material(hieroglyph_material);
+
+    MaterialData sandstone_data;
+    sandstone_data.albedo_map = create_value_map_3D("./maps/sandstone_floor.map");
+    DiffuseMaterial* sandstone_material = new DiffuseMaterial(sandstone_data);
+    manager -> add_material(sandstone_material);
+
     MaterialData gold_data;
-    gold_data.albedo_map = new ValueMap3D(colors::GOLD);
-    gold_data.roughness_map = new ValueMap1D(0.1);
+    gold_data.albedo_map = new ValueMap3D(colors::WHITE);
+    gold_data.roughness_map = new ValueMap1D(0);
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
     gold_data.is_dielectric = false;
-    MicrofacetMaterial* gold_material = new MicrofacetMaterial(gold_data);
+    DiffuseMaterial* gold_material = new DiffuseMaterial(gold_data);
     manager -> add_material(gold_material);
 
     MaterialData light_material_data;
     light_material_data.albedo_map =  new ValueMap3D(colors::WHITE * 0.8);
     light_material_data.emission_color_map =  new ValueMap3D(colors::WARM_WHITE);
-    light_material_data.light_intensity_map = new ValueMap1D(10.0);
+    light_material_data.light_intensity_map = new ValueMap1D(15.0);
     light_material_data.is_light_source = true;
     DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
     manager -> add_material(light_source_material);
@@ -244,12 +276,12 @@ Scene create_scene(){
     manager -> add_material(model_material);
 
     
-    Plane* this_floor = new Plane(vec3(0,-0.35,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
-    Rectangle* front_wall = new Rectangle(vec3(0,0.425,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55, white_diffuse_material);
-    Rectangle* left_wall = new Rectangle(vec3(-1,0.425,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55, red_diffuse_material);
-    Rectangle* right_wall = new Rectangle(vec3(1,0.425,1.575), vec3(0,0,-1), vec3(0,-1,0), 3.85, 1.55, green_diffuse_material);
-    Plane* roof = new Plane(vec3(0,1.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
-    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, white_diffuse_material);
+    Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), sandstone_material);
+    Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, hieroglyph_material);
+    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
+    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
+    Plane* roof = new Plane(vec3(0,2.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
+    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, hieroglyph_material);
 
     /*
     Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
@@ -263,18 +295,21 @@ Scene create_scene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
-    //Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, green_diffuse_material);
+    Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, green_diffuse_material);
     //Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, light_source_material);
 
-    Rectangle* light_source = new Rectangle(vec3(0, 1.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
+    Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
-    ObjectUnion* loaded_model = load_object_model("./models/suzanne.obj", gold_material, false);
+    double desired_size = 0.5;
+    vec3 desired_center = vec3(0, 0.8, 1);
+    bool smooth_shade = true;
+    ObjectUnion* loaded_model = load_object_model("./models/anubis.obj", gold_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
-    vec3 camera_position = vec3(0, 1, 3);
-    vec3 viewing_direction = vec3(0.0, -0.3, -1);
+    vec3 camera_position = vec3(-1, 1, 2.2);
+    vec3 viewing_direction = vec3(0.8, -0.3, -1);
     vec3 screen_y_vector = vec3(0, 1, 0);
     Camera* camera = new Camera(camera_position, viewing_direction, screen_y_vector);
 
@@ -307,21 +342,35 @@ int main() {
 
     Scene scene = create_scene();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    for (int y = constants::HEIGHT-1; y >= 0; y--) {
-        double progress = double(constants::HEIGHT - y) / (double) constants::HEIGHT;
+
+    vec3* pixel_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
+    vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
+    vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
+
+    for (int y = 0; y < constants::HEIGHT; y++) {
+        double progress = double(y) / (double) constants::HEIGHT;
         print_progress(progress);
         for (int x = 0; x < constants::WIDTH; x++) {
-            vec3 rgb = compute_pixel_color(x, y, scene);
-            print_pixel_color(rgb, data_file);
+            PixelData data = compute_pixel_color(x, y, scene, data_file);
+            int idx = ((constants::HEIGHT - 1 - y) * constants::WIDTH) + x;
+            pixel_buffer[idx] = data.pixel_color;
+            position_buffer[idx] = data.pixel_position;
+            normal_buffer[idx] = data.pixel_normal;
         }
     }
+
+    denoise(pixel_buffer, position_buffer, normal_buffer);
+
+    for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
+        print_pixel_color(tone_map(pixel_buffer[i]), data_file);
+    }
+
     data_file.close();
     std::clog << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
-    //TODO: remember to free the scene.
     clear_scene(scene);
     return 0;
 }

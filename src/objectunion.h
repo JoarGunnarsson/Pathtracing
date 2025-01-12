@@ -282,7 +282,7 @@ void change_vectors(const vec3& desired_center, const double desired_size, vec3*
     double max_distance = maximum_distance(average_position, vertex_array, number_of_vertices);
 
     for (int i = 0; i < number_of_vertices; i++){
-        vertex_array[i] = ((vertex_array[i] - average_position) / max_distance + desired_center) * desired_size;
+        vertex_array[i] = ((vertex_array[i] - average_position) / max_distance) * desired_size + desired_center;
     }
 }
 
@@ -429,7 +429,7 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
 }
 
 
-ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading){
+ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading, const vec3& center, const double size){
     DataSizes nums = get_vertex_data_sizes(file_name);
 
     vec3 vertex_array[nums.num_vertices];
@@ -437,9 +437,7 @@ ObjectUnion* load_object_model(std::string file_name, Material* material, const 
     vec3 vertex_normal_array[nums.num_vertex_normals];
     populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
 
-    double desired_size = 0.7;
-    vec3 desired_center = vec3(0, 0.2, 1);
-    change_vectors(desired_center, desired_size, vertex_array, nums.num_vertices);
+    change_vectors(center, size, vertex_array, nums.num_vertices);
 
     Object** triangles = new Object*[nums.num_triangles];
     int num_valid_triangles = populate_triangle_array(file_name, vertex_array, vertex_UV_array, vertex_normal_array, triangles, material, enable_smooth_shading);

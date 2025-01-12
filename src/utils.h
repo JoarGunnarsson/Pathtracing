@@ -13,11 +13,12 @@ public:
 };
 
 
-std::random_device rand_dev;
-std::minstd_rand normal_generator(rand_dev());
+std::random_device rand_dev_normal;
+std::minstd_rand normal_generator(rand_dev_normal());
 std::normal_distribution<double> normal_distribution(0, 1);
 
-std::minstd_rand uniform_generator(rand_dev());
+std::random_device rand_dev_uniform;
+std::minstd_rand uniform_generator(rand_dev_uniform());
 std::uniform_real_distribution<double> uniform_dist(0, 1);
 
 

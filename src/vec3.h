@@ -79,6 +79,13 @@ class vec3 {
             return vec3(e0, e1, e2);
         }
 
+        inline vec3 operator/(const vec3& v) const{
+            double e0 = e[0] / v[0];
+            double e1 = e[1] / v[1];
+            double e2 = e[2] / v[2];
+            return vec3(e0, e1, e2);
+        }
+
         inline double operator[](int i) const { 
             return e[i]; 
         }
@@ -134,14 +141,14 @@ inline vec3 exp_vector(const vec3& v){
 
 
 void display_vector(vec3 v){
-    std::cout << "[";
+    std::clog << "[";
     for (int i = 0; i < 3; i++){
-        std::cout << v[i];
+        std::clog << v[i];
         if (i != 2){
-            std::cout << ", ";
+            std::clog << ", ";
         }
     }
-    std::cout << "]\n";
+    std::clog << "]\n";
 }
 
 #endif
