@@ -13,9 +13,9 @@ struct KernelData{
         1.0/16.0, 1.0/4.0,  1.0/4.0,  1.0/4.0,  1.0/16.0, 
         1.0/16.0, 1.0/16.0, 1.0/16.0, 1.0/16.0, 1.0/16.0};
 
-    double sigma_rt = 10;
-    double sigma_x = 10;
-    double sigma_n = 10;
+    double sigma_rt = 4;
+    double sigma_x = 5;
+    double sigma_n = 0.1;
     int hole_width = 0;
 };
 
@@ -122,6 +122,7 @@ void one_denoising_iteration(const int iteration, const KernelData& kernel_data,
 
 void atrous_denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
     KernelData kernel_data;
+
     for (int iteration = 0; iteration < constants::denoising_iterations; iteration++){
         one_denoising_iteration(iteration, kernel_data, pixel_buffer, position_buffer, normal_buffer);
         kernel_data.sigma_rt /= 2.0;

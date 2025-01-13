@@ -5,7 +5,7 @@
 namespace constants
 {
     const double EPSILON = 0.000001;
-    const int samples_per_pixel = 1;
+    const int samples_per_pixel = 10;
     const int WIDTH = 1000;
     const int HEIGHT = 1000;
     const bool enable_next_event_estimation = true;

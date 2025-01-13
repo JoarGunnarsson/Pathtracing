@@ -276,12 +276,12 @@ Scene create_scene(){
     manager -> add_material(model_material);
 
     
-    Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), sandstone_material);
-    Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, hieroglyph_material);
-    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
-    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
+    Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
+    Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, white_diffuse_material);
+    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, red_diffuse_material);
+    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, green_diffuse_material);
     Plane* roof = new Plane(vec3(0,2.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
-    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, hieroglyph_material);
+    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, white_diffuse_material);
 
     /*
     Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
@@ -295,15 +295,15 @@ Scene create_scene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
-    Sphere* ball1 = new Sphere(vec3(-0.35,0,0), 0.35, green_diffuse_material);
-    //Sphere* ball2 = new Sphere(vec3(0.45, 0, 0.6), 0.35, light_source_material);
+    Sphere* ball1 = new Sphere(vec3(-0.35, 0.5, 0), 0.35, green_diffuse_material);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, red_diffuse_material);
 
     Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = true;
-    ObjectUnion* loaded_model = load_object_model("./models/anubis.obj", gold_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
