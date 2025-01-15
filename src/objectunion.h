@@ -68,6 +68,10 @@ class ObjectUnion : public Object{
             delete[] light_source_conversion_indices;
         }
 
+        virtual Material* get_material(const int object_ID) override{
+            return objects[object_ID] -> material;
+        }
+
         bool is_light_source() override{
             return contains_light_source;
         }

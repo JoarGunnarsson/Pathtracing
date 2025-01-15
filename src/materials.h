@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "constants.h"
 #include "valuemap.h"
+#include "medium.h"
 
 
 class Object;
@@ -58,6 +59,7 @@ struct MaterialData{
     ValueMap1D* roughness_map = nullptr; 
     ValueMap1D* percentage_diffuse_map = nullptr;
     bool is_light_source = false;
+    double scattering_coefficient = 0;
 };
 
 
@@ -74,6 +76,7 @@ class Material{
         bool is_light_source;
         ValueMap1D* roughness_map;
         ValueMap1D* percentage_diffuse_map;
+        Medium* medium;
         Material(){}
         Material(MaterialData data){
             if (!data.albedo_map){
@@ -113,15 +116,18 @@ class Material{
 
             roughness_map = data.roughness_map;
             percentage_diffuse_map = data.percentage_diffuse_map;
+
+            medium = new Medium(data.attenuation_coefficient, data.scattering_coefficient, absorption_albedo);
         }
     
-    ~Material(){
-        delete albedo_map;
-        delete emission_color_map;
-        delete light_intensity_map;
-        delete roughness_map;
-        delete percentage_diffuse_map;
-    }
+        ~Material(){
+            delete albedo_map;
+            delete emission_color_map;
+            delete light_intensity_map;
+            delete roughness_map;
+            delete percentage_diffuse_map;
+            delete medium;
+        }
 
     virtual vec3 eval(const Hit& hit, const float u, const float v){
         throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
@@ -194,6 +200,7 @@ class TransparentMaterial : public Material{
         float incoming_dot_normal = dot_vectors(hit.incoming_vector, hit.normal_vector);
         vec3 normal_into_interface;
         bool inside = incoming_dot_normal > 0.0;
+        // Look at the next medium, use that as refractive index!
         float n1;
         float k1;
         float n2;
@@ -232,10 +239,12 @@ class TransparentMaterial : public Material{
         }
         else{
             data.type = TRANSMITTED;
+            /*
             Ray transmission_ray;
             transmission_ray.direction_vector = transmitted_vector;
             transmission_ray.starting_position = hit.intersection_point;
             Hit transmission_hit = find_closest_hit(transmission_ray, scene_objects, number_of_objects);
+              
             vec3 attenuation_color;
             float distance = transmission_hit.distance;
             if (distance > 0 && !inside){
@@ -245,8 +254,8 @@ class TransparentMaterial : public Material{
             else{
                 attenuation_color = colors::WHITE;
             }
-
-            data.brdf_multiplier = attenuation_color;
+            */
+            data.brdf_multiplier = colors::WHITE;//attenuation_color;
             data.outgoing_vector = transmitted_vector;
         }
 
@@ -267,8 +276,10 @@ class MicrofacetMaterial : public Material{
         float cos_theta = dot_vectors(half_vector, v);
         float tan_theta = sqrt((1.0 - cos_theta * cos_theta) / (cos_theta * cos_theta));
         float a = 1.0 / (alpha * tan_theta);
+
+        float multiplicator_approximation = a < 1.6 ? (3.535 * a  + 2.181 * a * a) / (1.0 + 2.276 * a + 2.577 * a * a) : 1.0;
         
-        return chi(cos_theta / dot_vectors(v, normal_vector)) * a < 1.6 ? (3.535 * a  + 2.181 * a * a) / (1.0 + 2.276 * a + 2.577 * a * a) : 1.0;
+        return chi(cos_theta / dot_vectors(v, normal_vector)) * multiplicator_approximation;
     }
 
     float G(const vec3& half_vector, const vec3& normal_vector, const vec3& incident_vector, const vec3& outgoing_vector, const float alpha){
@@ -343,7 +354,7 @@ class MicrofacetMaterial : public Material{
         float cos_theta = sqrt(cos_theta2);
         float sin_theta = sqrt(1 - cos_theta2);
 
-        vec3 x_hat;
+        vec3 x_hat; 
         vec3 y_hat;
         set_perpendicular_vectors(normal_vector, x_hat, y_hat);
         return x_hat * sin_theta * cos(phi) + y_hat * sin_theta * sin(phi) + normal_vector * cos_theta;
@@ -391,7 +402,7 @@ class MicrofacetMaterial : public Material{
             return sample_reflection(args);
         }
 
-        vec3 attenuated_color = compute_attenuated_color(args, refracted_vector);
+        vec3 attenuated_color = colors::WHITE;//compute_attenuated_color(args, refracted_vector);
 
         BrdfData data;
         data.outgoing_vector = refracted_vector;

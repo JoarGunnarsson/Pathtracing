@@ -141,14 +141,14 @@ inline vec3 exp_vector(const vec3& v){
 
 
 void display_vector(vec3 v){
-    std::clog << "[";
+    std::cout << "[";
     for (int i = 0; i < 3; i++){
-        std::clog << v[i];
+        std::cout << v[i];
         if (i != 2){
-            std::clog << ", ";
+            std::cout << ", ";
         }
     }
-    std::clog << "]\n";
+    std::cout << "]\n";
 }
 
 #endif

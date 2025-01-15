@@ -120,8 +120,8 @@ void one_denoising_iteration(const int iteration, const KernelData& kernel_data,
     
 }
 
-void atrous_denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
-    KernelData kernel_data;
+void denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
+        KernelData kernel_data;
 
     for (int iteration = 0; iteration < constants::denoising_iterations; iteration++){
         one_denoising_iteration(iteration, kernel_data, pixel_buffer, position_buffer, normal_buffer);
@@ -130,15 +130,6 @@ void atrous_denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3*
         kernel_data.sigma_n /= 2.0;
         kernel_data.hole_width += pow(2, iteration);
     }
-}
-
-
-void denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
-    if (!constants::use_denoising){
-        return;
-    }
-
-    atrous_denoise(pixel_buffer, position_buffer, normal_buffer);
 }
 
 #endif

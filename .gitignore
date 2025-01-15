@@ -9,3 +9,4 @@ main
 *.jpeg
 *.pyc
 __pycache__
+*.dSYM

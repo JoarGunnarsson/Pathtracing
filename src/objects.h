@@ -14,7 +14,7 @@ class Object{
     public:
         Material* material;
         double area;
-        int object_ID = 0;
+        int object_ID = 0; // Used when object belongs to an ObjectUnion.
         Object(){}
         Object(Material* _material){
             material = _material;
@@ -42,6 +42,10 @@ class Object{
             throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
+        }
+
+        virtual Material* get_material(const int object_ID){
+            return material;
         }
 
         virtual bool is_light_source(){
@@ -359,16 +363,16 @@ class Triangle: public Object{
             smooth_shaded = true;
         }
 
+        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int object_ID){
+            vec3 barycentric_vector = compute_barycentric(surface_point);
+            return normalize_vector(n1 * barycentric_vector[0] + n2 * barycentric_vector[1] + n3 * barycentric_vector[2]);
+        }
+
         vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
             if (smooth_shaded){
                 return get_normal_vector_smoothed(surface_point, object_ID);
             }
             return normal_vector;
-        }
-
-        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int object_ID){
-            vec3 barycentric_vector = compute_barycentric(surface_point);
-            return normalize_vector(n1 * barycentric_vector[0] + n2 * barycentric_vector[1] + n3 * barycentric_vector[2]);
         }
 
         vec3 compute_barycentric(const vec3& point){

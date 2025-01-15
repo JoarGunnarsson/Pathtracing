@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <stdexcept>
 #include "vec3.h"
 #include "colors.h"
 #include "denoise.h"
@@ -21,6 +22,7 @@ struct Scene{
     Camera* camera;
     int number_of_objects;
     MaterialManager* material_manager;
+    Medium* medium;
 };
 
 
@@ -31,10 +33,10 @@ struct PixelData{
 };
 
 
-vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
+int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources){
     int light_source_idx_array[number_of_objects];
 
-    int number_of_light_sources = 0;
+    number_of_light_sources = 0;
     
     for (int i = 0; i < number_of_objects; i++){
         if (objects[i] -> is_light_source()){
@@ -43,11 +45,20 @@ vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
         }
     }
     if (number_of_light_sources == 0){
-        return colors::BLACK;
+        return -1;
     }
     
     int random_index = random_int(0, number_of_light_sources);
     int light_index = light_source_idx_array[random_index];
+    return light_index;
+}
+
+vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
+    int number_of_light_sources;
+    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
+    if (light_index == -1){
+        return colors::BLACK;
+    }
 
     double inverse_PDF;
     vec3 random_point = objects[light_index] -> random_light_point(hit.intersection_point, inverse_PDF);
@@ -80,13 +91,15 @@ vec3 direct_lighting(Hit& hit, Object** objects, const int number_of_objects){
 }
 
 
-PixelData raytrace(Ray ray, Object** objects, const int number_of_objects){
+PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium){
+
+    MediumStack* medium_stack = new MediumStack();
+    medium_stack -> add_medium(background_medium, -1);
     PixelData data;
     vec3 color = vec3(0,0,0);
-    vec3 brdf_accumulator = vec3(1,1,1);
     vec3 throughput = vec3(1,1,1);
-    int force_recusion_limit = 3;
     double random_threshold = 1;
+
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
         Hit ray_hit = find_closest_hit(ray, objects, number_of_objects);
         if (ray_hit.distance <= constants::EPSILON){
@@ -97,17 +110,67 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects){
             data.pixel_position = ray_hit.intersection_point;
             data.pixel_normal = ray_hit.normal_vector;
         }
-        
-        bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
 
-        if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
-            vec3 light_emitance = objects[ray_hit.intersected_object_index] -> get_light_emittance(ray_hit);
-            color += light_emitance * brdf_accumulator * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+        Medium* medium = medium_stack -> get_medium();
+        double scatter_distance = medium -> sample_distance();
+        // Add attenuation here. Take the minimum of scatter_distance and ray_hit.distance.
+        Material* hit_material = objects[ray_hit.intersected_object_index] -> get_material(ray_hit.object_ID);
+        double actual_distance;
+        if (scatter_distance == -1){
+            actual_distance = ray_hit.distance;
         }
+        else{
+            actual_distance = std::min(scatter_distance, ray_hit.distance);
+        }
+        vec3 log_attenuation = medium -> absorption_albedo * medium -> attenuation_coefficient * (-actual_distance);
+        vec3 attenuation_color = exp_vector(log_attenuation);
+
+        bool scatter = scatter_distance < ray_hit.distance && scatter_distance != -1;
+        if (scatter){
+            // Scatter
+            ray.starting_position = ray.starting_position + ray.direction_vector * scatter_distance;
+            ray.direction_vector = medium -> sample_direction(ray.direction_vector);
+        }     
+               
+        if (!scatter){
+            bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
+
+            if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
+                vec3 light_emitance = objects[ray_hit.intersected_object_index] -> get_light_emittance(ray_hit);
+                color += light_emitance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+            }
+
+            // Next event estimation needs being looked at for mediums.
+            if (constants::enable_next_event_estimation){
+                vec3 direct = direct_lighting(ray_hit, objects, number_of_objects);
+                color += direct * throughput / random_threshold;
+            }
+
+            BrdfData brdf_result = objects[ray_hit.intersected_object_index] -> sample(ray_hit, objects, number_of_objects);
+            double incoming_dot_normal = dot_vectors(ray.direction_vector, ray_hit.normal_vector);
+            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
+
+            bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
+            if (penetrating_boundary){
+                bool entering = incoming_dot_normal <= 0;
+                if (entering){
+                    medium_stack -> add_medium(hit_material -> medium, ray_hit.intersected_object_index);
+                }
+                else{
+                    medium_stack -> pop_medium(ray_hit.intersected_object_index);
+                }
+            }
+
+            throughput *= attenuation_color * brdf_result.brdf_multiplier;
+            ray.starting_position = ray_hit.intersection_point;
+            ray.direction_vector = brdf_result.outgoing_vector;
+            ray.type = brdf_result.type;
+        }
+
         bool allow_recursion;
         double random_threshold;
 
-        if (depth < force_recusion_limit){
+        if (depth < constants::force_tracing_limit){
             random_threshold = 1;
             allow_recursion = true;
         }
@@ -119,40 +182,33 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects){
         
         if (!allow_recursion){
             break;
-        }   
-
-        if (constants::enable_next_event_estimation){
-            vec3 direct = direct_lighting(ray_hit, objects, number_of_objects);
-            color += direct * brdf_accumulator / random_threshold;
         }
 
-        BrdfData brdf_result = objects[ray_hit.intersected_object_index] -> sample(ray_hit, objects, number_of_objects);
-
-        throughput *= brdf_result.brdf_multiplier / random_threshold;
-        ray.starting_position = ray_hit.intersection_point;
-        ray.direction_vector = brdf_result.outgoing_vector;
-        ray.type = brdf_result.type;
-
-        brdf_accumulator *= brdf_result.brdf_multiplier / random_threshold;
+        throughput /= random_threshold;
     }
-
+    
     data.pixel_color = color;
+    delete medium_stack;
     return data;
  }
 
 
-PixelData compute_pixel_color(const int x, const int y, Scene scene, std::ofstream& file){
+PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
     PixelData data;
     vec3 pixel_color = vec3(0,0,0);
     Ray ray;
     ray.starting_position = scene.camera -> position;
     for (int i = 0; i < constants::samples_per_pixel; i++){
-        double x_offset = random_normal() / 2.0;
-        double y_offset = random_normal() / 2.0;
-        double new_x = x + x_offset;
-        double new_y = y + y_offset;
+        double new_x = x;
+        double new_y = y;
+
+        if (constants::enable_anti_aliasing){
+            new_x += random_normal() / 3.0;
+            new_y += random_normal() / 3.0;
+        }
+        
         ray.direction_vector = scene.camera -> get_starting_directions(new_x, new_y);
-        PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects);
+        PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
         if (i == 0){
             data.pixel_position = sampled_data.pixel_position;
             data.pixel_normal = sampled_data.pixel_normal;
@@ -224,12 +280,12 @@ Scene create_scene(){
     manager -> add_material(sandstone_material);
 
     MaterialData gold_data;
-    gold_data.albedo_map = new ValueMap3D(colors::WHITE);
-    gold_data.roughness_map = new ValueMap1D(0);
+    gold_data.albedo_map = new ValueMap3D(colors::GOLD);
+    gold_data.roughness_map = new ValueMap1D(0.1);
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
     gold_data.is_dielectric = false;
-    DiffuseMaterial* gold_material = new DiffuseMaterial(gold_data);
+    MicrofacetMaterial* gold_material = new MicrofacetMaterial(gold_data);
     manager -> add_material(gold_material);
 
     MaterialData light_material_data;
@@ -242,8 +298,18 @@ Scene create_scene(){
 
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
+    glass_data.absorption_albedo = vec3(1,1,1) - colors::BLUE;
+    glass_data.attenuation_coefficient = 8;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
     manager -> add_material(glass_material);
+
+    MaterialData scattering_glass_data;
+    scattering_glass_data.refractive_index = 1;
+    scattering_glass_data.scattering_coefficient = 1;
+    scattering_glass_data.attenuation_coefficient = 5;
+    scattering_glass_data.absorption_albedo = vec3(1,1,1) - colors::BLUE;
+    TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
+    manager -> add_material(scattering_glass_material);
 
     /*
     MaterialData glass_data;
@@ -296,17 +362,19 @@ Scene create_scene(){
     */
 
     Sphere* ball1 = new Sphere(vec3(-0.35, 0.5, 0), 0.35, green_diffuse_material);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, red_diffuse_material);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, scattering_glass_material);
 
     Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = true;
-    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
+
+    Medium* background_medium = new Medium(0, 0, colors::WHITE);
 
     vec3 camera_position = vec3(-1, 1, 2.2);
     vec3 viewing_direction = vec3(0.8, -0.3, -1);
@@ -318,6 +386,7 @@ Scene create_scene(){
     scene.camera = camera;
     scene.number_of_objects = number_of_objects;
     scene.material_manager = manager;
+    scene.medium = background_medium;
     return scene;
 }
 
@@ -330,15 +399,15 @@ void clear_scene(Scene& scene){
     delete[] scene.objects;
     delete scene.material_manager;
     delete scene.camera;
+    delete scene.medium;
 }
 
 
 int main() {
+    std::ofstream raw_data_file;
+    raw_data_file.open(constants::raw_output_file_name);
 
-    std::ofstream data_file;
-    data_file.open("./temp/result_data.txt");
-    
-    data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
     Scene scene = create_scene();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -347,25 +416,36 @@ int main() {
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
 
-    for (int y = 0; y < constants::HEIGHT; y++) {
-        double progress = double(y) / (double) constants::HEIGHT;
+    for (int y = constants::HEIGHT - 1; y >= 0; y--) {
+        double progress = double(constants::HEIGHT - 1 - y) / (double) constants::HEIGHT;
         print_progress(progress);
         for (int x = 0; x < constants::WIDTH; x++) {
-            PixelData data = compute_pixel_color(x, y, scene, data_file);
+            PixelData data = compute_pixel_color(x, y, scene);
             int idx = ((constants::HEIGHT - 1 - y) * constants::WIDTH) + x;
+            print_pixel_color(tone_map(data.pixel_color), raw_data_file);
             pixel_buffer[idx] = data.pixel_color;
             position_buffer[idx] = data.pixel_position;
             normal_buffer[idx] = data.pixel_normal;
         }
     }
 
-    denoise(pixel_buffer, position_buffer, normal_buffer);
+    raw_data_file.close();
+ 
+    if (constants::enable_denoising){
+        std::ofstream denoised_data_file;
+        denoised_data_file.open(constants::denoised_output_file_name);
+        
+        denoised_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
-    for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
-        print_pixel_color(tone_map(pixel_buffer[i]), data_file);
+        denoise(pixel_buffer, position_buffer, normal_buffer);
+
+        for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
+            print_pixel_color(tone_map(pixel_buffer[i]), denoised_data_file);
+        }
+
+        denoised_data_file.close();
     }
 
-    data_file.close();
     std::clog << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
