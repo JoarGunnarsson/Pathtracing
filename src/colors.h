@@ -20,7 +20,7 @@ namespace colors{
 }
 
 
-vec3 tone_map(vec3& rgb){
+inline vec3 tone_map(vec3& rgb){
     return rgb / (rgb + vec3(1,1,1));
 }
 

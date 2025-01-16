@@ -1,5 +1,6 @@
 #ifndef VEC3_H
 #define VEC3_H
+
 #include <cmath>
 #include <iostream>
 
@@ -24,7 +25,7 @@ class vec3 {
             return vec3(e0, e1, e2);
         }
 
-        vec3& operator+=(const vec3 &v2){
+        inline vec3& operator+=(const vec3 &v2){
             e[0] += v2[0];
             e[1] += v2[1];
             e[2] += v2[2];
@@ -130,7 +131,7 @@ inline double dot_vectors(const vec3& v1, const vec3& v2){
 }
 
 
-vec3 cross_vectors(const vec3& v1, const vec3& v2){
+inline vec3 cross_vectors(const vec3& v1, const vec3& v2){
     return vec3(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
@@ -145,15 +146,6 @@ inline vec3 exp_vector(const vec3& v){
 }
 
 
-void display_vector(vec3 v){
-    std::cout << "[";
-    for (int i = 0; i < 3; i++){
-        std::cout << v[i];
-        if (i != 2){
-            std::cout << ", ";
-        }
-    }
-    std::cout << "]\n";
-}
+void display_vector(vec3 v);
 
 #endif
