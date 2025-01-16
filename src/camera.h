@@ -28,7 +28,7 @@ class Camera{
             screen_position = position + viewing_direction;
         }
 
-    vec3 index_to_position(double x, double y){
+    vec3 index_to_position(double x, double y) const{
         double local_x_coordinate = x * screen_width / (double) constants::WIDTH - (double) screen_width / 2.0;
         vec3 local_x = screen_x_vector * local_x_coordinate;
 
@@ -38,7 +38,7 @@ class Camera{
         return local_x + local_y + screen_position;
     }
 
-    vec3 get_starting_directions(double x, double y){
+    vec3 get_starting_directions(double x, double y) const{
         vec3 pixel_vector = index_to_position(x, y);
         vec3  direction_vector = pixel_vector - position;
         return normalize_vector(direction_vector);

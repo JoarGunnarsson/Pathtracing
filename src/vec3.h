@@ -11,6 +11,7 @@ class vec3 {
         vec3() : e{0,0,0} {}
         
         vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+        vec3(double e) : e{e, e, e} {}
 
         inline vec3 operator-() const { 
             return vec3(-e[0], -e[1], -e[2]); 
@@ -100,6 +101,10 @@ class vec3 {
 
         inline double max() const{
             return std::max(std::max(e[0], e[1]), e[2]);
+        }
+        
+        inline double mean() const{
+            return (e[0] + e[1] + e[2]) / 3.0;
         }
 
         operator double*() const{

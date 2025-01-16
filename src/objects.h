@@ -2,12 +2,9 @@
 #define OBJECTS_H
 #include "vec3.h"
 #include "utils.h"
-#include "materials.h"
 #include "constants.h"
 #include "colors.h"
-
-
-Hit find_closest_hit(const Ray& ray, Object** objects, const int size);
+#include "materials.h"
 
 
 class Object{
@@ -38,54 +35,54 @@ class Object{
             return centroid;
         }
 
-        virtual vec3 get_UV(const Hit& hit){
+        virtual vec3 get_UV(const vec3& point) const{
             throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
         }
 
-        virtual Material* get_material(const int object_ID){
+        virtual Material* get_material(const int object_ID) const{
             return material;
         }
 
-        virtual bool is_light_source(){
+        virtual bool is_light_source() const{
             return material -> is_light_source;
         }
 
-        virtual vec3 eval(const Hit& hit){
-            vec3 UV = get_UV(hit);
+        virtual vec3 eval(const Hit& hit) const{
+            vec3 UV = get_UV(hit.intersection_point);
             return material -> eval(hit, UV[0], UV[1]);
         }
 
-        virtual BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects){
-            vec3 UV = get_UV(hit);
-            return material -> sample(hit, scene_objects, number_of_objects, UV[0], UV[1]);
+        virtual BrdfData sample(const Hit& hit) const{
+            vec3 UV = get_UV(hit.intersection_point);
+            return material -> sample(hit, UV[0], UV[1]);
         }
 
-        virtual vec3 get_light_emittance(const Hit& hit){
-            vec3 UV = get_UV(hit);
+        virtual vec3 get_light_emittance(const Hit& hit) const{
+            vec3 UV = get_UV(hit.intersection_point);
             return material -> get_light_emittance(UV[0], UV[1]);
         }
 
-        virtual Hit find_closest_object_hit(const Ray& ray){
+        virtual Hit find_closest_object_hit(const Ray& ray) const{
             throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
             Hit hit;
             return hit;
         }
         
-        virtual vec3 get_normal_vector(const vec3& surface_point, const int object_ID){
+        virtual vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const{
             throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
             vec3 vec;
             return vec;
         }
 
-        virtual vec3 generate_random_surface_point(){
+        virtual vec3 generate_random_surface_point() const{
             throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
             vec3 point;
             return point;
         }
 
-        double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int object_ID){
+        double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int object_ID) const{
             vec3 normal_vector = get_normal_vector(surface_point, object_ID);
             vec3 difference_vector = intersection_point - surface_point;
             vec3 vector_to_point = normalize_vector(difference_vector);
@@ -93,7 +90,7 @@ class Object{
             return std::max(0.0, inverse_PDF);
         }
 
-        virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF){
+        virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const{
             vec3 random_point = generate_random_surface_point();
             inverse_PDF = area * area_to_angle_PDF_factor(random_point, intersection_point, 0);
             return random_point;
@@ -117,8 +114,8 @@ class Sphere: public Object{
             area = 4 * M_PI * radius * radius;
         }
 
-        vec3 get_UV(const Hit& hit) override{
-            vec3 unit_sphere_point = (hit.intersection_point - position) / radius;
+        vec3 get_UV(const vec3& point) const override{
+            vec3 unit_sphere_point = (point - position) / radius;
             double x = -unit_sphere_point[0];
             double y = -unit_sphere_point[1];
             double z = -unit_sphere_point[2];
@@ -127,7 +124,7 @@ class Sphere: public Object{
             return vec3(u, v, 0);
         }
 
-        Hit find_closest_object_hit(const Ray& ray) override{
+        Hit find_closest_object_hit(const Ray& ray) const override{
             double dot_product = dot_vectors(ray.direction_vector, ray.starting_position);
             double b = 2 * (dot_product - dot_vectors(ray.direction_vector, position));
             vec3 difference_in_positions = position - ray.starting_position;
@@ -139,16 +136,16 @@ class Sphere: public Object{
             return hit;
         }
 
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
+        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override{
             vec3 difference_vector = surface_point - position;
             return normalize_vector(difference_vector);
         }
 
-        vec3 generate_random_surface_point() override{
+        vec3 generate_random_surface_point() const override{
             return sample_spherical() * radius + position;
         }
 
-        vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) override{
+        vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override{
             double distance = (intersection_point - position).length();
             if (distance <= radius){
                 vec3 random_point = generate_random_surface_point();
@@ -191,14 +188,14 @@ class Plane: public Object{
             normal_vector = normalize_vector(_normal_vector);
         }
 
-        vec3 get_UV(const Hit& hit) override{
-            vec3 shifted_point = hit.intersection_point - position;
+        vec3 get_UV(const vec3& point) const override{
+            vec3 shifted_point = point - position;
             double u = 1 - dot_vectors(shifted_point, v1) - 0.5;
             double v = 1 - dot_vectors(shifted_point, v2) - 0.5;
             return vec3(u, v, 0);
         }
 
-        double compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector){
+        double compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector) const{
             double direction_dot_normal = -dot_vectors(direction_vector, normal_vector);
             if (std::abs(direction_dot_normal) < constants::EPSILON){
                 return -1;
@@ -208,7 +205,7 @@ class Plane: public Object{
             return distances_to_start / direction_dot_normal;
         }
 
-        Hit find_closest_object_hit(const Ray& ray) override{
+        Hit find_closest_object_hit(const Ray& ray) const override{
             vec3 shifted_point = ray.starting_position - position;
             double distance = compute_distance_in_centered_system(shifted_point, ray.direction_vector);
             Hit hit;
@@ -217,7 +214,7 @@ class Plane: public Object{
             return hit;
         }
 
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
+        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override{
             return normal_vector;
         }
 
@@ -234,14 +231,14 @@ class Rectangle: public Plane{
             L2 = _L2;
             area = L1 * L2;
         }
-        vec3 get_UV(const Hit& hit) override{
-            vec3 shifted_point = hit.intersection_point - position;
+        vec3 get_UV(const vec3& point) const override{
+            vec3 shifted_point = point - position;
             double u = 1 - dot_vectors(shifted_point, v1) / L1 - 0.5;
             double v = 1 - dot_vectors(shifted_point, v2) / L2 - 0.5;
             return vec3(u, v, 0);
         }
 
-        Hit find_closest_object_hit(const Ray& ray) override{
+        Hit find_closest_object_hit(const Ray& ray) const override{
             Hit hit;
             hit.object_ID = object_ID;
             hit.distance = -1;
@@ -263,7 +260,7 @@ class Rectangle: public Plane{
             return hit;
         }
 
-        vec3 generate_random_surface_point() override{
+        vec3 generate_random_surface_point() const override{
             double r1 = random_uniform(-L1/2, L1/2);
             double r2 = random_uniform(-L2/2, L2/2);
             return v1 * r1 + v2 * r2 + position;
@@ -363,19 +360,19 @@ class Triangle: public Object{
             smooth_shaded = true;
         }
 
-        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int object_ID){
+        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int object_ID) const{
             vec3 barycentric_vector = compute_barycentric(surface_point);
             return normalize_vector(n1 * barycentric_vector[0] + n2 * barycentric_vector[1] + n3 * barycentric_vector[2]);
         }
 
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
+        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override{
             if (smooth_shaded){
                 return get_normal_vector_smoothed(surface_point, object_ID);
             }
             return normal_vector;
         }
 
-        vec3 compute_barycentric(const vec3& point){
+        vec3 compute_barycentric(const vec3& point) const{
             double x = dot_vectors(point, v1);
             double y = dot_vectors(point, v2);
 
@@ -384,12 +381,12 @@ class Triangle: public Object{
             return vec3(lambda1, lambda2, 1.0 - lambda1 - lambda2);
         }
 
-        vec3 get_UV(const Hit& hit) override{
-            vec3 barycentric_vector = compute_barycentric(hit.intersection_point);
+        vec3 get_UV(const vec3& point) const override{
+            vec3 barycentric_vector = compute_barycentric(point);
             return uv1 * barycentric_vector[0] + uv2 * barycentric_vector[1] + uv3 * barycentric_vector[2];
         }
 
-        Hit find_closest_object_hit(const Ray& ray) override{
+        Hit find_closest_object_hit(const Ray& ray) const override{
             Hit hit;
             hit.object_ID = object_ID;
             hit.distance = -1;
@@ -417,7 +414,7 @@ class Triangle: public Object{
             return hit;
         }
 
-        vec3 generate_random_surface_point() override{
+        vec3 generate_random_surface_point() const override{
             double r1 = random_uniform(0, 1);
             double r2 = random_uniform(0, 1);
             return p1 * (1.0 - sqrt(r1)) + p2 * (sqrt(r1) * (1.0 - r2)) + p3 * (sqrt(r1) * r2);

@@ -51,7 +51,6 @@ struct Hit{
     vec3 intersection_point;
     vec3 incoming_vector;
     vec3 normal_vector;
-    vec3 outgoing_vector;
 };
 
 

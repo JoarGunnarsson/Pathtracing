@@ -25,14 +25,11 @@ struct MicrofacetSampleArgs{
     vec3 sampled_half_vector;
     vec3 normal_vector;
     vec3 incident_vector;
-    vec3 intersection_point;
     float cosine_factor;
     float eta;
     float u;
     float v;
     float alpha;
-    Object** objects;
-    int number_of_objects;
     bool outside;
 };
 
@@ -117,7 +114,7 @@ class Material{
             roughness_map = data.roughness_map;
             percentage_diffuse_map = data.percentage_diffuse_map;
 
-            medium = new Medium(data.attenuation_coefficient, data.scattering_coefficient, absorption_albedo);
+            medium = new BeersLawMedium(data.attenuation_coefficient, data.scattering_coefficient, absorption_albedo);
         }
     
         ~Material(){
@@ -135,7 +132,7 @@ class Material{
         return vec;
     }
 
-    virtual BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const float u, const float v){
+    virtual BrdfData sample(const Hit& hit, const float u, const float v){
         throw VirtualMethodNotAllowedException("This is a pure virtual method and should not be called.");
         BrdfData data;
         return data;
@@ -155,7 +152,7 @@ class DiffuseMaterial : public Material{
         return albedo_map -> get(u, v) / M_PI;
     }
 
-    BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const float u, const float v) override{
+    BrdfData sample(const Hit& hit, const float u, const float v) override{
         vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
         vec3 outgoing_vector = sample_cosine_hemisphere(adjusted_normal);
         vec3 brdf_multiplier = albedo_map -> get(u, v);
@@ -176,7 +173,7 @@ class ReflectiveMaterial : public Material{
         return colors::BLACK;
     }
 
-    BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const float u, const float v) override{
+    BrdfData sample(const Hit& hit, const float u, const float v) override{
         vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
         vec3 outgoing_vector = reflect_vector(hit.incoming_vector, adjusted_normal);
         BrdfData data;
@@ -196,7 +193,7 @@ class TransparentMaterial : public Material{
         return colors::BLACK;
     }
 
-    BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects, const float u, const float v) override{
+    BrdfData sample(const Hit& hit, const float u, const float v) override{
         float incoming_dot_normal = dot_vectors(hit.incoming_vector, hit.normal_vector);
         vec3 normal_into_interface;
         bool inside = incoming_dot_normal > 0.0;
@@ -377,24 +374,6 @@ class MicrofacetMaterial : public Material{
         return data;
     }
 
-    vec3 compute_attenuated_color(const MicrofacetSampleArgs& args, const vec3& outgoing_vector){
-        Ray transmission_ray;
-        transmission_ray.direction_vector = outgoing_vector;
-        transmission_ray.starting_position = args.intersection_point;
-        Hit transmission_hit = find_closest_hit(transmission_ray, args.objects, args.number_of_objects);
-        vec3 attenuation_color;
-        float distance = transmission_hit.distance;
-        if (distance > 0 && args.outside){
-            vec3 log_attenuation = absorption_albedo * attenuation_coefficient * (-distance);
-            attenuation_color = exp_vector(log_attenuation);
-        }
-        else{
-            attenuation_color = colors::WHITE;
-        }
-
-        return attenuation_color;
-    }
-
     BrdfData sample_transmission(const MicrofacetSampleArgs& args){
         vec3 refracted_vector = refract_vector(-args.incident_vector, -args.sampled_half_vector, args.eta);
 
@@ -402,18 +381,16 @@ class MicrofacetMaterial : public Material{
             return sample_reflection(args);
         }
 
-        vec3 attenuated_color = colors::WHITE;//compute_attenuated_color(args, refracted_vector);
-
         BrdfData data;
         data.outgoing_vector = refracted_vector;
 
-        data.brdf_multiplier = attenuated_color * G(args.sampled_half_vector,args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
+        data.brdf_multiplier = G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
         data.type = TRANSMITTED;
         return data;
     }
     
     
-    BrdfData sample(const Hit& hit, Object** objects, const int number_of_objects, const float u, const float v) override{
+    BrdfData sample(const Hit& hit, const float u, const float v) override{
         MicrofacetData data = prepare_microfacet_data(hit, u, v);
                 
         float i_dot_h = dot_vectors(hit.incoming_vector, data.half_vector);
@@ -437,10 +414,7 @@ class MicrofacetMaterial : public Material{
             return sample_reflection(args);
         }
         else{
-            args.intersection_point = hit.intersection_point;
             args.eta = data.eta;
-            args.objects = objects;
-            args.number_of_objects = number_of_objects;
             args.outside = data.outside;
             float random_num2 = random_uniform(0, 1);
             bool diffuse = random_num2 < percentage_diffuse_map -> get(u, v);

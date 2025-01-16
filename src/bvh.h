@@ -226,7 +226,7 @@ namespace BVH{
                 root_node = new Node(triangles, number_of_triangles, leaf_size);
             }
 
-            Hit intersect(const Ray& ray){
+            Hit intersect(const Ray& ray) const{
                 double distance_to_bounding_box = root_node -> bounding_box.intersect(ray);
 
                 Hit hit;

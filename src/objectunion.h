@@ -5,6 +5,7 @@
 #include "constants.h"
 #include "vec3.h"
 #include "utils.h"
+#include "materials.h"
 #include "objects.h"
 #include "bvh.h"
 
@@ -68,27 +69,27 @@ class ObjectUnion : public Object{
             delete[] light_source_conversion_indices;
         }
 
-        virtual Material* get_material(const int object_ID) override{
+        virtual Material* get_material(const int object_ID) const override{
             return objects[object_ID] -> material;
         }
 
-        bool is_light_source() override{
+        bool is_light_source() const override{
             return contains_light_source;
         }
 
-        vec3 eval(const Hit& hit) override{
+        vec3 eval(const Hit& hit) const override{
             return objects[hit.object_ID]  -> eval(hit);
         }
 
-        BrdfData sample(const Hit& hit, Object** scene_objects, const int number_of_objects) override{
-            return objects[hit.object_ID]  -> sample(hit, scene_objects, number_of_objects);
+        BrdfData sample(const Hit& hit) const override{
+            return objects[hit.object_ID]  -> sample(hit);
         }
 
-        vec3 get_light_emittance(const Hit& hit) override{
+        vec3 get_light_emittance(const Hit& hit) const override{
             return objects[hit.object_ID] -> get_light_emittance(hit);
         }
 
-        Hit find_closest_object_hit(const Ray& ray) override{
+        Hit find_closest_object_hit(const Ray& ray) const override{
             if (use_BVH){
                 return bvh.intersect(ray);
             }
@@ -99,11 +100,11 @@ class ObjectUnion : public Object{
             return hit;
         }
         
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) override{
+        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override{
             return objects[object_ID] -> get_normal_vector(surface_point, object_ID);
         }
 
-        int sample_random_object_index(){
+        int sample_random_object_index() const{
             double random_area_split = random_uniform(0, area);
             int max = number_of_light_sources - 1;
             int min = 0;
@@ -130,11 +131,11 @@ class ObjectUnion : public Object{
             return light_source_conversion_indices[index];
         }
 
-        vec3 generate_random_surface_point() override{
+        vec3 generate_random_surface_point() const override{
             return objects[sample_random_object_index()] -> generate_random_surface_point();
         }
 
-        vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) override{
+        vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override{
             int random_index = sample_random_object_index();
             vec3 random_point = objects[random_index] -> generate_random_surface_point();
             inverse_PDF = cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(random_point, intersection_point, random_index);
