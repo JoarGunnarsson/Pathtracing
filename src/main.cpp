@@ -321,7 +321,7 @@ Scene create_scene(){
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
     glass_data.absorption_albedo = vec3(1,1,1) - colors::BLUE;
-    glass_data.attenuation_coefficient = 0.3;
+    glass_data.attenuation_coefficient = 1;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
     manager -> add_material(glass_material);
 
@@ -395,7 +395,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/ring.obj", glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};

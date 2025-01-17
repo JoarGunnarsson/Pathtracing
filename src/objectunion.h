@@ -29,7 +29,7 @@ class ObjectUnion : public Object{
         virtual vec3 eval(const Hit& hit) const override;
         virtual BrdfData sample(const Hit& hit) const override;
         virtual vec3 get_light_emittance(const Hit& hit) const override;
-        virtual Hit find_closest_object_hit(const Ray& ray) const override;
+        virtual Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
         virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         int sample_random_object_index() const;
         virtual vec3 generate_random_surface_point() const override;

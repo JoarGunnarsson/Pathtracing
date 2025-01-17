@@ -35,16 +35,30 @@ namespace BVH{
     BoundingBox::BoundingBox(Object** _triangles, int number_of_triangles){
         p1 = get_min_point(_triangles, number_of_triangles);
         p2 = get_max_point(_triangles, number_of_triangles);
+        x_interval = Interval(p1[0], p2[0]);
+        y_interval = Interval(p1[1], p2[1]);
+        z_interval = Interval(p1[2], p2[2]);
 
         width = p2[0] - p1[0];
         length = p2[1] - p1[1];
         height = p2[2] - p1[2];
+
         axis_length[0] = width;
         axis_length[1] = length;
         axis_length[2] = height;
     }
 
-    double BoundingBox::intersect(const Ray& ray){
+    Interval BoundingBox::get_interval(const int axis) const{
+        if (axis == 0){
+            return x_interval;
+        }
+        else if (axis == 1){
+            return y_interval;
+        }
+        return z_interval;
+    }
+
+    double BoundingBox::intersect_old(const Ray& ray) const{
         double t[6];
         bool inside_bounds[6];
         for (int i = 0; i < 3; i++){
@@ -95,6 +109,49 @@ namespace BVH{
         }
 
         return min_t;
+    }
+    
+    double BoundingBox::intersect(const Ray& ray, const double t_max) const{
+        Interval ray_interval(-1,t_max);
+
+        for (int axis = 0; axis < 3; axis++){
+            Interval ax = get_interval(axis);
+            double d_inv = 1.0 / ray.direction_vector[axis];
+
+            double t0 = (ax.min - ray.starting_position[axis]) * d_inv;
+            double t1 = (ax.max - ray.starting_position[axis]) * d_inv;
+
+            if (t0 < t1){
+                if (t0 > ray_interval.min){
+                    ray_interval.min = t0;
+                }
+
+                if (t1 < ray_interval.max){
+                    ray_interval.max = t1;
+                }
+                
+            }
+            else{
+                if (t1 > ray_interval.min){
+                    ray_interval.min = t1;
+                }
+
+                if (t0 < ray_interval.max){
+                    ray_interval.max = t0;
+                }
+            }
+
+            if (ray_interval.max <= ray_interval.min){
+                return -1;
+            }
+        }
+        if (ray_interval.min > constants::EPSILON){
+            return ray_interval.min;
+        }
+        else if (ray_interval.max > constants::EPSILON){
+            return ray_interval.max;
+        }
+        return -1;
     }    
 
 
@@ -159,9 +216,9 @@ namespace BVH{
             }
             return;
         }
-
-        double d1 = node1 -> bounding_box.intersect(ray);
-        double d2 = node2 -> bounding_box.intersect(ray);
+        double t_max = hit.distance > 0 ? hit.distance : 100000;
+        double d1 = node1 -> bounding_box.intersect(ray, t_max);
+        double d2 = node2 -> bounding_box.intersect(ray, t_max);
         
         bool node1_hit = d1 > constants::EPSILON && (d1 < hit.distance || hit.distance == -1);
         bool node2_hit = d2 > constants::EPSILON && (d2 < hit.distance || hit.distance == -1);
@@ -195,8 +252,8 @@ namespace BVH{
         root_node = new Node(triangles, number_of_triangles, leaf_size);
     }
 
-    Hit BoundingVolumeHierarchy::intersect(const Ray& ray) const{
-        double distance_to_bounding_box = root_node -> bounding_box.intersect(ray);
+    Hit BoundingVolumeHierarchy::intersect(const Ray& ray, const double t_max) const{
+        double distance_to_bounding_box = root_node -> bounding_box.intersect(ray, t_max);
 
         Hit hit;
         hit.distance = -1;

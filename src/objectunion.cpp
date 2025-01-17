@@ -70,9 +70,9 @@ vec3 ObjectUnion::get_light_emittance(const Hit& hit) const {
     return objects[hit.primitive_ID] -> get_light_emittance(hit);
 }
 
-Hit ObjectUnion::find_closest_object_hit(const Ray& ray) const {
+Hit ObjectUnion::find_closest_object_hit(const Ray& ray, const double t_max) const {
     if (use_BVH){
-        return bvh.intersect(ray);
+        return bvh.intersect(ray, t_max);
     }
 
     Hit hit = find_closest_hit(ray, objects, number_of_objects);

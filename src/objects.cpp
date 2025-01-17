@@ -26,7 +26,7 @@ vec3 Object::get_light_emittance(const Hit& hit) const{
     return material -> get_light_emittance(UV[0], UV[1]);
 }
 
-Hit Object::find_closest_object_hit(const Ray& ray) const{ return Hit(); }
+Hit Object::find_closest_object_hit(const Ray& ray, const double t_max) const{ return Hit(); }
 vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID) const{ return vec3(); }
 vec3 Object::generate_random_surface_point() const{ return vec3(); }
 
@@ -70,7 +70,7 @@ vec3 Sphere::get_UV(const vec3& point) const{
     return vec3(u, v, 0);
 }
 
-Hit Sphere::find_closest_object_hit(const Ray& ray) const {
+Hit Sphere::find_closest_object_hit(const Ray& ray, const double t_max) const {
     double dot_product = dot_vectors(ray.direction_vector, ray.starting_position);
     double b = 2 * (dot_product - dot_vectors(ray.direction_vector, position));
     vec3 difference_in_positions = position - ray.starting_position;
@@ -144,7 +144,7 @@ double Plane::compute_distance_in_centered_system(const vec3& starting_point, co
     return distances_to_start / direction_dot_normal;
 }
 
-Hit Plane::find_closest_object_hit(const Ray& ray) const {
+Hit Plane::find_closest_object_hit(const Ray& ray, const double t_max) const {
     vec3 shifted_point = ray.starting_position - position;
     double distance = compute_distance_in_centered_system(shifted_point, ray.direction_vector);
     Hit hit;
@@ -171,7 +171,7 @@ vec3 Rectangle::get_UV(const vec3& point) const {
     return vec3(u, v, 0);
 }
 
-Hit Rectangle::find_closest_object_hit(const Ray& ray) const {
+Hit Rectangle::find_closest_object_hit(const Ray& ray, const double t_max) const {
     Hit hit;
     hit.primitive_ID = primitive_ID;
     hit.distance = -1;
@@ -331,7 +331,7 @@ double Triangle::new_distance_algo(const Ray& ray) const{
     return t_scaled / det;
 }
 
-Hit Triangle::find_closest_object_hit(const Ray& ray) const {
+Hit Triangle::find_closest_object_hit(const Ray& ray, const double t_max) const {
     Hit hit;
     hit.primitive_ID = primitive_ID;
     hit.distance = -1;
@@ -369,11 +369,13 @@ vec3 Triangle::generate_random_surface_point() const {
 Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
     Hit closest_hit;
     closest_hit.distance = -1;
+    double t_max = 10000;
     for (int i = 0; i < size; i++){
-        Hit hit = objects[i] -> find_closest_object_hit(ray);
+        Hit hit = objects[i] -> find_closest_object_hit(ray, t_max);
         if (hit.distance > constants::EPSILON && (hit.distance < closest_hit.distance || closest_hit.distance == -1)){
             hit.intersected_object_index = i;
             closest_hit = hit;
+            //t_max = closest_hit.distance;
         }
     }
     if (closest_hit.distance < constants::EPSILON){

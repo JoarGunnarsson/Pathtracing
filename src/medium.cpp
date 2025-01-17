@@ -168,6 +168,6 @@ void MediumStack::pop_medium(const int id){
             return;
         }
     }
-    std::cout << "Error: 2. Could not remove medium from stack because no matching medium was found!\n";
+    //std::cout << "Error: 2. Could not remove medium from stack because no matching medium was found!\n";
     //throw std::invalid_argument("Could not remove medium from stack because no matching medium was found!");
 }
