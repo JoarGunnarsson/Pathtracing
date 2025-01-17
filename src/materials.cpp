@@ -65,7 +65,7 @@ vec3 DiffuseMaterial::eval(const Hit& hit, const float u, const float v){
 }
 
 BrdfData DiffuseMaterial::sample(const Hit& hit, const float u, const float v){
-    vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
+    vec3 adjusted_normal = dot_vectors(hit.incident_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
     vec3 outgoing_vector = sample_cosine_hemisphere(adjusted_normal);
     vec3 brdf_multiplier = albedo_map -> get(u, v);
     BrdfData data;
@@ -81,8 +81,8 @@ vec3 ReflectiveMaterial::eval(const Hit& hit, const float u, const float v){
 }
 
 BrdfData ReflectiveMaterial::sample(const Hit& hit, const float u, const float v){
-    vec3 adjusted_normal = dot_vectors(hit.incoming_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
-    vec3 outgoing_vector = reflect_vector(hit.incoming_vector, adjusted_normal);
+    vec3 adjusted_normal = dot_vectors(hit.incident_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
+    vec3 outgoing_vector = reflect_vector(hit.incident_vector, adjusted_normal);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
     data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
@@ -96,15 +96,15 @@ vec3 TransparentMaterial::eval(const Hit& hit, const float u, const float v){
 }
 
 BrdfData TransparentMaterial::sample(const Hit& hit, const float u, const float v){
-    float incoming_dot_normal = dot_vectors(hit.incoming_vector, hit.normal_vector);
+    float incident_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
     vec3 normal_into_interface;
-    bool inside = incoming_dot_normal > 0.0;
+    bool outside = incident_dot_normal < 0.0;
     // TODO: Look at the next medium, use that as refractive index!
     float n1;
     float k1;
     float n2;
     float k2;
-    if (!inside){
+    if (outside){
         normal_into_interface = -hit.normal_vector;
         n1 = constants::air_refractive_index;
         k1 = 0;
@@ -119,11 +119,11 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const float u, const float 
         k2 = 0;
     }
 
-    vec3 transmitted_vector = refract_vector(hit.incoming_vector, normal_into_interface, n1 / n2);
+    vec3 transmitted_vector = refract_vector(hit.incident_vector, normal_into_interface, n1 / n2);
 
     float F_r = 1;
     if (transmitted_vector.length_squared() != 0){
-        float cos_incident = dot_vectors(hit.incoming_vector, normal_into_interface);
+        float cos_incident = dot_vectors(hit.incident_vector, normal_into_interface);
         F_r = fresnel_multiplier(cos_incident, n1, k1, n2, k2, is_dielectric);
     }
 
@@ -134,27 +134,11 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const float u, const float 
     if (is_reflected){
         data.type = REFLECTED;
         data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
-        data.outgoing_vector = reflect_vector(hit.incoming_vector, normal_into_interface);
+        data.outgoing_vector = reflect_vector(hit.incident_vector, normal_into_interface);
     }
     else{
         data.type = TRANSMITTED;
-        /*
-        Ray transmission_ray;
-        transmission_ray.direction_vector = transmitted_vector;
-        transmission_ray.starting_position = hit.intersection_point;
-        Hit transmission_hit = find_closest_hit(transmission_ray, scene_objects, number_of_objects);
-            
-        vec3 attenuation_color;
-        float distance = transmission_hit.distance;
-        if (distance > 0 && !inside){
-            vec3 log_attenuation = absorption_albedo * attenuation_coefficient * (-distance);
-            attenuation_color = exp_vector(log_attenuation);
-        }
-        else{
-            attenuation_color = colors::WHITE;
-        }
-        */
-        data.brdf_multiplier = colors::WHITE;//attenuation_color;
+        data.brdf_multiplier = colors::WHITE;
         data.outgoing_vector = transmitted_vector;
     }
 
@@ -188,7 +172,7 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
     float n2;
     float k2;
     vec3 normal_into_interface;
-    float incoming_dot_normal = dot_vectors(hit.incoming_vector, hit.normal_vector);
+    float incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
     bool outside = incoming_dot_normal <= 0.0;
     if (outside){
         normal_into_interface = -hit.normal_vector;
@@ -209,7 +193,7 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
 
     vec3 sampled_half_vector = specular_sample(-normal_into_interface, alpha);
             
-    float i_dot_h = dot_vectors(hit.incoming_vector, sampled_half_vector);
+    float i_dot_h = dot_vectors(hit.incident_vector, sampled_half_vector);
 
     float F_r = fresnel_multiplier(-i_dot_h, n1, k1, n2, k2, is_dielectric);
 
@@ -292,8 +276,8 @@ BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& arg
 BrdfData MicrofacetMaterial::sample(const Hit& hit, const float u, const float v){
     MicrofacetData data = prepare_microfacet_data(hit, u, v);
             
-    float i_dot_h = dot_vectors(hit.incoming_vector, data.half_vector);
-    float i_dot_n = dot_vectors(hit.incoming_vector, data.normal_into_interface);
+    float i_dot_h = dot_vectors(hit.incident_vector, data.half_vector);
+    float i_dot_n = dot_vectors(hit.incident_vector, data.normal_into_interface);
     float n_dot_h = dot_vectors(data.half_vector, data.normal_into_interface);
 
     float cosine_factor = std::abs(i_dot_h / (i_dot_n * n_dot_h));
@@ -304,7 +288,7 @@ BrdfData MicrofacetMaterial::sample(const Hit& hit, const float u, const float v
     MicrofacetSampleArgs args;
     args.sampled_half_vector = data.half_vector;
     args.normal_vector = -data.normal_into_interface;
-    args.incident_vector = -hit.incoming_vector;
+    args.incident_vector = -hit.incident_vector;
     args.cosine_factor = cosine_factor;
     args.u = u;
     args.v = v;

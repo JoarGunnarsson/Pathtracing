@@ -24,13 +24,13 @@ class ObjectUnion : public Object{
         ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH=false);
         ~ObjectUnion();
 
-        virtual Material* get_material(const int object_ID) const override;
+        virtual Material* get_material(const int primitive_ID) const override;
         virtual bool is_light_source() const override;
         virtual vec3 eval(const Hit& hit) const override;
         virtual BrdfData sample(const Hit& hit) const override;
         virtual vec3 get_light_emittance(const Hit& hit) const override;
         virtual Hit find_closest_object_hit(const Ray& ray) const override;
-        virtual vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override;
+        virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         int sample_random_object_index() const;
         virtual vec3 generate_random_surface_point() const override;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;

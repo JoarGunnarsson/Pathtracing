@@ -19,10 +19,10 @@ enum reflection_type{
 
 struct Hit{
     int intersected_object_index;
-    int object_ID;
+    int primitive_ID;
     double distance;
     vec3 intersection_point;
-    vec3 incoming_vector;
+    vec3 incident_vector;
     vec3 normal_vector;
 };
 
@@ -30,7 +30,34 @@ struct Ray{
     vec3 starting_position;
     vec3 direction_vector;
     int type = DIFFUSE;
+    int kx;
+    int ky;
+    int kz;
+    vec3 d;
+    double Sx;
+    double Sy;
+    double Sz;
+
+    void prepare(){
+        kz = argmax(abs(direction_vector));
+        kx = kz + 1;
+        if (kx == 3){
+            kx = 0;
+        }
+
+        ky = kx + 1;
+        if (ky == 3){
+            ky = 0;
+        }
+
+        d = permute(direction_vector, kx, ky, kz);
+
+        Sx = -d[0]/ d[2];
+        Sy = -d[1] / d[2];
+        Sz = 1.0 / d[2];
+    }
 };
+
 
 double pos_fmod(const double a, const double b);
 double clamp(const double value, const double min, const double max);

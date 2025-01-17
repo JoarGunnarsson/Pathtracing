@@ -89,7 +89,7 @@ namespace BVH{
 
         double min_t = -1;
         for (int i = 0; i < 6; i++){
-            if (inside_bounds[i] && (min_t == -1 || min_t > t[i]) && t[i] > constants::EPSILON){
+            if (inside_bounds[i] && (min_t == -1 || t[i] < min_t) && t[i] > constants::EPSILON){
                 min_t = t[i];
             }
         }
@@ -155,7 +155,7 @@ namespace BVH{
             Hit closest_hit = find_closest_hit(ray, triangles, number_of_triangles);
             if (closest_hit.distance > constants::EPSILON && (closest_hit.distance < hit.distance || hit.distance == -1)){
                 hit.distance = closest_hit.distance;
-                hit.object_ID = closest_hit.object_ID;
+                hit.primitive_ID = closest_hit.primitive_ID;
             }
             return;
         }
@@ -184,6 +184,7 @@ namespace BVH{
         else if (node1_hit){
             node1 -> intersect(ray, hit);
         }
+        
         else if (node2_hit){
             node2 -> intersect(ray, hit);
         }
@@ -199,7 +200,7 @@ namespace BVH{
 
         Hit hit;
         hit.distance = -1;
-        hit.object_ID = -1;
+        hit.primitive_ID = -1;
         if (distance_to_bounding_box > constants::EPSILON){
             root_node -> intersect(ray, hit);
         }

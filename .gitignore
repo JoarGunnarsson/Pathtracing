@@ -5,6 +5,7 @@ main
 *.png
 *.txt
 *.obj
+*.mlt
 *.map
 *.jpeg
 *.pyc

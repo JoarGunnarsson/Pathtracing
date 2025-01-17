@@ -14,9 +14,10 @@ struct KernelData{
         1.0/16.0, 1.0/4.0,  1.0/4.0,  1.0/4.0,  1.0/16.0, 
         1.0/16.0, 1.0/16.0, 1.0/16.0, 1.0/16.0, 1.0/16.0};
 
-    double sigma_rt = 4;
-    double sigma_x = 5;
-    double sigma_n = 0.1;
+    double sigma_rt = constants::sigma_rt;
+    double sigma_x = constants::sigma_x;
+    double sigma_n = constants::sigma_n;
+
     int hole_width = 0;
 };
 

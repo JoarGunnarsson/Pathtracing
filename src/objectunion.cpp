@@ -34,7 +34,7 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
     }
 
     for (int i = 0; i < number_of_objects; i++){
-        objects[i] -> object_ID = i;
+        objects[i] -> primitive_ID = i;
         if (objects[i] -> is_light_source()){
             contains_light_source = true;
         }
@@ -50,8 +50,8 @@ ObjectUnion::~ObjectUnion(){
     delete[] light_source_conversion_indices;
 }
 
-Material* ObjectUnion::get_material(const int object_ID) const {
-    return objects[object_ID] -> material;
+Material* ObjectUnion::get_material(const int primitive_ID) const {
+    return objects[primitive_ID] -> material;
 }
 
 bool ObjectUnion::is_light_source() const {
@@ -59,15 +59,15 @@ bool ObjectUnion::is_light_source() const {
 }
 
 vec3 ObjectUnion::eval(const Hit& hit) const {
-    return objects[hit.object_ID]  -> eval(hit);
+    return objects[hit.primitive_ID]  -> eval(hit);
 }
 
 BrdfData ObjectUnion::sample(const Hit& hit) const {
-    return objects[hit.object_ID]  -> sample(hit);
+    return objects[hit.primitive_ID]  -> sample(hit);
 }
 
 vec3 ObjectUnion::get_light_emittance(const Hit& hit) const {
-    return objects[hit.object_ID] -> get_light_emittance(hit);
+    return objects[hit.primitive_ID] -> get_light_emittance(hit);
 }
 
 Hit ObjectUnion::find_closest_object_hit(const Ray& ray) const {
@@ -76,13 +76,13 @@ Hit ObjectUnion::find_closest_object_hit(const Ray& ray) const {
     }
 
     Hit hit = find_closest_hit(ray, objects, number_of_objects);
-    hit.object_ID = hit.intersected_object_index;
+    hit.primitive_ID = hit.intersected_object_index;
     hit.intersected_object_index = -1;
     return hit;
 }
 
-vec3 ObjectUnion::get_normal_vector(const vec3& surface_point, const int object_ID) const {
-    return objects[object_ID] -> get_normal_vector(surface_point, object_ID);
+vec3 ObjectUnion::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
+    return objects[primitive_ID] -> get_normal_vector(surface_point, primitive_ID);
 }
 
 int ObjectUnion::sample_random_object_index() const{

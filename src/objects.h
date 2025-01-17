@@ -15,7 +15,7 @@ class Object{
     public:
         Material* material;
         double area;
-        int object_ID; // Used when object belongs to an ObjectUnion.
+        int primitive_ID; // Used when object belongs to an ObjectUnion.
         Object(){}
         Object(Material* _material);
 
@@ -23,15 +23,15 @@ class Object{
         virtual vec3 min_axis_point() const;
         virtual vec3 compute_centroid() const;
         virtual vec3 get_UV(const vec3& point) const;
-        virtual Material* get_material(const int object_ID) const;
+        virtual Material* get_material(const int primitive_ID) const;
         virtual bool is_light_source() const;
         virtual vec3 eval(const Hit& hit) const;
         virtual BrdfData sample(const Hit& hit) const;
         virtual vec3 get_light_emittance(const Hit& hit) const;
         virtual Hit find_closest_object_hit(const Ray& ray) const;    
-        virtual vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const;
+        virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const;
         virtual vec3 generate_random_surface_point() const;
-        double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int object_ID) const;
+        double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const;
 };
 
@@ -47,7 +47,7 @@ class Sphere: public Object{
 
         vec3 get_UV(const vec3& point) const override;
         Hit find_closest_object_hit(const Ray& ray) const override;
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override;
+        vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 generate_random_surface_point() const override;
         vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
 };
@@ -66,7 +66,7 @@ class Plane: public Object{
         vec3 get_UV(const vec3& point) const override;
         double compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector) const;
         Hit find_closest_object_hit(const Ray& ray) const override;
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override;
+        vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
 
 };
 
@@ -118,10 +118,11 @@ class Triangle: public Object{
         vec3 compute_centroid() const override;
         void set_vertex_UV(const vec3& _uv1, const vec3& _uv2, const vec3& _uv3);
         void set_vertex_normals(const vec3& _n1, const vec3& _n2, const vec3& _n3);
-        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int object_ID) const;
-        vec3 get_normal_vector(const vec3& surface_point, const int object_ID) const override;
+        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int primitive_ID) const;
+        vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 compute_barycentric(const vec3& point) const;
         vec3 get_UV(const vec3& point) const override;
+        double new_distance_algo(const Ray& ray) const;
         Hit find_closest_object_hit(const Ray& ray) const override;
         vec3 generate_random_surface_point() const override;
 };

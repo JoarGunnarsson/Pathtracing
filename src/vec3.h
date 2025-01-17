@@ -39,6 +39,13 @@ class vec3 {
             return vec3(e0, e1, e2);
         }
 
+        inline vec3& operator-=(const vec3 &v2){
+            e[0] -= v2[0];
+            e[1] -= v2[1];
+            e[2] -= v2[2];
+            return *this;
+        }
+
         inline vec3 operator*(const vec3 &v2) const{
             double e0 = e[0] * v2[0];
             double e1 = e[1] * v2[1];
@@ -86,6 +93,10 @@ class vec3 {
             double e1 = e[1] / v[1];
             double e2 = e[2] / v[2];
             return vec3(e0, e1, e2);
+        }
+
+        inline double& operator[](int i) { 
+            return e[i]; 
         }
 
         inline double operator[](int i) const { 
@@ -145,7 +156,25 @@ inline vec3 exp_vector(const vec3& v){
     return vec3(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
 }
 
+inline vec3 abs(const vec3& v){
+    return vec3(std::abs(v[0]), std::abs(v[1]), std::abs(v[2]));
+}
 
+
+inline int argmax(const vec3& v) {
+    int max_index = 0;
+    if (v[1] > v[max_index]) {
+        max_index = 1;
+    }
+    if (v[2] > v[max_index]) {
+        max_index = 2;
+    }
+    return max_index;
+}
+
+inline vec3 permute(const vec3& v, const int idx1, const int idx2, const int idx3){
+    return vec3(v[idx1], v[idx2], v[idx3]);
+}
 void display_vector(vec3 v);
 
 #endif

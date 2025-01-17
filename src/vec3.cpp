@@ -1,5 +1,6 @@
 #include "vec3.h"
 
+
 void display_vector(vec3 v){
     std::cout << "[";
     for (int i = 0; i < 3; i++){

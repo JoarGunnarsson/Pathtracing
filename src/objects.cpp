@@ -2,13 +2,13 @@
 
 
 // ****** Object base class implementation ****** 
-Object::Object(Material* _material) : material(_material), area(0.0), object_ID(0) {}
+Object::Object(Material* _material) : material(_material), area(0.0), primitive_ID(0) {}
 
 vec3 Object::max_axis_point() const { return vec3(); }
 vec3 Object::min_axis_point() const { return vec3(); }
 vec3 Object::compute_centroid() const { return vec3(); }
 vec3 Object::get_UV(const vec3& point) const { return vec3(); }
-Material* Object::get_material(const int object_ID) const { return material; }
+Material* Object::get_material(const int primitive_ID) const { return material; }
 bool Object::is_light_source() const { return material -> is_light_source; }
 
 vec3 Object::eval(const Hit& hit) const{
@@ -27,11 +27,11 @@ vec3 Object::get_light_emittance(const Hit& hit) const{
 }
 
 Hit Object::find_closest_object_hit(const Ray& ray) const{ return Hit(); }
-vec3 Object::get_normal_vector(const vec3& surface_point, const int object_ID) const{ return vec3(); }
+vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID) const{ return vec3(); }
 vec3 Object::generate_random_surface_point() const{ return vec3(); }
 
-double Object::area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int object_ID) const{
-    vec3 normal_vector = get_normal_vector(surface_point, object_ID);
+double Object::area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const{
+    vec3 normal_vector = get_normal_vector(surface_point, primitive_ID);
     vec3 difference_vector = intersection_point - surface_point;
     vec3 vector_to_point = normalize_vector(difference_vector);
     double inverse_PDF = dot_vectors(normal_vector, vector_to_point) / difference_vector.length_squared();
@@ -77,12 +77,12 @@ Hit Sphere::find_closest_object_hit(const Ray& ray) const {
     double c = difference_in_positions.length_squared() - radius * radius;
     double distance = solve_quadratic(b, c);
     Hit hit;
-    hit.object_ID = object_ID;
+    hit.primitive_ID = primitive_ID;
     hit.distance = distance;
     return hit;
 }
 
-vec3 Sphere::get_normal_vector(const vec3& surface_point, const int object_ID) const {
+vec3 Sphere::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
     vec3 difference_vector = surface_point - position;
     return normalize_vector(difference_vector);
 }
@@ -148,12 +148,12 @@ Hit Plane::find_closest_object_hit(const Ray& ray) const {
     vec3 shifted_point = ray.starting_position - position;
     double distance = compute_distance_in_centered_system(shifted_point, ray.direction_vector);
     Hit hit;
-    hit.object_ID = object_ID;
+    hit.primitive_ID = primitive_ID;
     hit.distance = distance;
     return hit;
 }
 
-vec3 Plane::get_normal_vector(const vec3& surface_point, const int object_ID) const {
+vec3 Plane::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
     return normal_vector;
 }
 
@@ -173,7 +173,7 @@ vec3 Rectangle::get_UV(const vec3& point) const {
 
 Hit Rectangle::find_closest_object_hit(const Ray& ray) const {
     Hit hit;
-    hit.object_ID = object_ID;
+    hit.primitive_ID = primitive_ID;
     hit.distance = -1;
 
     vec3 shifted_point = ray.starting_position - position;
@@ -267,14 +267,14 @@ void Triangle::set_vertex_normals(const vec3& _n1, const vec3& _n2, const vec3& 
     smooth_shaded = true;
 }
 
-vec3 Triangle::get_normal_vector_smoothed(const vec3& surface_point, const int object_ID) const{
+vec3 Triangle::get_normal_vector_smoothed(const vec3& surface_point, const int primitive_ID) const{
     vec3 barycentric_vector = compute_barycentric(surface_point);
     return normalize_vector(n1 * barycentric_vector[0] + n2 * barycentric_vector[1] + n3 * barycentric_vector[2]);
 }
 
-vec3 Triangle::get_normal_vector(const vec3& surface_point, const int object_ID) const {
+vec3 Triangle::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
     if (smooth_shaded){
-        return get_normal_vector_smoothed(surface_point, object_ID);
+        return get_normal_vector_smoothed(surface_point, primitive_ID);
     }
     return normal_vector;
 }
@@ -293,9 +293,47 @@ vec3 Triangle::get_UV(const vec3& point) const {
     return uv1 * barycentric_vector[0] + uv2 * barycentric_vector[1] + uv3 * barycentric_vector[2];
 }
 
+double Triangle::new_distance_algo(const Ray& ray) const{
+    vec3 p1t = p1 - ray.starting_position;
+    vec3 p2t = p2 - ray.starting_position;
+    vec3 p3t = p3 - ray.starting_position;
+
+    p1t = permute(p1t, ray.kx, ray.ky, ray.kz);
+    p2t = permute(p2t, ray.kx, ray.ky, ray.kz);
+    p3t = permute(p3t, ray.kx, ray.ky, ray.kz);
+
+    p1t[0] += ray.Sx * p1t[2];
+    p1t[1] += ray.Sy * p1t[2];
+    p2t[0] += ray.Sx * p2t[2];
+    p2t[1] += ray.Sy * p2t[2];
+    p3t[0] += ray.Sx * p3t[2];
+    p3t[1] += ray.Sy * p3t[2];
+
+    double e1 = p2t[0] * p3t[1] - p2t[1] * p3t[0];
+    double e2 = p3t[0] * p1t[1] - p3t[1] * p1t[0];
+    double e3 = p1t[0] * p2t[1] - p1t[1] * p2t[0];
+
+    if ((e1 < 0 || e2 < 0 || e3 < 0) && (e1 > 0 || e2 > 0 || e3 > 0)){
+        return -1;
+    }
+
+    double det = e1 + e2 + e3;
+    if (det == 0){
+        return -1;
+    }
+
+    p1t[2] *= ray.Sz;
+    p2t[2] *= ray.Sz;
+    p3t[2] *= ray.Sz;
+
+    double t_scaled = e1 * p1t[2] + e2 * p2t[2] + e3 * p3t[2];
+
+    return t_scaled / det;
+}
+
 Hit Triangle::find_closest_object_hit(const Ray& ray) const {
     Hit hit;
-    hit.object_ID = object_ID;
+    hit.primitive_ID = primitive_ID;
     hit.distance = -1;
     vec3 shifted_point = ray.starting_position - position;
 
@@ -343,7 +381,7 @@ Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
     }
 
     closest_hit.intersection_point = ray.starting_position + ray.direction_vector * closest_hit.distance;
-    closest_hit.normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.object_ID);
-    closest_hit.incoming_vector = ray.direction_vector;
+    closest_hit.normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.primitive_ID);
+    closest_hit.incident_vector = ray.direction_vector;
     return closest_hit;
  }

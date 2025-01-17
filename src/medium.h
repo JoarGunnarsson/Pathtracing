@@ -8,6 +8,10 @@
 class Object;
 
 
+int sample_random_light_2(Object** objects, const int number_of_objects, int& number_of_light_sources);
+vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_objects);
+
+
 class Medium{
     public:
         const double refractive_index = 1;
