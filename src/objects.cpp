@@ -355,7 +355,7 @@ Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
     Hit closest_hit;
     closest_hit.distance = -1;
     double t_max = constants::max_ray_distance;
-    std::cout << t_max << "\n";
+
     for (int i = 0; i < size; i++){
         Hit hit = objects[i] -> find_closest_object_hit(ray, t_max);
         if (hit.distance > constants::EPSILON && (hit.distance < closest_hit.distance || closest_hit.distance == -1)){

@@ -149,7 +149,7 @@ void MediumStack::add_medium(Medium* medium, const int id){
     bool found = false;
     for (int i = 0; i < stack_size; i++){
         if (medium_stack[i] -> id == id){
-            //std::cout << "Error: 1. Found a medium with same ID!\n"; 
+            std::cout << "Error: 1. Found a medium with same ID!\n"; 
             found = true;
         }
     }
