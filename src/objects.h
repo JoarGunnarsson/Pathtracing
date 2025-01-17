@@ -101,7 +101,7 @@ class Triangle: public Object{
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 compute_barycentric(const vec3& point) const;
         vec3 get_UV(const vec3& point) const override;
-        double new_distance_algo(const Ray& ray) const;
+        double intersection_distance(const Ray& ray, const double t_max) const;
         Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
         vec3 generate_random_surface_point() const override;
 

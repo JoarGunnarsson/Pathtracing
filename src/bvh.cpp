@@ -216,7 +216,7 @@ namespace BVH{
             }
             return;
         }
-        double t_max = hit.distance > 0 ? hit.distance : 100000;
+        double t_max = hit.distance > 0 ? hit.distance : constants::max_ray_distance;
         double d1 = node1 -> bounding_box.intersect(ray, t_max);
         double d2 = node2 -> bounding_box.intersect(ray, t_max);
         

@@ -249,7 +249,6 @@ vec3 Triangle::min_axis_point() const {
     return point;
 }
 
-
 vec3 Triangle::compute_centroid() const{
     return (p1 + p2 + p3) / 3.0;
 }
@@ -293,7 +292,7 @@ vec3 Triangle::get_UV(const vec3& point) const {
     return uv1 * barycentric_vector[0] + uv2 * barycentric_vector[1] + uv3 * barycentric_vector[2];
 }
 
-double Triangle::new_distance_algo(const Ray& ray) const{
+double Triangle::intersection_distance(const Ray& ray, const double t_max) const{
     vec3 p1t = p1 - ray.starting_position;
     vec3 p2t = p2 - ray.starting_position;
     vec3 p3t = p3 - ray.starting_position;
@@ -328,34 +327,20 @@ double Triangle::new_distance_algo(const Ray& ray) const{
 
     double t_scaled = e1 * p1t[2] + e2 * p2t[2] + e3 * p3t[2];
 
+    if (det < 0 && (t_scaled < t_max * det) ){
+        return -1;
+    }
+    else if (det > 0 && (t_scaled > t_max * det)){
+        return -1;
+    }
+
     return t_scaled / det;
 }
 
 Hit Triangle::find_closest_object_hit(const Ray& ray, const double t_max) const {
     Hit hit;
     hit.primitive_ID = primitive_ID;
-    hit.distance = -1;
-    vec3 shifted_point = ray.starting_position - position;
-
-    double direction_dot_normal = -dot_vectors(ray.direction_vector, normal_vector);
-    if (std::abs(direction_dot_normal) < constants::EPSILON){
-        return hit;
-    }
-
-    double distances_to_start = dot_vectors(shifted_point, normal_vector);
-    double distance = distances_to_start / direction_dot_normal;
-
-    if (distance < constants::EPSILON){
-        return hit;
-    }
-
-    vec3 in_plane_point = ray.starting_position + ray.direction_vector * distance;
-
-    vec3 barycentric_vector = compute_barycentric(in_plane_point);
-    if (barycentric_vector[0] < 0 || barycentric_vector[1] < 0 || barycentric_vector[2] < 0){
-        return hit;
-    }
-    hit.distance = distance;
+    hit.distance = intersection_distance(ray, t_max);
     return hit;
 }
 
@@ -369,13 +354,14 @@ vec3 Triangle::generate_random_surface_point() const {
 Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
     Hit closest_hit;
     closest_hit.distance = -1;
-    double t_max = 10000;
+    double t_max = constants::max_ray_distance;
+    std::cout << t_max << "\n";
     for (int i = 0; i < size; i++){
         Hit hit = objects[i] -> find_closest_object_hit(ray, t_max);
         if (hit.distance > constants::EPSILON && (hit.distance < closest_hit.distance || closest_hit.distance == -1)){
             hit.intersected_object_index = i;
             closest_hit = hit;
-            //t_max = closest_hit.distance;
+            t_max = hit.distance;
         }
     }
     if (closest_hit.distance < constants::EPSILON){

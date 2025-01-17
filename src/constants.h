@@ -4,13 +4,14 @@
 
 namespace constants
 {
-    const int WIDTH = 300;
-    const int HEIGHT = 300;
-    const int samples_per_pixel = 5;
+    const int WIDTH = 1000;
+    const int HEIGHT = 1000;
+    const int samples_per_pixel = 1;
     const int max_recursion_depth = 100;
     const int force_tracing_limit = 3;
 
     const double EPSILON = 0.000001;
+    const double max_ray_distance = 1.0 / 0.0;
     const double air_refractive_index = 1;
 
     const bool enable_next_event_estimation = true;
