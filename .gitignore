@@ -8,6 +8,8 @@ main
 *.mlt
 *.map
 *.jpeg
+*.jpg
+*.webp
 *.pyc
 __pycache__
 *.dSYM
