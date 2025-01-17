@@ -95,7 +95,7 @@ vec3 direct_lighting(const Hit& hit, Object** objects, const int number_of_objec
 
 PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium){
     MediumStack* medium_stack = new MediumStack();
-    //medium_stack -> add_medium(background_medium, -1);
+    medium_stack -> add_medium(background_medium, -1);
     PixelData data;
     vec3 color = vec3(0,0,0);
     vec3 throughput = vec3(1,1,1);
@@ -158,14 +158,10 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         
         bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
         bool entering = incoming_dot_normal < 0;
-        if (penetrating_boundary){
+        if (penetrating_boundary && hit_object -> get_material(ray_hit.primitive_ID) -> medium){
             // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
             // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
-            // Somehow, we can get total internal reflection from the inside even if we have entered and then left. 
-            // Seems we think we leave but we actually dont.
-            // I think this effect can be traced to sampling the outgoing vectors.
-            // Indicates the issue is with convex shapes, which I suspected 6 hours ago.
-            // Could also be non-water-tightness, would explain strange vertical line when close to object.
+            // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
             if (entering){
                 medium_stack -> add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
             }
@@ -320,16 +316,15 @@ Scene create_scene(){
 
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
-    glass_data.absorption_albedo = vec3(1,1,1) - colors::BLUE;
-    glass_data.attenuation_coefficient = 1;
+    BeersLawMedium* glass_medium = new BeersLawMedium(0, (vec3(1,1,1) - colors::BLUE) * 1.0);
+    glass_data.medium = glass_medium;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
-    scattering_glass_data.refractive_index = 1;
-    scattering_glass_data.scattering_coefficient = 10;
-    scattering_glass_data.attenuation_coefficient = 1;
-    scattering_glass_data.absorption_albedo = vec3(1,1,1) - colors::BLUE;
+    scattering_glass_data.refractive_index = 1.5;
+    BeersLawMedium* scattering_glass_medium = new BeersLawMedium(5, (vec3(1,1,1) - colors::BLUE) * 5);
+    scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
 
@@ -400,7 +395,7 @@ Scene create_scene(){
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
-    Medium* background_medium = new Medium(0, 0, colors::WHITE);
+    Medium* background_medium = new Medium(0, (colors::WHITE - colors::BLUE) * 5);
 
     vec3 camera_position = vec3(-1, 1, 2.2);
     vec3 viewing_direction = vec3(0.8, -0.3, -1);
@@ -432,6 +427,13 @@ void clear_scene(Scene& scene){
 int main() {
     std::ofstream raw_data_file;
     raw_data_file.open(constants::raw_output_file_name);
+
+    if (constants::enable_denoising){
+            raw_data_file << "1\n";
+    }
+    else{
+            raw_data_file << "0\n";
+    }
 
     raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 

@@ -14,14 +14,12 @@ vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_
 
 class Medium{
     public:
-        const double refractive_index = 1;
         int id;
-        double attenuation_coefficient;
         double scattering_coefficient;
         vec3 absorption_albedo;
         vec3 extinction_albedo;
 
-        Medium(const double _attenuation_coefficient, const double _scattering_coefficient, const vec3& _absorption_albedo);
+        Medium(const double _scattering_coefficient, const vec3& _absorption_albedo);
 
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;

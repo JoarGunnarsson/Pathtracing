@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+load_denoising_file = False
 
 def read_data(file_name):
     arr = []
@@ -13,10 +14,15 @@ def read_data(file_name):
     return arr
 
 
-def load_image_data(file_name):
+def load_image_data(file_name, is_raw_data):
+    global load_denoising_file
     image_data = []
 
     data_array = read_data(file_name)
+
+    if is_raw_data:
+        load_denoising_file = data_array.pop(0) == "1"
+
     width_and_height = data_array[0][5:].split(" ")
 
     width, height = int(width_and_height[0]), int(width_and_height[1])
@@ -49,8 +55,9 @@ def load_image_data(file_name):
 
 image_name = sys.argv[1]
 
-denoised_image = load_image_data("temp/raw_data.txt")
-plt.imsave(f"Images/raw_{image_name}", denoised_image)
-
-denoised_image = load_image_data("temp/denoised_data.txt")
+denoised_image = load_image_data("temp/raw_data.txt", True)
 plt.imsave(f"Images/{image_name}", denoised_image)
+
+if load_denoising_file:
+    denoised_image = load_image_data("temp/denoised_data.txt", False)
+    plt.imsave(f"Images/denoised/{image_name}", denoised_image)

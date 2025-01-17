@@ -24,8 +24,6 @@ Material::Material(MaterialData data){
 
     albedo_map = data.albedo_map;
     refractive_index = data.refractive_index;
-    attenuation_coefficient = data.attenuation_coefficient;
-    absorption_albedo = data.absorption_albedo;
     emission_color_map = data.emission_color_map;
     light_intensity_map = data.light_intensity_map;
     is_dielectric = data.is_dielectric;
@@ -40,7 +38,7 @@ Material::Material(MaterialData data){
     roughness_map = data.roughness_map;
     percentage_diffuse_map = data.percentage_diffuse_map;
 
-    medium = new BeersLawMedium(data.attenuation_coefficient, data.scattering_coefficient, absorption_albedo);
+    medium = data.medium;
 }
 
 Material::~Material(){
@@ -51,6 +49,7 @@ Material::~Material(){
     delete percentage_diffuse_map;
     delete medium;
 }
+
 
 vec3 Material::eval(const Hit& hit, const float u, const float v){ return vec3(); }
 BrdfData Material::sample(const Hit& hit, const float u, const float v){ return BrdfData(); }
@@ -144,8 +143,6 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const float u, const float 
 
     return data;
 }
-
-
 
 
 float MicrofacetMaterial::chi(const float x){

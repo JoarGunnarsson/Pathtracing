@@ -46,15 +46,13 @@ struct MaterialData{
     ValueMap3D* albedo_map = nullptr;
     float refractive_index = 1;
     float extinction_coefficient = 0;
-    float attenuation_coefficient = 0;
-    vec3 absorption_albedo = colors::WHITE;
     ValueMap3D* emission_color_map = nullptr;
     ValueMap1D* light_intensity_map = nullptr;
     bool is_dielectric = true;
     ValueMap1D* roughness_map = nullptr; 
     ValueMap1D* percentage_diffuse_map = nullptr;
     bool is_light_source = false;
-    double scattering_coefficient = 0;
+    Medium* medium = nullptr;
 };
 
 
@@ -76,7 +74,7 @@ class Material{
         Material(){}
         Material(MaterialData data);
         ~Material();
-
+        
     virtual vec3 eval(const Hit& hit, const float u, const float v);
     virtual BrdfData sample(const Hit& hit, const float u, const float v);
     vec3 get_light_emittance(const float u, const float v);

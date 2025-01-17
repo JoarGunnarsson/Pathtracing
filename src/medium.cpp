@@ -57,9 +57,9 @@ vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_
 }
 
 
-Medium::Medium(const double _attenuation_coefficient, const double _scattering_coefficient, const vec3& _absorption_albedo) : 
-attenuation_coefficient(_attenuation_coefficient), scattering_coefficient(_scattering_coefficient), absorption_albedo(_absorption_albedo) {
-    extinction_albedo = attenuation_coefficient * absorption_albedo + vec3(scattering_coefficient);
+Medium::Medium(const double _scattering_coefficient, const vec3& _absorption_albedo) : 
+scattering_coefficient(_scattering_coefficient), absorption_albedo(_absorption_albedo) {
+    extinction_albedo = absorption_albedo + vec3(scattering_coefficient);
 }
 
 double Medium::sample_distance() const{
@@ -81,7 +81,7 @@ void Medium::Integrate(Object** objects, const int number_of_objects, const Ray&
 
 
 vec3 BeersLawMedium::transmittance_color(const double distance) const{
-    return exp_vector(-absorption_albedo * attenuation_coefficient * distance);
+    return exp_vector(-absorption_albedo * distance);
 }
 
 void BeersLawMedium::Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray){
@@ -94,6 +94,7 @@ void BeersLawMedium::Integrate(Object** objects, const int number_of_objects, co
     weight = 1;
     outgoing_ray = incoming_ray;
 }
+
 
 vec3 SingleScatteringHomogenousMedium::transmittance_color(const double distance) const{
     return exp_vector(-extinction_albedo * distance);
@@ -123,7 +124,7 @@ void SingleScatteringHomogenousMedium::Integrate(Object** objects, const int num
     L *= extinction_albedo * scattering_coefficient / extinction_albedo * tr;
 
     weight = (vec3(1,1,1) - transmittance) / (tr * extinction_albedo); 
-    //outgoing_ray = incoming_ray;
+    outgoing_ray = incoming_ray;
 }
 
 
