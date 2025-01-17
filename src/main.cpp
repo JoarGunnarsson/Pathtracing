@@ -33,66 +33,6 @@ struct PixelData{
 };
 
 
-int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources){
-    int light_source_idx_array[number_of_objects];
-
-    number_of_light_sources = 0;
-    
-    for (int i = 0; i < number_of_objects; i++){
-        if (objects[i] -> is_light_source()){
-            light_source_idx_array[number_of_light_sources] = i;
-            number_of_light_sources++;
-        }
-    }
-    if (number_of_light_sources == 0){
-        return -1;
-    }
-    
-    int random_index = random_int(0, number_of_light_sources);
-    int light_index = light_source_idx_array[random_index];
-    return light_index;
-}
-
-vec3 direct_lighting(const Hit& hit, Object** objects, const int number_of_objects){
-    int number_of_light_sources;
-    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
-    if (light_index == -1){
-        return colors::BLACK;
-    }
-
-    double inverse_PDF;
-    vec3 random_point = objects[light_index] -> random_light_point(hit.intersection_point, inverse_PDF);
-
-    vec3 vector_towards_light = random_point - hit.intersection_point;
-    double distance_to_light = vector_towards_light.length();
-    vector_towards_light = normalize_vector(vector_towards_light);
-    
-    Ray light_ray;
-    light_ray.starting_position = hit.intersection_point;
-    light_ray.direction_vector =  vector_towards_light;
-    light_ray.prepare();
-
-    // This does not need to be a full find_closest hit, we can return early. Should allow parameter ignore_index.
-    Hit light_hit = find_closest_hit(light_ray, objects, number_of_objects);
-    bool in_shadow = light_hit.intersected_object_index != light_index;
-    bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
-    //bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;
-    bool inside_object = dot_vectors(hit.incident_vector, hit.normal_vector) > 0.0;
-
-    if ( in_shadow || !same_distance || inside_object){
-        return colors::BLACK;
-    }
-
-    vec3 brdf_multiplier = objects[hit.intersected_object_index] -> eval(hit);
-    vec3 light_emitance = objects[light_index] -> get_light_emittance(light_hit);
-
-    double cosine = dot_vectors(hit.normal_vector, vector_towards_light);
-    cosine = std::max(0.0, cosine);
-
-    return brdf_multiplier * cosine * light_emitance * inverse_PDF * (double) number_of_light_sources;
-}
-
-
 PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium){
     MediumStack* medium_stack = new MediumStack();
     medium_stack -> add_medium(background_medium, -1);
@@ -145,8 +85,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 
         // Next event estimation does not work when inside a medium. Needs fixing.
         if (constants::enable_next_event_estimation){
-            vec3 direct = direct_lighting(ray_hit, objects, number_of_objects);
-            color += direct * throughput / random_threshold;
+            color += hit_object -> sample_direct(ray_hit, objects, number_of_objects) * throughput;
         }
 
         BrdfData brdf_result = hit_object -> sample(ray_hit);
@@ -322,8 +261,8 @@ Scene create_scene(){
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
-    scattering_glass_data.refractive_index = 1.5;
-    BeersLawMedium* scattering_glass_medium = new BeersLawMedium(5, (vec3(1,1,1) - colors::BLUE) * 5);
+    scattering_glass_data.refractive_index = 1;
+    SingleScatteringHomogenousMedium* scattering_glass_medium = new SingleScatteringHomogenousMedium(5, (vec3(1,1,1) - colors::BLUE) * 0);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -390,7 +329,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};

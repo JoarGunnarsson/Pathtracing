@@ -8,10 +8,6 @@
 class Object;
 
 
-int sample_random_light_2(Object** objects, const int number_of_objects, int& number_of_light_sources);
-vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_objects);
-
-
 class Medium{
     public:
         int id;
@@ -19,8 +15,7 @@ class Medium{
 
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;
-        virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray);
-
+        virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const;
     protected:
         double scattering_coefficient;
         vec3 absorption_albedo;
@@ -33,7 +28,7 @@ class BeersLawMedium: public Medium{
         using Medium::Medium;
 
     vec3 transmittance_color(const double distance) const;
-    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) override;
+    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
         
 };
 
@@ -44,7 +39,7 @@ class SingleScatteringHomogenousMedium: public Medium{
         using Medium::Medium;
 
     vec3 transmittance_color(const double distance) const;
-    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& L, vec3& transmittance, vec3& weight, Ray& outgoing_ray) override;
+    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& L, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
 
 };
 

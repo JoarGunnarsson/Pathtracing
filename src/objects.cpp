@@ -16,6 +16,19 @@ vec3 Object::eval(const Hit& hit) const{
     return material -> eval(hit, UV[0], UV[1]);
 }
 
+vec3 Object::sample_direct(const Hit& hit, Object** objects, const int number_of_objects) const{
+    bool inside_object = dot_vectors(hit.incident_vector, hit.normal_vector) > 0.0;
+    if (inside_object){
+        return colors::BLACK;
+    }
+    vec3 brdf = eval(hit);
+    vec3 light_vector;
+    vec3 direct = direct_lighting(hit.intersection_point, objects, number_of_objects, light_vector);
+    double cosine = dot_vectors(hit.normal_vector, light_vector);
+    cosine = std::max(0.0, cosine);
+    return brdf * cosine * direct;
+}
+
 BrdfData Object::sample(const Hit& hit) const{
     vec3 UV = get_UV(hit.intersection_point);
     return material -> sample(hit, UV[0], UV[1]);
@@ -373,3 +386,60 @@ Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
     closest_hit.incident_vector = ray.direction_vector;
     return closest_hit;
  }
+
+
+int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources){
+    int light_source_idx_array[number_of_objects];
+
+    number_of_light_sources = 0;
+    
+    for (int i = 0; i < number_of_objects; i++){
+        if (objects[i] -> is_light_source()){
+            light_source_idx_array[number_of_light_sources] = i;
+            number_of_light_sources++;
+        }
+    }
+    if (number_of_light_sources == 0){
+        return -1;
+    }
+    
+    int random_index = random_int(0, number_of_light_sources);
+    int light_index = light_source_idx_array[random_index];
+    return light_index;
+}
+
+
+
+vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction){
+    int number_of_light_sources;
+    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
+    if (light_index == -1){
+        return colors::BLACK;
+    }
+
+    double inverse_PDF;
+    vec3 random_point = objects[light_index] -> random_light_point(point, inverse_PDF);
+
+    sampled_direction = random_point -point;
+    double distance_to_light = sampled_direction.length();
+    sampled_direction = normalize_vector(sampled_direction);
+    
+    Ray light_ray;
+    light_ray.starting_position = point;
+    light_ray.direction_vector = sampled_direction;
+    light_ray.prepare();
+
+    // This does not need to be a full find_closest hit, we can return early. Should allow parameter ignore_index.
+    Hit light_hit = find_closest_hit(light_ray, objects, number_of_objects);
+    bool in_shadow = light_hit.intersected_object_index != light_index;
+    bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
+    //bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;
+
+    if ( in_shadow || !same_distance){
+        return colors::BLACK;
+    }
+
+    vec3 light_emittance = objects[light_index] -> get_light_emittance(light_hit);
+
+    return light_emittance * inverse_PDF * (double) number_of_light_sources;
+}
