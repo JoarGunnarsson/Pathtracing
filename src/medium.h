@@ -15,15 +15,16 @@ vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_
 class Medium{
     public:
         int id;
-        double scattering_coefficient;
-        vec3 absorption_albedo;
-        vec3 extinction_albedo;
-
         Medium(const double _scattering_coefficient, const vec3& _absorption_albedo);
 
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;
         virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray);
+
+    protected:
+        double scattering_coefficient;
+        vec3 absorption_albedo;
+        vec3 extinction_albedo;
 };
 
 
@@ -50,16 +51,17 @@ class SingleScatteringHomogenousMedium: public Medium{
 
 class MediumStack{
     public:
-        const int MAX_STACK_SIZE = 50;
-        int stack_size = 0;
-        Medium** medium_stack = new Medium*[MAX_STACK_SIZE];
-
         MediumStack(){}
         ~MediumStack();
 
         Medium* get_medium() const;
         void add_medium(Medium* medium, const int id);
         void pop_medium(const int id);
+
+    private:
+        const int MAX_STACK_SIZE = 50;
+        int stack_size = 0;
+        Medium** medium_stack = new Medium*[MAX_STACK_SIZE];
 };
 
 #endif

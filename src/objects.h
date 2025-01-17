@@ -38,9 +38,6 @@ class Object{
 
 class Sphere: public Object{
     public:
-        vec3 position;
-        double radius;
-
         Sphere(){}
         Sphere(const vec3& _position, const double _radius);
         Sphere(const vec3& _position, const double _radius, Material*_material);
@@ -50,16 +47,15 @@ class Sphere: public Object{
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 generate_random_surface_point() const override;
         vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
+
+    private:
+        vec3 position;
+        double radius;
 };
 
 
 class Plane: public Object{
-    public:
-        vec3 position;
-        vec3 v1;
-        vec3 v2;
-        vec3 normal_vector;
-        
+    public:        
         Plane(){}
         Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material);
 
@@ -68,25 +64,48 @@ class Plane: public Object{
         Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
 
+    protected:
+        vec3 position;
+        vec3 v1;
+        vec3 v2;
+        vec3 normal_vector;
 };
 
 
 class Rectangle: public Plane{
     public:
-        double L1;
-        double L2;
-
         Rectangle(){}
         Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2, Material*_material);
         
         vec3 get_UV(const vec3& point) const override;
         Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
         vec3 generate_random_surface_point() const override;
+
+    private:
+        double L1;
+        double L2;
 };
 
 
 class Triangle: public Object{
     public:
+        Triangle(){}
+        Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material*_material);
+
+        vec3 max_axis_point() const override;
+        vec3 min_axis_point() const override;
+        vec3 compute_centroid() const override;
+        void set_vertex_UV(const vec3& _uv1, const vec3& _uv2, const vec3& _uv3);
+        void set_vertex_normals(const vec3& _n1, const vec3& _n2, const vec3& _n3);
+        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int primitive_ID) const;
+        vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
+        vec3 compute_barycentric(const vec3& point) const;
+        vec3 get_UV(const vec3& point) const override;
+        double new_distance_algo(const Ray& ray) const;
+        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
+        vec3 generate_random_surface_point() const override;
+
+    private:
         vec3 position;
         vec3 normal_vector;
         vec3 p1;
@@ -110,21 +129,6 @@ class Triangle: public Object{
         vec3 n3;
 
         bool smooth_shaded = false;
-        Triangle(){}
-        Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material*_material);
-
-        vec3 max_axis_point() const override;
-        vec3 min_axis_point() const override;
-        vec3 compute_centroid() const override;
-        void set_vertex_UV(const vec3& _uv1, const vec3& _uv2, const vec3& _uv3);
-        void set_vertex_normals(const vec3& _n1, const vec3& _n2, const vec3& _n3);
-        vec3 get_normal_vector_smoothed(const vec3& surface_point, const int primitive_ID) const;
-        vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
-        vec3 compute_barycentric(const vec3& point) const;
-        vec3 get_UV(const vec3& point) const override;
-        double new_distance_algo(const Ray& ray) const;
-        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
-        vec3 generate_random_surface_point() const override;
 };
 
 

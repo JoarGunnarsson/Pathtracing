@@ -11,16 +11,7 @@
 
 
 class ObjectUnion : public Object{
-    public:
-        Object** objects;
-        int number_of_objects;
-        double* cumulative_area;
-        int* light_source_conversion_indices;
-        int number_of_light_sources;
-        BVH::BoundingVolumeHierarchy bvh;
-        bool use_BVH;
-        bool contains_light_source = false;
-        
+    public:        
         ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH=false);
         ~ObjectUnion();
 
@@ -34,6 +25,16 @@ class ObjectUnion : public Object{
         int sample_random_object_index() const;
         virtual vec3 generate_random_surface_point() const override;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
+        
+    private:
+        Object** objects;
+        int number_of_objects;
+        double* cumulative_area;
+        int* light_source_conversion_indices;
+        int number_of_light_sources;
+        BVH::BoundingVolumeHierarchy bvh;
+        bool use_BVH;
+        bool contains_light_source = false;
 };
 
 

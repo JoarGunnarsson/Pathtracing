@@ -8,19 +8,18 @@
 
 class ValueMap{
     public:
-        double* data;
-        int width;
-        double u_max;
-        int height;
-        double v_max;
-
         ValueMap(){}
         ValueMap(const int _data, const int _width=1, const int _height=1, const double _u_max=1, const double _v_max=1);
         ValueMap(const double _data, const int _width=1, const int _height=1, const double _uMax=1, const double _v_max=1);
         ValueMap(double* _data, const int _width=1, const int _height=1, const double _u_max=1, const double _v_max=1);
         ~ValueMap();
         
-    private: 
+    protected: 
+        double* data;
+        int width;
+        double u_max;
+        int height;
+        double v_max;
         void initialise(double* _data, const int _width, const int _height, const double _u_max, const double _v_max);
 };
 
