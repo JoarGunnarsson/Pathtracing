@@ -59,7 +59,7 @@ namespace BVH{
     }
 
     bool BoundingBox::intersect(Ray& ray, double& distance) const{
-        Interval ray_interval(-1, ray.t_max);
+        Interval ray_interval(0, ray.t_max);
 
         for (int axis = 0; axis < 3; axis++){
             Interval ax = get_interval(axis);

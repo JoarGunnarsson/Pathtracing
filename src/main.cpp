@@ -325,7 +325,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", dragon_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
