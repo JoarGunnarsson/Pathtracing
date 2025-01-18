@@ -70,15 +70,15 @@ vec3 ObjectUnion::get_light_emittance(const Hit& hit) const {
     return objects[hit.primitive_ID] -> get_light_emittance(hit);
 }
 
-Hit ObjectUnion::find_closest_object_hit(const Ray& ray, const double t_max) const {
+bool ObjectUnion::find_closest_object_hit(Hit& hit, Ray& ray) const {
     if (use_BVH){
-        return bvh.intersect(ray, t_max);
+        return bvh.intersect(hit, ray);
     }
 
-    Hit hit = find_closest_hit(ray, objects, number_of_objects);
+    bool success = find_closest_hit(hit, ray, objects, number_of_objects);
     hit.primitive_ID = hit.intersected_object_index;
     hit.intersected_object_index = -1;
-    return hit;
+    return success;
 }
 
 vec3 ObjectUnion::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {

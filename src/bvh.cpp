@@ -58,61 +58,8 @@ namespace BVH{
         return z_interval;
     }
 
-    double BoundingBox::intersect_old(const Ray& ray) const{
-        double t[6];
-        bool inside_bounds[6];
-        for (int i = 0; i < 3; i++){
-            if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
-                t[i] = -1;
-                inside_bounds[i] = false;
-                continue;
-            }
-            t[i] = (p1[i] - ray.starting_position[i]) / ray.direction_vector[i];
-            vec3 hit_point = ray.direction_vector * t[i] + ray.starting_position;
-            vec3 difference_vector = hit_point - p1;
-            if (i == 0){
-                inside_bounds[i] = is_within_bounds(difference_vector[1], 0, length) && is_within_bounds(difference_vector[2], 0, height);
-            }
-            else if (i ==  1){
-                inside_bounds[i] = is_within_bounds(difference_vector[0], 0, width) && is_within_bounds(difference_vector[2], 0, height);
-            }
-            else if (i == 2){
-                inside_bounds[i] = is_within_bounds(difference_vector[0], 0, width) && is_within_bounds(difference_vector[1], 0, length);
-            }
-        }
-
-        for (int i = 0; i < 3; i++){
-            if (std::abs(ray.direction_vector[i]) < constants::EPSILON){
-                t[i+3] = -1;
-                inside_bounds[i+3] = false;
-                continue;
-            }
-            t[i+3] = (p2[i] - ray.starting_position[i]) / ray.direction_vector[i];
-            vec3 hit_point = ray.direction_vector * t[i+3] + ray.starting_position;
-            vec3 difference_vector = hit_point - p2;
-            if (i == 0){
-                inside_bounds[i+3] = is_within_bounds(difference_vector[1], -length, 0) && is_within_bounds(difference_vector[2], -height, 0);
-            }
-            else if (i ==  1){
-                inside_bounds[i+3] = is_within_bounds(difference_vector[0], -width, 0) && is_within_bounds(difference_vector[2], -height, 0);
-            }
-            else if (i == 2){
-                inside_bounds[i+3] = is_within_bounds(difference_vector[0], -width, 0) && is_within_bounds(difference_vector[1], -length, 0);
-            }
-        }
-
-        double min_t = -1;
-        for (int i = 0; i < 6; i++){
-            if (inside_bounds[i] && (min_t == -1 || t[i] < min_t) && t[i] > constants::EPSILON){
-                min_t = t[i];
-            }
-        }
-
-        return min_t;
-    }
-    
-    double BoundingBox::intersect(const Ray& ray, const double t_max) const{
-        Interval ray_interval(-1,t_max);
+    bool BoundingBox::intersect(Ray& ray, double& distance) const{
+        Interval ray_interval(-1, ray.t_max);
 
         for (int axis = 0; axis < 3; axis++){
             Interval ax = get_interval(axis);
@@ -129,7 +76,6 @@ namespace BVH{
                 if (t1 < ray_interval.max){
                     ray_interval.max = t1;
                 }
-                
             }
             else{
                 if (t1 > ray_interval.min){
@@ -142,16 +88,18 @@ namespace BVH{
             }
 
             if (ray_interval.max <= ray_interval.min){
-                return -1;
+                return false;
             }
         }
         if (ray_interval.min > constants::EPSILON){
-            return ray_interval.min;
+            distance = ray_interval.min;
+            return true;
         }
         else if (ray_interval.max > constants::EPSILON){
-            return ray_interval.max;
+            distance = ray_interval.max;
+            return true;
         }
-        return -1;
+        return false;
     }    
 
 
@@ -204,47 +152,53 @@ namespace BVH{
         return axis;
     }
 
-    void Node::intersect(const Ray& ray, Hit& hit){
+    bool Node::intersect(Ray& ray, Hit& hit){
         if (is_leaf_node){
             if (number_of_triangles == 0){
-                return;
+                return false;
             }
-            Hit closest_hit = find_closest_hit(ray, triangles, number_of_triangles);
-            if (closest_hit.distance > constants::EPSILON && (closest_hit.distance < hit.distance || hit.distance == -1)){
-                hit.distance = closest_hit.distance;
-                hit.primitive_ID = closest_hit.primitive_ID;
+            Hit triangle_hit;
+            bool hits_triangles = find_closest_hit(triangle_hit, ray, triangles, number_of_triangles);
+            if (hits_triangles && triangle_hit.distance < hit.distance){
+                hit.distance = triangle_hit.distance;
+                hit.primitive_ID = triangle_hit.primitive_ID;
+                return true;
             }
-            return;
+            return false;
         }
-        double t_max = hit.distance > 0 ? hit.distance : constants::max_ray_distance;
-        double d1 = node1 -> bounding_box.intersect(ray, t_max);
-        double d2 = node2 -> bounding_box.intersect(ray, t_max);
+
+        double d1;
+        bool bvh1_hit = node1 -> bounding_box.intersect(ray, d1);
+        double d2;
+        bool bvh2_hit = node2 -> bounding_box.intersect(ray, d2);
         
-        bool node1_hit = d1 > constants::EPSILON && (d1 < hit.distance || hit.distance == -1);
-        bool node2_hit = d2 > constants::EPSILON && (d2 < hit.distance || hit.distance == -1);
-        
-        if (node1_hit && node2_hit){
+        if (bvh1_hit && bvh2_hit){
             if (d1 > d2){
-                node1 -> intersect(ray, hit);
+                bool node1_success = node1 -> intersect(ray, hit);
+                bool node2_success;
                 if (d2 < hit.distance || hit.distance == -1){
-                    node2 -> intersect(ray, hit);
+                    node2_success = node2 -> intersect(ray, hit);
                 }
+                return node1_success || node2_success;
             }
             else{
-                node2 -> intersect(ray, hit);
+                bool node1_success;
+                bool node2_success = node2 -> intersect(ray, hit);
                 if (d1 < hit.distance || hit.distance == -1){
-                    node1 -> intersect(ray, hit);
+                    node1_success = node1 -> intersect(ray, hit);
                 }
+                return node1_success || node2_success;
             }
 
         }
-        else if (node1_hit){
-            node1 -> intersect(ray, hit);
+        else if (bvh1_hit){
+            return node1 -> intersect(ray, hit);
         }
         
-        else if (node2_hit){
-            node2 -> intersect(ray, hit);
+        else if (bvh2_hit){
+            return node2 -> intersect(ray, hit);
         }
+        return false;
     }
 
 
@@ -252,15 +206,15 @@ namespace BVH{
         root_node = new Node(triangles, number_of_triangles, leaf_size);
     }
 
-    Hit BoundingVolumeHierarchy::intersect(const Ray& ray, const double t_max) const{
-        double distance_to_bounding_box = root_node -> bounding_box.intersect(ray, t_max);
-
-        Hit hit;
-        hit.distance = -1;
-        hit.primitive_ID = -1;
-        if (distance_to_bounding_box > constants::EPSILON){
-            root_node -> intersect(ray, hit);
+    bool BoundingVolumeHierarchy::intersect(Hit& hit, Ray& ray) const{
+        double distance_to_bounding_box;
+        
+        if (!root_node -> bounding_box.intersect(ray, distance_to_bounding_box)){
+            return false;
         }
-        return hit;
+
+        //hit.distance = -1;
+        //hit.primitive_ID = -1;
+        return root_node -> intersect(ray, hit);
     }
 }

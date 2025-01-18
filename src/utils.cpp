@@ -37,23 +37,25 @@ double sign(const double x){
     return x > 0 ? 1 : -1;
 }
 
-double solve_quadratic(const double b, const double c){
+bool solve_quadratic(const double b, const double c, double& distance){
     double discriminant = b*b - 4.0 * c;
     if (discriminant < 0){
-        return -1.0;
+        return false;
     }
     double root_discriminant = sqrt(discriminant);
 
     double minimum_solution = - 1.0 / 2.0 * (b + root_discriminant);
     if (minimum_solution > constants::EPSILON){
-        return minimum_solution;
+        distance = minimum_solution;
+        return true;
     }
 
     double maximum_solution = - 1.0 / 2.0 * (b - root_discriminant);
     if (maximum_solution > constants::EPSILON){
-        return maximum_solution;
+        distance = maximum_solution;
+        return true;
     }
-    return -1.0;
+    return false;
 
 }
 

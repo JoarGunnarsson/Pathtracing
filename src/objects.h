@@ -29,7 +29,7 @@ class Object{
         vec3 sample_direct(const Hit& hit, Object** objects, const int number_of_objects) const;
         virtual BrdfData sample(const Hit& hit) const;
         virtual vec3 get_light_emittance(const Hit& hit) const;
-        virtual Hit find_closest_object_hit(const Ray& ray, const double t_max) const;    
+        virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const;    
         virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const;
         virtual vec3 generate_random_surface_point() const;
         double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const;
@@ -44,7 +44,7 @@ class Sphere: public Object{
         Sphere(const vec3& _position, const double _radius, Material*_material);
 
         vec3 get_UV(const vec3& point) const override;
-        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
+        bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 generate_random_surface_point() const override;
         vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
@@ -61,8 +61,8 @@ class Plane: public Object{
         Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material);
 
         vec3 get_UV(const vec3& point) const override;
-        double compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector) const;
-        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
+        bool compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector, double& distance) const;
+        bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
 
     protected:
@@ -79,7 +79,7 @@ class Rectangle: public Plane{
         Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2, Material*_material);
         
         vec3 get_UV(const vec3& point) const override;
-        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
+        bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 generate_random_surface_point() const override;
 
     private:
@@ -102,8 +102,7 @@ class Triangle: public Object{
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 compute_barycentric(const vec3& point) const;
         vec3 get_UV(const vec3& point) const override;
-        double intersection_distance(const Ray& ray, const double t_max) const;
-        Hit find_closest_object_hit(const Ray& ray, const double t_max) const override;
+        bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 generate_random_surface_point() const override;
 
     private:
@@ -133,7 +132,7 @@ class Triangle: public Object{
 };
 
 
-Hit find_closest_hit(const Ray& ray, Object** objects, const int size);
+bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int size);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
 vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction);
 #endif

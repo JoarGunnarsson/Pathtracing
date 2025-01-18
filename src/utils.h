@@ -20,7 +20,7 @@ enum reflection_type{
 struct Hit{
     int intersected_object_index;
     int primitive_ID;
-    double distance;
+    double distance = constants::max_ray_distance;
     vec3 intersection_point;
     vec3 incident_vector;
     vec3 normal_vector;
@@ -30,6 +30,7 @@ struct Ray{
     vec3 starting_position;
     vec3 direction_vector;
     int type = DIFFUSE;
+    double t_max = constants::max_ray_distance;
     int kx;
     int ky;
     int kz;
@@ -39,6 +40,7 @@ struct Ray{
     double Sz;
 
     void prepare(){
+        //t_max = constants::max_ray_distance;
         kz = argmax(abs(direction_vector));
         kx = kz + 1;
         if (kx == 3){
@@ -62,7 +64,7 @@ struct Ray{
 double pos_fmod(const double a, const double b);
 double clamp(const double value, const double min, const double max);
 double sign(const double x);
-double solve_quadratic(const double b, const double c);
+bool solve_quadratic(const double b, const double c, double& distance);
 
 vec3 sample_spherical();
 vec3 sample_hemisphere(const vec3& normal);

@@ -30,9 +30,7 @@ namespace BVH{
             }
 
             Interval get_interval(const int axis) const;
-            double intersect_old(const Ray& ray) const;
-            double intersect_2(const Ray& ray, const double t_max) const;
-            double intersect(const Ray& ray, const double t_max) const; 
+            bool intersect(Ray& ray, double& distance) const; 
 
         private:
             vec3 p1;
@@ -57,7 +55,7 @@ namespace BVH{
             Node(Object** _triangles, int _number_of_triangles, int _leaf_size=12, int depth=0);
 
             int get_split_axis();
-            void intersect(const Ray& ray, Hit& hit);
+            bool intersect(Ray& ray, Hit& hit);
 
 
         private:
@@ -76,7 +74,7 @@ namespace BVH{
             BoundingVolumeHierarchy(){}
             BoundingVolumeHierarchy(Object** triangles, int number_of_triangles, int leaf_size);
 
-            Hit intersect(const Ray& ray, const double t_max) const;
+            bool intersect(Hit& hit, Ray& ray) const;
 
         private:
             Node* root_node;    

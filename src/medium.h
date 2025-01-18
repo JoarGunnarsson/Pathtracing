@@ -15,7 +15,9 @@ class Medium{
 
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;
-        virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const;
+        virtual vec3 transmittance_albedo(const double distance) const;
+        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const;
+        virtual vec3 sample(Object** objects, const int number_of_objects, const double distance) const;
     protected:
         double scattering_coefficient;
         vec3 absorption_albedo;
@@ -25,22 +27,27 @@ class Medium{
 
 class BeersLawMedium: public Medium{
     public:
-        using Medium::Medium;
+        BeersLawMedium(const double _scattering_coefficient, const vec3& _absorption_albedo);
 
-    vec3 transmittance_color(const double distance) const;
-    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
-        
+        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
+        virtual vec3 sample(Object** objects, const int number_of_objects, const double distance) const override;
 };
-
 
 
 class SingleScatteringHomogenousMedium: public Medium{
     public:
         using Medium::Medium;
 
-    vec3 transmittance_color(const double distance) const;
-    virtual void Integrate(Object** objects, const int number_of_objects, const Ray& incoming_ray, vec3& L, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
+        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& L, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
 
+};
+
+
+class ScatteringMediumHomogenous : public Medium{
+    public:
+        using Medium::Medium;
+        virtual double sample_distance() const override;
+        virtual vec3 sample(Object** objects, const int number_of_objects, const double distance) const override;
 };
 
 

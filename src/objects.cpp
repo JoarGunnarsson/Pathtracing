@@ -39,7 +39,7 @@ vec3 Object::get_light_emittance(const Hit& hit) const{
     return material -> get_light_emittance(UV[0], UV[1]);
 }
 
-Hit Object::find_closest_object_hit(const Ray& ray, const double t_max) const{ return Hit(); }
+bool Object::find_closest_object_hit(Hit& hit, Ray& ray) const{ return false; }
 vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID) const{ return vec3(); }
 vec3 Object::generate_random_surface_point() const{ return vec3(); }
 
@@ -83,16 +83,17 @@ vec3 Sphere::get_UV(const vec3& point) const{
     return vec3(u, v, 0);
 }
 
-Hit Sphere::find_closest_object_hit(const Ray& ray, const double t_max) const {
+bool Sphere::find_closest_object_hit(Hit& hit, Ray& ray) const {
     double dot_product = dot_vectors(ray.direction_vector, ray.starting_position);
     double b = 2 * (dot_product - dot_vectors(ray.direction_vector, position));
     vec3 difference_in_positions = position - ray.starting_position;
     double c = difference_in_positions.length_squared() - radius * radius;
-    double distance = solve_quadratic(b, c);
-    Hit hit;
+    double distance;
+    bool success = solve_quadratic(b, c, distance);
+
     hit.primitive_ID = primitive_ID;
     hit.distance = distance;
-    return hit;
+    return success;
 }
 
 vec3 Sphere::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
@@ -147,23 +148,27 @@ vec3 Plane::get_UV(const vec3& point) const {
     return vec3(u, v, 0);
 }
 
-double Plane::compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector) const {
+bool Plane::compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector, double& distance) const {
     double direction_dot_normal = -dot_vectors(direction_vector, normal_vector);
     if (std::abs(direction_dot_normal) < constants::EPSILON){
-        return -1;
+        return false;
     }
 
     double distances_to_start = dot_vectors(starting_point, normal_vector);
-    return distances_to_start / direction_dot_normal;
+    distance = distances_to_start / direction_dot_normal;
+    if (distance < constants::EPSILON){
+        return false;
+    }
+    return true;
 }
 
-Hit Plane::find_closest_object_hit(const Ray& ray, const double t_max) const {
+bool Plane::find_closest_object_hit(Hit& hit, Ray& ray) const {
     vec3 shifted_point = ray.starting_position - position;
-    double distance = compute_distance_in_centered_system(shifted_point, ray.direction_vector);
-    Hit hit;
+    double distance;
+    bool success = compute_distance_in_centered_system(shifted_point, ray.direction_vector, distance);
     hit.primitive_ID = primitive_ID;
     hit.distance = distance;
-    return hit;
+    return success;
 }
 
 vec3 Plane::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
@@ -184,15 +189,15 @@ vec3 Rectangle::get_UV(const vec3& point) const {
     return vec3(u, v, 0);
 }
 
-Hit Rectangle::find_closest_object_hit(const Ray& ray, const double t_max) const {
-    Hit hit;
+bool Rectangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
     hit.primitive_ID = primitive_ID;
     hit.distance = -1;
 
     vec3 shifted_point = ray.starting_position - position;
-    double distance = Plane::compute_distance_in_centered_system(shifted_point, ray.direction_vector);
-    if (distance < 0){
-        return hit;
+    double distance;
+    bool success = Plane::compute_distance_in_centered_system(shifted_point, ray.direction_vector, distance);
+    if (!success){
+        return false;
     }
     double direction_dot_v1 = dot_vectors(ray.direction_vector, v1);
     double direction_dot_v2 = dot_vectors(ray.direction_vector, v2);
@@ -200,10 +205,10 @@ Hit Rectangle::find_closest_object_hit(const Ray& ray, const double t_max) const
     double start_dot_v2 = dot_vectors(shifted_point, v2);
 
     if (std::abs(start_dot_v1 + direction_dot_v1 * distance) > L1 / 2.0 + constants::EPSILON || std::abs(start_dot_v2 + direction_dot_v2 * distance) > L2 / 2.0 + constants::EPSILON){
-        return hit;
+        return false;
     }
-    hit.distance = distance;
-    return hit;
+    hit.distance = distance < ray.t_max ? distance : -1;
+    return true;
 }
 
 vec3 Rectangle::generate_random_surface_point() const {
@@ -305,7 +310,7 @@ vec3 Triangle::get_UV(const vec3& point) const {
     return uv1 * barycentric_vector[0] + uv2 * barycentric_vector[1] + uv3 * barycentric_vector[2];
 }
 
-double Triangle::intersection_distance(const Ray& ray, const double t_max) const{
+bool Triangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
     vec3 p1t = p1 - ray.starting_position;
     vec3 p2t = p2 - ray.starting_position;
     vec3 p3t = p3 - ray.starting_position;
@@ -326,12 +331,12 @@ double Triangle::intersection_distance(const Ray& ray, const double t_max) const
     double e3 = p1t[0] * p2t[1] - p1t[1] * p2t[0];
 
     if ((e1 < 0 || e2 < 0 || e3 < 0) && (e1 > 0 || e2 > 0 || e3 > 0)){
-        return -1;
+        return false;
     }
 
     double det = e1 + e2 + e3;
     if (det == 0){
-        return -1;
+        return false;
     }
 
     p1t[2] *= ray.Sz;
@@ -340,21 +345,16 @@ double Triangle::intersection_distance(const Ray& ray, const double t_max) const
 
     double t_scaled = e1 * p1t[2] + e2 * p2t[2] + e3 * p3t[2];
 
-    if (det < 0 && (t_scaled < t_max * det) ){
-        return -1;
+    if (det < 0 && (t_scaled < ray.t_max * det) ){
+        return false;
     }
-    else if (det > 0 && (t_scaled > t_max * det)){
-        return -1;
+    else if (det > 0 && (t_scaled > ray.t_max * det)){
+        return false;
     }
 
-    return t_scaled / det;
-}
-
-Hit Triangle::find_closest_object_hit(const Ray& ray, const double t_max) const {
-    Hit hit;
+    hit.distance = t_scaled / det;
     hit.primitive_ID = primitive_ID;
-    hit.distance = intersection_distance(ray, t_max);
-    return hit;
+    return true;
 }
 
 vec3 Triangle::generate_random_surface_point() const {
@@ -364,27 +364,29 @@ vec3 Triangle::generate_random_surface_point() const {
 }
 
 
-Hit find_closest_hit(const Ray& ray, Object** objects, const int size){
-    Hit closest_hit;
-    closest_hit.distance = -1;
-    double t_max = constants::max_ray_distance;
+bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int size){
+    closest_hit.distance = constants::max_ray_distance;
+    bool found_a_hit = false;
 
+    ray.prepare();
     for (int i = 0; i < size; i++){
-        Hit hit = objects[i] -> find_closest_object_hit(ray, t_max);
-        if (hit.distance > constants::EPSILON && (hit.distance < closest_hit.distance || closest_hit.distance == -1)){
+        Hit hit;
+        bool success = objects[i] -> find_closest_object_hit(hit, ray);
+        if (success && hit.distance > constants::EPSILON && hit.distance < closest_hit.distance){ // hit.distance > constants::EPSILON , should not be necessary.
             hit.intersected_object_index = i;
             closest_hit = hit;
-            t_max = hit.distance;
+            ray.t_max = hit.distance;
+            found_a_hit = true;
         }
     }
-    if (closest_hit.distance < constants::EPSILON){
-        return closest_hit;
+    if (!found_a_hit){
+        return false;
     }
 
     closest_hit.intersection_point = ray.starting_position + ray.direction_vector * closest_hit.distance;
     closest_hit.normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.primitive_ID);
     closest_hit.incident_vector = ray.direction_vector;
-    return closest_hit;
+    return true;
  }
 
 
@@ -427,10 +429,10 @@ vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_ob
     Ray light_ray;
     light_ray.starting_position = point;
     light_ray.direction_vector = sampled_direction;
-    light_ray.prepare();
 
     // This does not need to be a full find_closest hit, we can return early. Should allow parameter ignore_index.
-    Hit light_hit = find_closest_hit(light_ray, objects, number_of_objects);
+    Hit light_hit;
+    find_closest_hit(light_hit, light_ray, objects, number_of_objects);
     bool in_shadow = light_hit.intersected_object_index != light_index;
     bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
     //bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;

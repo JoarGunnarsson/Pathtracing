@@ -43,9 +43,12 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     bool allow_recursion = true;
 
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
-        ray.prepare();
-        Hit ray_hit = find_closest_hit(ray, objects, number_of_objects);
-        if (ray_hit.distance <= constants::EPSILON){
+        Medium* medium = medium_stack -> get_medium();
+        double scatter_distance = medium -> sample_distance(); // TODO: Use this as t_max for the ray shot into the scene.
+
+        ray.t_max = scatter_distance;
+        Hit ray_hit;
+        if (!find_closest_hit(ray_hit, ray, objects, number_of_objects)){
             break;
         }
 
@@ -55,74 +58,63 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         }
 
         Object* hit_object = objects[ray_hit.intersected_object_index];
-        /*
-        double scatter_distance = medium -> sample_distance();
-        // Add attenuation here. Take the minimum of scatter_distance and ray_hit.distance.
-        Material* hit_material = objects[ray_hit.intersected_object_index] -> get_material(ray_hit.primitive_ID);
-        double actual_distance;
-        if (scatter_distance == -1){
-            actual_distance = ray_hit.distance;
-        }
-        else{
-            actual_distance = std::min(scatter_distance, ray_hit.distance);
-        }
-        vec3 log_attenuation = medium -> absorption_albedo * medium -> attenuation_coefficient * (-actual_distance);
-        vec3 attenuation_color = exp_vector(log_attenuation);
+        
+        bool scatter = scatter_distance < ray_hit.distance;
+        scatter_distance = std::min(scatter_distance, ray_hit.distance);
 
-        bool scatter = scatter_distance < ray_hit.distance && scatter_distance != -1;
+        Material* hit_material = objects[ray_hit.intersected_object_index] -> get_material(ray_hit.primitive_ID);
+
+        throughput *= medium -> sample(objects, number_of_objects, scatter_distance);
+        
         if (scatter){
             // Scatter
-            ray.starting_position = ray.starting_position + ray.direction_vector * scatter_distance;
-            ray.direction_vector = medium -> sample_direction(ray.direction_vector);
-        }     
-        */
-        bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
-
-        if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
-            vec3 light_emitance = hit_object -> get_light_emittance(ray_hit);
-            color += light_emitance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
-        }
-
-        // Next event estimation does not work when inside a medium. Needs fixing.
-        if (constants::enable_next_event_estimation){
-            color += hit_object -> sample_direct(ray_hit, objects, number_of_objects) * throughput;
-        }
-
-        BrdfData brdf_result = hit_object -> sample(ray_hit);
-
-        throughput *= brdf_result.brdf_multiplier;
-
-        double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
-        double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
-        
-        bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
-        bool entering = incoming_dot_normal < 0;
-        if (penetrating_boundary && hit_object -> get_material(ray_hit.primitive_ID) -> medium){
-            // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
-            // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
-            // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
-            if (entering){
-                medium_stack -> add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
-            }
-            else{
-                medium_stack -> pop_medium(ray_hit.intersected_object_index);
-            }
-        }
-
-        Ray new_ray;
-        new_ray.starting_position = ray_hit.intersection_point;
-        new_ray.direction_vector = brdf_result.outgoing_vector;
-        new_ray.type = brdf_result.type;
-        new_ray.prepare();
-
-        Medium* medium = medium_stack -> get_medium();
-        if (medium){
+            /*
             vec3 Lv;
             vec3 transmittance; 
             vec3 weight;
             medium -> Integrate(objects, number_of_objects, new_ray, Lv, transmittance, weight, new_ray);
             color += Lv * weight * throughput;
             throughput *= transmittance;
+            */
+            ray.starting_position = ray.starting_position + ray.direction_vector * scatter_distance;
+            ray.direction_vector = medium -> sample_direction(ray.direction_vector);
+        }     
+        else{
+            bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
+
+            if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
+                vec3 light_emitance = hit_object -> get_light_emittance(ray_hit);
+                color += light_emitance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+            }
+
+            // Next event estimation does not work when inside a medium. Needs fixing.
+            if (constants::enable_next_event_estimation){
+                color += hit_object -> sample_direct(ray_hit, objects, number_of_objects) * throughput;
+            }
+
+            BrdfData brdf_result = hit_object -> sample(ray_hit);
+
+            throughput *= brdf_result.brdf_multiplier;
+
+            double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
+            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
+            
+            bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
+            bool entering = incoming_dot_normal < 0;
+            if (penetrating_boundary && hit_object -> get_material(ray_hit.primitive_ID) -> medium){
+                // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
+                // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
+                // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
+                if (entering){
+                    medium_stack -> add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
+                }
+                else{
+                    medium_stack -> pop_medium(ray_hit.intersected_object_index);
+                }
+            }
+            ray.starting_position = ray_hit.intersection_point;
+            ray.direction_vector = brdf_result.outgoing_vector;
+            ray.type = brdf_result.type;
         }
 
         // Russian Roulette
@@ -141,7 +133,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         }
 
         throughput /= random_threshold;
-        ray = new_ray;
     }
     
     data.pixel_color = color;
@@ -262,11 +253,16 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    SingleScatteringHomogenousMedium* scattering_glass_medium = new SingleScatteringHomogenousMedium(5, (vec3(1,1,1) - colors::BLUE) * 0);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(100, (vec3(1,1,1) - colors::BLUE) * 10);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
 
+
+    MaterialData dragon_data;
+    dragon_data.albedo_map = new ValueMap3D(vec3(15, 15, 11) / 255.0 * 4.0);
+    DiffuseMaterial* dragon_material = new DiffuseMaterial(dragon_data);
+    manager -> add_material(dragon_material);
 
     MaterialData mirror_data;
     ReflectiveMaterial* mirror_material = new ReflectiveMaterial(mirror_data);
@@ -329,7 +325,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", dragon_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
