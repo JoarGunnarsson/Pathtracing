@@ -31,7 +31,6 @@ struct Ray{
     vec3 direction_vector;
     int type = DIFFUSE;
     double t_max = constants::max_ray_distance;
-    double debug;
     int kx;
     int ky;
     int kz;
