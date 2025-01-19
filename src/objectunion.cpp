@@ -30,7 +30,7 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
 
     use_BVH = construct_BVH;
     if (construct_BVH){
-        bvh = BVH::BoundingVolumeHierarchy(_objects, _number_of_objects, 12);
+        bvh = BVH::BoundingVolumeHierarchy(_objects, _number_of_objects, 6);
     }
 
     for (int i = 0; i < number_of_objects; i++){

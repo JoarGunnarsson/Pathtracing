@@ -18,8 +18,8 @@ enum reflection_type{
 };
 
 struct Hit{
-    int intersected_object_index;
-    int primitive_ID;
+    int intersected_object_index = -1;
+    int primitive_ID = -1;
     double distance = constants::max_ray_distance;
     vec3 intersection_point;
     vec3 incident_vector;
@@ -31,6 +31,7 @@ struct Ray{
     vec3 direction_vector;
     int type = DIFFUSE;
     double t_max = constants::max_ray_distance;
+    double debug;
     int kx;
     int ky;
     int kz;
@@ -40,7 +41,6 @@ struct Ray{
     double Sz;
 
     void prepare(){
-        //t_max = constants::max_ray_distance;
         kz = argmax(abs(direction_vector));
         kx = kz + 1;
         if (kx == 3){

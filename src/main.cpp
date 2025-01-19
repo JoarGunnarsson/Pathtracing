@@ -41,32 +41,27 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     vec3 throughput = vec3(1,1,1);
     double random_threshold = 1;
     bool allow_recursion = true;
+    bool has_hit_surface = false;
 
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
         Medium* medium = medium_stack -> get_medium();
-        double scatter_distance = medium -> sample_distance(); // TODO: Use this as t_max for the ray shot into the scene.
+        double scatter_distance = medium -> sample_distance();
 
         ray.t_max = scatter_distance;
         Hit ray_hit;
         if (!find_closest_hit(ray_hit, ray, objects, number_of_objects)){
-            break;
+            if (scatter_distance == constants::max_ray_distance){
+                break;
+            }
+            ray_hit.distance = constants::max_ray_distance;
         }
-
-        if (depth == 0){
-            data.pixel_position = ray_hit.intersection_point;
-            data.pixel_normal = ray_hit.normal_vector;
-        }
-
-        Object* hit_object = objects[ray_hit.intersected_object_index];
         
         bool scatter = scatter_distance < ray_hit.distance;
         scatter_distance = std::min(scatter_distance, ray_hit.distance);
-
-        Material* hit_material = objects[ray_hit.intersected_object_index] -> get_material(ray_hit.primitive_ID);
-
-        throughput *= medium -> sample(objects, number_of_objects, scatter_distance);
+        throughput *= medium -> sample(objects, number_of_objects, scatter_distance, scatter);
         
         if (scatter){
+
             // Scatter
             /*
             vec3 Lv;
@@ -76,11 +71,21 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             color += Lv * weight * throughput;
             throughput *= transmittance;
             */
-            ray.starting_position = ray.starting_position + ray.direction_vector * scatter_distance;
+
+            vec3 scatter_point = ray.starting_position + ray.direction_vector * scatter_distance;
+            color += medium -> sample_direct(scatter_point, objects, number_of_objects) * throughput;
+            ray.starting_position = scatter_point;
             ray.direction_vector = medium -> sample_direction(ray.direction_vector);
         }     
         else{
+            if (!has_hit_surface){
+                data.pixel_position = ray_hit.intersection_point;
+                data.pixel_normal = ray_hit.normal_vector;
+                has_hit_surface = true;
+            }
+
             bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
+            Object* hit_object = objects[ray_hit.intersected_object_index];
 
             if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
                 vec3 light_emitance = hit_object -> get_light_emittance(ray_hit);
@@ -92,7 +97,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 color += hit_object -> sample_direct(ray_hit, objects, number_of_objects) * throughput;
             }
 
-            BrdfData brdf_result = hit_object -> sample(ray_hit);
+            BrdfData brdf_result = hit_object -> sample(ray_hit); //add ray.type = SCATTERED, if so, become diffuse for mediummaterial.
 
             throughput *= brdf_result.brdf_multiplier;
 
@@ -144,9 +149,9 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
     PixelData data;
     vec3 pixel_color = vec3(0,0,0);
-    Ray ray;
-    ray.starting_position = scene.camera -> position;
     for (int i = 0; i < constants::samples_per_pixel; i++){
+        Ray ray;
+        ray.starting_position = scene.camera -> position;
         double new_x = x;
         double new_y = y;
 
@@ -246,21 +251,21 @@ Scene create_scene(){
 
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
-    BeersLawMedium* glass_medium = new BeersLawMedium(0, (vec3(1,1,1) - colors::BLUE) * 1.0);
+    BeersLawMedium* glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
     glass_data.medium = glass_medium;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(100, (vec3(1,1,1) - colors::BLUE) * 10);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(10), (vec3(1,1,1) - colors::BLUE) * 4);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
 
 
     MaterialData dragon_data;
-    dragon_data.albedo_map = new ValueMap3D(vec3(15, 15, 11) / 255.0 * 4.0);
+    dragon_data.albedo_map = new ValueMap3D(colors::BLUE);
     DiffuseMaterial* dragon_material = new DiffuseMaterial(dragon_data);
     manager -> add_material(dragon_material);
 
@@ -317,8 +322,8 @@ Scene create_scene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
-    Sphere* ball1 = new Sphere(vec3(-0.35, 0.5, 0), 0.35, green_diffuse_material);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, glass_material);
+    Sphere* ball1 = new Sphere(vec3(-1, 0.5, 2.2), 0.35, dragon_material);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, red_diffuse_material);
 
     Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 2, 2, light_source_material);
     
@@ -330,7 +335,7 @@ Scene create_scene(){
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
-    Medium* background_medium = new Medium(0, (colors::WHITE - colors::BLUE) * 5);
+    ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.);
 
     vec3 camera_position = vec3(-1, 1, 2.2);
     vec3 viewing_direction = vec3(0.8, -0.3, -1);
@@ -372,9 +377,12 @@ int main() {
 
     raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
 
+    std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
     Scene scene = create_scene();
+    std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
+    std::clog << "Time taken to build scene: " << std::chrono::duration_cast<std::chrono::seconds>(end_build - begin_build).count() << "[s]" << std::endl;
+    
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
     vec3* pixel_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];

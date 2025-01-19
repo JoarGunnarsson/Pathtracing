@@ -17,15 +17,16 @@ vec3 Object::eval(const Hit& hit) const{
 }
 
 vec3 Object::sample_direct(const Hit& hit, Object** objects, const int number_of_objects) const{
-    bool inside_object = dot_vectors(hit.incident_vector, hit.normal_vector) > 0.0;
-    if (inside_object){
-        return colors::BLACK;
-    }
     vec3 brdf = eval(hit);
     vec3 light_vector;
     vec3 direct = direct_lighting(hit.intersection_point, objects, number_of_objects, light_vector);
-    double cosine = dot_vectors(hit.normal_vector, light_vector);
-    cosine = std::max(0.0, cosine);
+    
+    bool wrong_side = dot_vectors(hit.incident_vector, light_vector) > 0.0;
+    if (wrong_side){
+        return colors::BLACK;
+    }
+
+    double cosine = std::abs(dot_vectors(hit.normal_vector, light_vector));
     return brdf * cosine * direct;
 }
 
@@ -90,10 +91,12 @@ bool Sphere::find_closest_object_hit(Hit& hit, Ray& ray) const {
     double c = difference_in_positions.length_squared() - radius * radius;
     double distance;
     bool success = solve_quadratic(b, c, distance);
-
+    if (!success || distance > ray.t_max){
+        return false;
+    }
     hit.primitive_ID = primitive_ID;
     hit.distance = distance;
-    return success;
+    return true;
 }
 
 vec3 Sphere::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
@@ -148,8 +151,8 @@ vec3 Plane::get_UV(const vec3& point) const {
     return vec3(u, v, 0);
 }
 
-bool Plane::compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector, double& distance) const {
-    double direction_dot_normal = -dot_vectors(direction_vector, normal_vector);
+bool Plane::compute_distance_in_centered_system(const vec3& starting_point, const Ray& ray, double& distance) const {
+    double direction_dot_normal = -dot_vectors(ray.direction_vector, normal_vector);
     if (std::abs(direction_dot_normal) < constants::EPSILON){
         return false;
     }
@@ -159,16 +162,22 @@ bool Plane::compute_distance_in_centered_system(const vec3& starting_point, cons
     if (distance < constants::EPSILON){
         return false;
     }
+    if (distance > ray.t_max){
+        // TODO: Setting this to false causes black volume.
+        return false;
+    }
     return true;
 }
 
 bool Plane::find_closest_object_hit(Hit& hit, Ray& ray) const {
     vec3 shifted_point = ray.starting_position - position;
     double distance;
-    bool success = compute_distance_in_centered_system(shifted_point, ray.direction_vector, distance);
+    if (!compute_distance_in_centered_system(shifted_point, ray, distance)){
+        return false;
+    }
     hit.primitive_ID = primitive_ID;
     hit.distance = distance;
-    return success;
+    return true;
 }
 
 vec3 Plane::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
@@ -190,13 +199,9 @@ vec3 Rectangle::get_UV(const vec3& point) const {
 }
 
 bool Rectangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
-    hit.primitive_ID = primitive_ID;
-    hit.distance = -1;
-
     vec3 shifted_point = ray.starting_position - position;
     double distance;
-    bool success = Plane::compute_distance_in_centered_system(shifted_point, ray.direction_vector, distance);
-    if (!success){
+    if (!compute_distance_in_centered_system(shifted_point, ray, distance)){
         return false;
     }
     double direction_dot_v1 = dot_vectors(ray.direction_vector, v1);
@@ -207,7 +212,8 @@ bool Rectangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
     if (std::abs(start_dot_v1 + direction_dot_v1 * distance) > L1 / 2.0 + constants::EPSILON || std::abs(start_dot_v2 + direction_dot_v2 * distance) > L2 / 2.0 + constants::EPSILON){
         return false;
     }
-    hit.distance = distance < ray.t_max ? distance : -1;
+    hit.distance = distance;
+    hit.primitive_ID = primitive_ID;
     return true;
 }
 
@@ -345,14 +351,15 @@ bool Triangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
 
     double t_scaled = e1 * p1t[2] + e2 * p2t[2] + e3 * p3t[2];
 
-    if (det < 0 && (t_scaled < ray.t_max * det) ){
+    if (det < 0 && (t_scaled >= 0 || t_scaled < ray.t_max * det) ){
         return false;
     }
-    else if (det > 0 && (t_scaled > ray.t_max * det)){
+    else if (det > 0 && (t_scaled <= 0 || t_scaled > ray.t_max * det)){
         return false;
     }
 
     hit.distance = t_scaled / det;
+
     hit.primitive_ID = primitive_ID;
     return true;
 }
@@ -364,21 +371,22 @@ vec3 Triangle::generate_random_surface_point() const {
 }
 
 
-bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int size){
+bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects){
     closest_hit.distance = constants::max_ray_distance;
     bool found_a_hit = false;
 
     ray.prepare();
-    for (int i = 0; i < size; i++){
+    for (int i = 0; i < number_of_objects; i++){
         Hit hit;
         bool success = objects[i] -> find_closest_object_hit(hit, ray);
-        if (success && hit.distance > constants::EPSILON && hit.distance < closest_hit.distance){ // hit.distance > constants::EPSILON , should not be necessary.
+        if (success && hit.distance > constants::EPSILON && hit.distance < closest_hit.distance){
             hit.intersected_object_index = i;
             closest_hit = hit;
             ray.t_max = hit.distance;
             found_a_hit = true;
         }
     }
+
     if (!found_a_hit){
         return false;
     }
@@ -435,7 +443,6 @@ vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_ob
     find_closest_hit(light_hit, light_ray, objects, number_of_objects);
     bool in_shadow = light_hit.intersected_object_index != light_index;
     bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
-    //bool hit_from_behind = dot_vectors(vector_towards_light, hit.normal_vector) < 0.0;
 
     if ( in_shadow || !same_distance){
         return colors::BLACK;

@@ -59,7 +59,7 @@ namespace BVH{
     }
 
     bool BoundingBox::intersect(Ray& ray, double& distance) const{
-        Interval ray_interval(0, ray.t_max);
+        Interval ray_interval(0, constants::max_ray_distance);
 
         for (int axis = 0; axis < 3; axis++){
             Interval ax = get_interval(axis);
@@ -91,14 +91,22 @@ namespace BVH{
                 return false;
             }
         }
+        
         if (ray_interval.min > constants::EPSILON){
             distance = ray_interval.min;
+            if (distance == constants::max_ray_distance){
+                return false;
+            }
             return true;
         }
         else if (ray_interval.max > constants::EPSILON){
             distance = ray_interval.max;
+            if (distance == constants::max_ray_distance){
+                return false;
+            }
             return true;
         }
+
         return false;
     }    
 
@@ -157,9 +165,9 @@ namespace BVH{
             if (number_of_triangles == 0){
                 return false;
             }
-            Hit triangle_hit;
+            Hit triangle_hit; 
             bool hits_triangles = find_closest_hit(triangle_hit, ray, triangles, number_of_triangles);
-            if (hits_triangles && triangle_hit.distance < hit.distance){
+            if (hits_triangles && triangle_hit.distance < hit.distance && triangle_hit.distance > constants::EPSILON){
                 hit.distance = triangle_hit.distance;
                 hit.primitive_ID = triangle_hit.primitive_ID;
                 return true;
@@ -169,9 +177,10 @@ namespace BVH{
 
         double d1;
         bool bvh1_hit = node1 -> bounding_box.intersect(ray, d1);
+
         double d2;
         bool bvh2_hit = node2 -> bounding_box.intersect(ray, d2);
-        
+
         if (bvh1_hit && bvh2_hit){
             if (d1 > d2){
                 bool node1_success = node1 -> intersect(ray, hit);
@@ -208,13 +217,10 @@ namespace BVH{
 
     bool BoundingVolumeHierarchy::intersect(Hit& hit, Ray& ray) const{
         double distance_to_bounding_box;
-        
         if (!root_node -> bounding_box.intersect(ray, distance_to_bounding_box)){
             return false;
         }
 
-        //hit.distance = -1;
-        //hit.primitive_ID = -1;
-        return root_node -> intersect(ray, hit);
+        return root_node -> intersect(ray, hit);;
     }
 }

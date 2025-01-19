@@ -61,7 +61,7 @@ class Plane: public Object{
         Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material);
 
         vec3 get_UV(const vec3& point) const override;
-        bool compute_distance_in_centered_system(const vec3& starting_point, const vec3& direction_vector, double& distance) const;
+        bool compute_distance_in_centered_system(const vec3& starting_point, const Ray& ray, double& distance) const;
         bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
 
@@ -132,7 +132,7 @@ class Triangle: public Object{
 };
 
 
-bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int size);
+bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
 vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction);
 #endif
