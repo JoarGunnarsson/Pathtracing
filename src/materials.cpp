@@ -51,6 +51,7 @@ Material::~Material(){
 }
 
 
+bool Material::allow_direct_light() const { return false; }
 vec3 Material::eval(const Hit& hit, const float u, const float v){ return vec3(); }
 BrdfData Material::sample(const Hit& hit, const float u, const float v){ return BrdfData(); }
 
@@ -90,6 +91,7 @@ BrdfData ReflectiveMaterial::sample(const Hit& hit, const float u, const float v
 }
 
 
+bool TransparentMaterial::allow_direct_light() const { return refractive_index == 1; }
 vec3 TransparentMaterial::eval(const Hit& hit, const float u, const float v){
     return colors::BLACK;
 }

@@ -11,6 +11,8 @@ class Material;
 
 struct BrdfData;
 
+class MediumStack;
+
 class Object{
     public:
         Material* material;
@@ -26,7 +28,7 @@ class Object{
         virtual Material* get_material(const int primitive_ID) const;
         virtual bool is_light_source() const;
         virtual vec3 eval(const Hit& hit) const;
-        vec3 sample_direct(const Hit& hit, Object** objects, const int number_of_objects) const;
+        vec3 sample_direct(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
         virtual BrdfData sample(const Hit& hit) const;
         virtual vec3 get_light_emittance(const Hit& hit) const;
         virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const;    
@@ -134,5 +136,5 @@ class Triangle: public Object{
 
 bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
-vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction);
+vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction, const MediumStack& current_medium_stack);
 #endif

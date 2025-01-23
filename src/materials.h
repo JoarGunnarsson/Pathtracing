@@ -75,6 +75,7 @@ class Material{
         Material(MaterialData data);
         ~Material();
         
+    virtual bool allow_direct_light() const;
     virtual vec3 eval(const Hit& hit, const float u, const float v);
     virtual BrdfData sample(const Hit& hit, const float u, const float v);
     vec3 get_light_emittance(const float u, const float v);
@@ -103,6 +104,7 @@ class TransparentMaterial : public Material{
     public:
         using Material::Material;
 
+    virtual bool allow_direct_light() const override;
     vec3 eval(const Hit& hit, const float u, const float v) override;
     BrdfData sample(const Hit& hit, const float u, const float v) override;
 };

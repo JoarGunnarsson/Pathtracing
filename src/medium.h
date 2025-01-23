@@ -6,6 +6,26 @@
 #include "objects.h"
 
 class Object;
+class Medium;
+
+
+class MediumStack{
+    public:
+        MediumStack();
+        MediumStack(Medium** initial_array, const int stack_size);
+        ~MediumStack();
+
+        Medium** get_array() const;
+        int get_stack_size() const;
+        Medium* get_medium() const;
+        void add_medium(Medium* medium, const int id);
+        void pop_medium(const int id);
+
+    private:
+        const int MAX_STACK_SIZE = 50;
+        int stack_size;
+        Medium** medium_array = new Medium*[MAX_STACK_SIZE];
+};
 
 
 class Medium{
@@ -18,7 +38,7 @@ class Medium{
         virtual vec3 transmittance_albedo(const double distance) const;
         virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const;
-        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects) const;
+        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
 
     protected:
         vec3 scattering_albedo;
@@ -50,23 +70,7 @@ class ScatteringMediumHomogenous : public Medium{
         using Medium::Medium;
         virtual double sample_distance() const override;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const override;
-        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects) const override;
-};
-
-
-class MediumStack{
-    public:
-        MediumStack(){}
-        ~MediumStack();
-
-        Medium* get_medium() const;
-        void add_medium(Medium* medium, const int id);
-        void pop_medium(const int id);
-
-    private:
-        const int MAX_STACK_SIZE = 50;
-        int stack_size = 0;
-        Medium** medium_stack = new Medium*[MAX_STACK_SIZE];
+        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const override;
 };
 
 #endif

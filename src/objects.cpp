@@ -16,12 +16,15 @@ vec3 Object::eval(const Hit& hit) const{
     return material -> eval(hit, UV[0], UV[1]);
 }
 
-vec3 Object::sample_direct(const Hit& hit, Object** objects, const int number_of_objects) const{
+vec3 Object::sample_direct(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const{
     vec3 brdf = eval(hit);
+    if (brdf == vec3(0)){
+       return vec3(0);
+    }
     vec3 light_vector;
-    vec3 direct = direct_lighting(hit.intersection_point, objects, number_of_objects, light_vector);
+    vec3 direct = direct_lighting(hit.intersection_point, objects, number_of_objects, light_vector, current_medium_stack);
     
-    bool wrong_side = dot_vectors(hit.incident_vector, light_vector) > 0.0;
+    bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(light_vector, hit.normal_vector)) > 0 ;
     if (wrong_side){
         return colors::BLACK;
     }
@@ -415,12 +418,13 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
     
     int random_index = random_int(0, number_of_light_sources);
     int light_index = light_source_idx_array[random_index];
+    std::cout << number_of_light_sources  << "\n";
     return light_index;
 }
 
 
 
-vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction){
+vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction, const MediumStack& current_medium_stack){
     int number_of_light_sources;
     int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
     if (light_index == -1){
@@ -430,25 +434,52 @@ vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_ob
     double inverse_PDF;
     vec3 random_point = objects[light_index] -> random_light_point(point, inverse_PDF);
 
-    sampled_direction = random_point -point;
+    sampled_direction = random_point - point;
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
-    
-    Ray light_ray;
-    light_ray.starting_position = point;
-    light_ray.direction_vector = sampled_direction;
 
-    // This does not need to be a full find_closest hit, we can return early. Should allow parameter ignore_index.
-    Hit light_hit;
-    find_closest_hit(light_hit, light_ray, objects, number_of_objects);
-    bool in_shadow = light_hit.intersected_object_index != light_index;
-    bool same_distance = std::abs(distance_to_light - light_hit.distance) <= constants::EPSILON;
+    MediumStack new_medium_stack = MediumStack(current_medium_stack.get_array(), current_medium_stack.get_stack_size());
+    Ray ray;
+    ray.starting_position = point;
+    ray.direction_vector = sampled_direction;
+    vec3 beam_transmittance = vec3(1);
+    double total_distance = 0;
+    vec3 light_emittance = vec3(0);
 
-    if ( in_shadow || !same_distance){
+    while (true){
+        ray.t_max = constants::max_ray_distance;
+        Hit light_hit;
+        if (!find_closest_hit(light_hit, ray, objects, number_of_objects)){
+            return vec3(0);
+        }
+        total_distance += light_hit.distance;
+        Medium* medium = new_medium_stack.get_medium();
+        if (medium){
+            beam_transmittance *= medium -> transmittance_albedo(light_hit.distance);
+        }
+        if (light_hit.intersected_object_index == light_index){
+            light_emittance = objects[light_index] -> get_light_emittance(light_hit);
+            break;
+        }
+        else if (!objects[light_hit.intersected_object_index] -> get_material(light_hit.primitive_ID) -> allow_direct_light()){
+            return vec3(0);
+        }
+        ray.starting_position = light_hit.intersection_point;
+
+        bool leaving_object = dot_vectors(light_hit.normal_vector, ray.direction_vector) > 0;
+        if (leaving_object){
+            new_medium_stack.pop_medium(light_hit.intersected_object_index);
+        }
+        else{
+            new_medium_stack.add_medium(objects[light_hit.intersected_object_index] -> get_material(light_hit.primitive_ID) -> medium, light_hit.intersected_object_index);
+        }
+    }
+
+    bool same_distance = std::abs(distance_to_light - total_distance) <= constants::EPSILON;
+
+    if (!same_distance){
         return colors::BLACK;
     }
 
-    vec3 light_emittance = objects[light_index] -> get_light_emittance(light_hit);
-
-    return light_emittance * inverse_PDF * (double) number_of_light_sources;
+    return beam_transmittance * light_emittance * inverse_PDF * (double) number_of_light_sources;
 }

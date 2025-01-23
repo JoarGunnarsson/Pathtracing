@@ -34,8 +34,8 @@ struct PixelData{
 
 
 PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium){
-    MediumStack* medium_stack = new MediumStack();
-    medium_stack -> add_medium(background_medium, -1);
+    MediumStack medium_stack = MediumStack();
+    medium_stack.add_medium(background_medium, -1);
     PixelData data;
     vec3 color = vec3(0,0,0);
     vec3 throughput = vec3(1,1,1);
@@ -44,7 +44,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     bool has_hit_surface = false;
 
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
-        Medium* medium = medium_stack -> get_medium();
+        Medium* medium = medium_stack.get_medium();
         double scatter_distance = medium -> sample_distance();
 
         ray.t_max = scatter_distance;
@@ -61,19 +61,11 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         throughput *= medium -> sample(objects, number_of_objects, scatter_distance, scatter);
         
         if (scatter){
-
-            // Scatter
-            /*
-            vec3 Lv;
-            vec3 transmittance; 
-            vec3 weight;
-            medium -> Integrate(objects, number_of_objects, new_ray, Lv, transmittance, weight, new_ray);
-            color += Lv * weight * throughput;
-            throughput *= transmittance;
-            */
-
             vec3 scatter_point = ray.starting_position + ray.direction_vector * scatter_distance;
-            color += medium -> sample_direct(scatter_point, objects, number_of_objects) * throughput;
+            if (constants::enable_next_event_estimation){
+                color += medium -> sample_direct(scatter_point, objects, number_of_objects, medium_stack) * throughput;
+                ray.type = DIFFUSE;
+            }
             ray.starting_position = scatter_point;
             ray.direction_vector = medium -> sample_direction(ray.direction_vector);
         }     
@@ -92,12 +84,14 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 color += light_emitance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
             }
 
-            // Next event estimation does not work when inside a medium. Needs fixing.
             if (constants::enable_next_event_estimation){
-                color += hit_object -> sample_direct(ray_hit, objects, number_of_objects) * throughput;
+                color += hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
 
-            BrdfData brdf_result = hit_object -> sample(ray_hit); //add ray.type = SCATTERED, if so, become diffuse for mediummaterial.
+            BrdfData brdf_result = hit_object -> sample(ray_hit);
+            if (hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light()){
+                brdf_result.type = ray.type;
+            }
 
             throughput *= brdf_result.brdf_multiplier;
 
@@ -106,15 +100,16 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
             bool entering = incoming_dot_normal < 0;
+
             if (penetrating_boundary && hit_object -> get_material(ray_hit.primitive_ID) -> medium){
                 // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
                 // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
                 // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
                 if (entering){
-                    medium_stack -> add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
+                    medium_stack.add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
                 }
                 else{
-                    medium_stack -> pop_medium(ray_hit.intersected_object_index);
+                    medium_stack.pop_medium(ray_hit.intersected_object_index);
                 }
             }
             ray.starting_position = ray_hit.intersection_point;
@@ -122,7 +117,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray.type = brdf_result.type;
         }
 
-        // Russian Roulette
         if (depth < constants::force_tracing_limit){
             random_threshold = 1;
             allow_recursion = true;
@@ -141,7 +135,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     }
     
     data.pixel_color = color;
-    delete medium_stack;
     return data;
  }
 
@@ -152,6 +145,7 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
     for (int i = 0; i < constants::samples_per_pixel; i++){
         Ray ray;
         ray.starting_position = scene.camera -> position;
+        ray.type = TRANSMITTED;
         double new_x = x;
         double new_y = y;
 
@@ -244,7 +238,7 @@ Scene create_scene(){
     MaterialData light_material_data;
     light_material_data.albedo_map =  new ValueMap3D(colors::WHITE * 0.8);
     light_material_data.emission_color_map =  new ValueMap3D(colors::WARM_WHITE);
-    light_material_data.light_intensity_map = new ValueMap1D(15.0 / 4.0);
+    light_material_data.light_intensity_map = new ValueMap1D(15.0);
     light_material_data.is_light_source = true;
     DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
     manager -> add_material(light_source_material);
@@ -258,16 +252,10 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(10), (vec3(1,1,1) - colors::BLUE) * 4);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(5), (vec3(1,1,1) - colors::BLUE) * 5);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
-
-
-    MaterialData dragon_data;
-    dragon_data.albedo_map = new ValueMap3D(colors::BLUE);
-    DiffuseMaterial* dragon_material = new DiffuseMaterial(dragon_data);
-    manager -> add_material(dragon_material);
 
     MaterialData mirror_data;
     ReflectiveMaterial* mirror_material = new ReflectiveMaterial(mirror_data);
@@ -322,20 +310,20 @@ Scene create_scene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
-    Sphere* ball1 = new Sphere(vec3(-1, 0.5, 2.2), 0.35, dragon_material);
+    Sphere* ball1 = new Sphere(vec3(0, 0.35, 0), 0.35, scattering_glass_material);
     Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, red_diffuse_material);
 
-    Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 2, 2, light_source_material);
+    Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
-    ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.);
+    ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
 
     vec3 camera_position = vec3(-1, 1, 2.2);
     vec3 viewing_direction = vec3(0.8, -0.3, -1);
