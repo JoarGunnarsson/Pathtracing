@@ -175,6 +175,6 @@ inline int argmax(const vec3& v) {
 inline vec3 permute(const vec3& v, const int idx1, const int idx2, const int idx3){
     return vec3(v[idx1], v[idx2], v[idx3]);
 }
-void display_vector(vec3 v);
+void display_vector(const vec3& v);
 
 #endif

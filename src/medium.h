@@ -36,7 +36,6 @@ class Medium{
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;
         virtual vec3 transmittance_albedo(const double distance) const;
-        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const;
         virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
 
@@ -51,17 +50,7 @@ class BeersLawMedium: public Medium{
     public:
         BeersLawMedium(const vec3& scattering_albedo, const vec3& _absorption_albedo);
 
-        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const override;
-};
-
-
-class SingleScatteringHomogenousMedium: public Medium{
-    public:
-        using Medium::Medium;
-
-        virtual void Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& L, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const override;
-
 };
 
 

@@ -18,15 +18,6 @@ vec3 Medium::transmittance_albedo(const double distance) const{
     return exp_vector(-extinction_albedo * distance);
 }
 
-void Medium::Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const{
-    Hit hit;
-    if(!find_closest_hit(hit, incoming_ray, objects, number_of_objects)){
-        return;
-    }
-
-    transmittance = colors::WHITE;
-}
-
 vec3 Medium::sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const{
     return colors::WHITE;
 }
@@ -38,17 +29,6 @@ vec3 Medium::sample_direct(const vec3& scattering_point, Object** objects, const
 
 BeersLawMedium::BeersLawMedium(const vec3& _scattering_albedo, const vec3& _absorption_albedo) : Medium(0, _absorption_albedo){}
 
-void BeersLawMedium::Integrate(Object** objects, const int number_of_objects, Ray& incoming_ray, vec3& Lv, vec3& transmittance, vec3& weight, Ray& outgoing_ray) const{
-    Hit hit;
-    if(!find_closest_hit(hit, incoming_ray, objects, number_of_objects)){
-        return;
-    }
-
-    transmittance = transmittance_albedo((hit.intersection_point - incoming_ray.starting_position).length());
-    weight = 1;
-    outgoing_ray = incoming_ray;
-}
-
 vec3 BeersLawMedium::sample(Object** object, const int number_of_objects, const double distance, const bool scatter) const{
     return transmittance_albedo(distance);
 }
@@ -56,7 +36,7 @@ vec3 BeersLawMedium::sample(Object** object, const int number_of_objects, const 
 
 double ScatteringMediumHomogenous::sample_distance() const{
     int channel = random_int(0, 3);
-    return -std::log(1 -random_uniform(0, 1)) / extinction_albedo[channel];
+    return -std::log(1.0 - random_uniform(0, 1)) / extinction_albedo[channel];
 }
 
 vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const{

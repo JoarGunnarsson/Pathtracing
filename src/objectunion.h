@@ -19,11 +19,13 @@ class ObjectUnion : public Object{
         virtual bool is_light_source() const override;
         virtual vec3 eval(const Hit& hit) const override;
         virtual BrdfData sample(const Hit& hit) const override;
+        virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const override;
         virtual vec3 get_light_emittance(const Hit& hit) const override;
         virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
-        int sample_random_object_index() const;
+        int sample_random_primitive_index() const;
         virtual vec3 generate_random_surface_point() const override;
+        virtual double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
         
     private:

@@ -30,11 +30,13 @@ class Object{
         virtual vec3 eval(const Hit& hit) const;
         vec3 sample_direct(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
         virtual BrdfData sample(const Hit& hit) const;
+        virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const;
         virtual vec3 get_light_emittance(const Hit& hit) const;
         virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const;    
         virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const;
         virtual vec3 generate_random_surface_point() const;
         double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const;
+        virtual double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const;
 };
 
@@ -49,6 +51,7 @@ class Sphere: public Object{
         bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
         vec3 generate_random_surface_point() const override;
+        double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
         vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
 
     private:
@@ -66,6 +69,7 @@ class Plane: public Object{
         bool compute_distance_in_centered_system(const vec3& starting_point, const Ray& ray, double& distance) const;
         bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
+        double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
 
     protected:
         vec3 position;
@@ -82,6 +86,7 @@ class Rectangle: public Plane{
         
         vec3 get_UV(const vec3& point) const override;
         bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
+        double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
         vec3 generate_random_surface_point() const override;
 
     private:
@@ -136,5 +141,11 @@ class Triangle: public Object{
 
 bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
+
+double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
+vec3 trace_ray_towards_lightsource(Ray& ray, Object** objects, const int number_of_objects, const MediumStack& old_medium_stack, const int light_source_index, vec3& transmittance);
+vec3 sample_light_strength(const vec3& point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_direction, vec3& transmittance, double& pdf);
+void sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_vector, vec3& transmittance, vec3& brdf, vec3& light_emittance, double& pdf);
+vec3 compute_direct_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
 vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction, const MediumStack& current_medium_stack);
 #endif

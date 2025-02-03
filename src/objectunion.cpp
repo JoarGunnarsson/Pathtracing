@@ -63,7 +63,11 @@ vec3 ObjectUnion::eval(const Hit& hit) const {
 }
 
 BrdfData ObjectUnion::sample(const Hit& hit) const {
-    return objects[hit.primitive_ID]  -> sample(hit);
+    return objects[hit.primitive_ID] -> sample(hit);
+}
+
+double ObjectUnion::brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const{
+    return objects[hit.primitive_ID] -> brdf_pdf(outgoing_vector, hit);
 }
 
 vec3 ObjectUnion::get_light_emittance(const Hit& hit) const {
@@ -85,7 +89,7 @@ vec3 ObjectUnion::get_normal_vector(const vec3& surface_point, const int primiti
     return objects[primitive_ID] -> get_normal_vector(surface_point, primitive_ID);
 }
 
-int ObjectUnion::sample_random_object_index() const{
+int ObjectUnion::sample_random_primitive_index() const{
     double random_area_split = random_uniform(0, area);
     int max = number_of_light_sources - 1;
     int min = 0;
@@ -113,13 +117,17 @@ int ObjectUnion::sample_random_object_index() const{
 }
 
 vec3 ObjectUnion::generate_random_surface_point() const {
-    return objects[sample_random_object_index()] -> generate_random_surface_point();
+    return objects[sample_random_primitive_index()] -> generate_random_surface_point();
 }
 
-vec3 ObjectUnion::random_light_point(const vec3& intersection_point, double& inverse_PDF) const{
-    int random_index = sample_random_object_index();
+double ObjectUnion::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const{
+    return 1.0 / (cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(surface_point, intersection_point, primitive_id));
+}
+
+vec3 ObjectUnion::random_light_point(const vec3& intersection_point, double& pdf) const{
+    int random_index = sample_random_primitive_index();
     vec3 random_point = objects[random_index] -> generate_random_surface_point();
-    inverse_PDF = cumulative_area[number_of_light_sources-1] * area_to_angle_PDF_factor(random_point, intersection_point, random_index);
+    pdf = light_pdf(random_point, intersection_point, random_index);
     return random_point;
 }
 

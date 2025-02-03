@@ -43,6 +43,9 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     bool allow_recursion = true;
     bool has_hit_surface = false;
 
+    vec3 saved_point;
+    double brdf_pdf;
+
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
         Medium* medium = medium_stack.get_medium();
         double scatter_distance = medium -> sample_distance();
@@ -63,6 +66,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         if (scatter){
             vec3 scatter_point = ray.starting_position + ray.direction_vector * scatter_distance;
             if (constants::enable_next_event_estimation){
+                // TODO: This is reached for scattering mediums with no scattering, is that really correct? Look over distance sampling...
                 color += medium -> sample_direct(scatter_point, objects, number_of_objects, medium_stack) * throughput;
                 ray.type = DIFFUSE;
             }
@@ -79,18 +83,32 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
             Object* hit_object = objects[ray_hit.intersected_object_index];
 
+            //TODO: The code below should be used for scattered ray direct light too. Instead of brdf_pdf, use phase_function pdf?
+            double weight;
             if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
-                vec3 light_emitance = hit_object -> get_light_emittance(ray_hit);
-                color += light_emitance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+                weight = 1;
             }
-
+            else{
+                double light_pdf = objects[ray_hit.intersected_object_index] -> light_pdf(ray_hit.intersection_point, saved_point, ray_hit.primitive_ID);
+                weight = mis_weight(1, brdf_pdf, 1, light_pdf);
+            }
+            vec3 light_emittance = hit_object -> get_light_emittance(ray_hit);
+            if (hit_object -> is_light_source()){
+                std::cout << weight << "\n";
+                color += weight * light_emittance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+            }
+            
             if (constants::enable_next_event_estimation){
-                color += hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
+                color += compute_direct_light(ray_hit, objects, number_of_objects, medium_stack) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
 
             BrdfData brdf_result = hit_object -> sample(ray_hit);
             if (hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light()){
                 brdf_result.type = ray.type;
+            }
+            else{
+                // TODO: For microfacet material, this is often 0, which I find strange.
+                brdf_pdf = brdf_result.pdf;
             }
 
             throughput *= brdf_result.brdf_multiplier;
@@ -101,12 +119,15 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
             bool entering = incoming_dot_normal < 0;
 
-            if (penetrating_boundary && hit_object -> get_material(ray_hit.primitive_ID) -> medium){
+            // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
+            // TODO: Can save current_medium and next_medium, and pass that into sample and compute_direct_light.
+            Medium* new_medium = hit_object -> get_material(ray_hit.primitive_ID) -> medium;
+            if (penetrating_boundary && new_medium){
                 // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
                 // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
                 // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
                 if (entering){
-                    medium_stack.add_medium(hit_object -> get_material(ray_hit.primitive_ID) -> medium, ray_hit.intersected_object_index);
+                    medium_stack.add_medium(new_medium, ray_hit.intersected_object_index);
                 }
                 else{
                     medium_stack.pop_medium(ray_hit.intersected_object_index);
@@ -115,6 +136,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray.starting_position = ray_hit.intersection_point;
             ray.direction_vector = brdf_result.outgoing_vector;
             ray.type = brdf_result.type;
+            saved_point = ray_hit.intersection_point;
         }
 
         if (depth < constants::force_tracing_limit){
@@ -252,7 +274,7 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(5), (vec3(1,1,1) - colors::BLUE) * 5);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(1), (vec3(1,1,1)) * 1);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -290,13 +312,13 @@ Scene create_scene(){
     DiffuseMaterial* model_material = new DiffuseMaterial(model_data);
     manager -> add_material(model_material);
 
-    
+    //T ODO: Fix back wall    
     Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
     Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, white_diffuse_material);
     Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, red_diffuse_material);
     Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, green_diffuse_material);
     Plane* roof = new Plane(vec3(0,2.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
-    Rectangle* back_wall = new Rectangle(vec3(0,0.425,3.5), vec3(0,1,0), vec3(1,0,0), 2, 3.85/2.0, white_diffuse_material);
+    Rectangle* back_wall = new Rectangle(vec3(0,1.55,3.5), vec3(0,1,0), vec3(1,0,0), 3.85, 1.55*2, white_diffuse_material);
 
     /*
     Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
@@ -310,18 +332,18 @@ Scene create_scene(){
     ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
     */
 
-    Sphere* ball1 = new Sphere(vec3(0, 0.35, 0), 0.35, scattering_glass_material);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, red_diffuse_material);
+    Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, gold_material);
 
     Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
+    //ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
-    int number_of_objects = 8;
-    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
+    int number_of_objects = 9;
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball1, ball2};
 
     ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
 
@@ -364,9 +386,10 @@ int main() {
     }
 
     raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
+
     Scene scene = create_scene();
+
     std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
     std::clog << "Time taken to build scene: " << std::chrono::duration_cast<std::chrono::seconds>(end_build - begin_build).count() << "[s]" << std::endl;
     
