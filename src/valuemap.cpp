@@ -29,7 +29,7 @@ void ValueMap::initialise(double* _data, const int _width, const int _height, co
 
 
 double ValueMap1D::get(const double u, const double v) const {
-    if (isnan(u) or isnan(v)){
+    if (isnan(u) || isnan(v)){
         return 0;
     }
     int u_idx = int((double) width * pos_fmod(u / u_max, 1.0));
@@ -39,7 +39,7 @@ double ValueMap1D::get(const double u, const double v) const {
 }
 
 vec3 ValueMap3D::get(const double u, const double v) const {
-    if (isnan(u) or isnan(v)){
+    if (isnan(u) || isnan(v)){
         return vec3(0,0,0);
     }
     int u_idx = int((double) width * pos_fmod(u / u_max, 1.0));
