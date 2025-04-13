@@ -438,7 +438,7 @@ double mis_weight(const int n_a, const double pdf_a, const int n_b, const double
 }
 
 
-vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_index, vec3& sampled_direction, vec3& transmittance, double& distance){
+vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_index, vec3& sampled_direction, vec3& transmittance, double& distance){
     // TODO: Rename this function. This is the function used for the part that uses MIS?
     MediumStack new_medium_stack = MediumStack(current_medium_stack.get_array(), current_medium_stack.get_stack_size());
     Ray ray;
@@ -482,105 +482,65 @@ vec3 direct_lighting_2(const vec3& point, Object** objects, const int number_of_
 }
 
 
-bool sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_index, vec3& sampled_direction, vec3& emittance, vec3& brdf, vec3& transmittance, double& brdf_pdf, double& light_pdf){
-    brdf = objects[hit.intersected_object_index] -> eval(hit); // TODO: Fix eval for microfacet?. Works currently but could be useful for lower [variance?]. If so can't have specular for microfacet sample.
-    if (brdf == vec3(0)){
-        return false;
-    }  
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const bool is_scatter){
+    vec3 L = vec3(0);
+    // TODO: rename is_scatter
 
+    int number_of_light_sources;
+    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
+    if (light_index == -1 || light_index == hit.intersected_object_index){
+        return L;
+    }
+
+    vec3 brdf;
+    if (!is_scatter){
+        brdf = objects[hit.intersected_object_index] -> eval(hit); // TODO: Fix eval for microfacet?. Works currently but could be useful for lower [variance?]. If so can't have specular for microfacet sample.
+    
+        if (brdf == vec3(0)){
+            return L;
+        }  
+    }
+
+    double light_pdf;
     vec3 random_point = objects[light_index] -> random_light_point(hit.intersection_point, light_pdf);
     if (light_pdf == 0){
-        return false;
-    }
-    sampled_direction = random_point - hit.intersection_point;
-    double distance_to_light = sampled_direction.length();
-    sampled_direction = normalize_vector(sampled_direction);
-    double distance;
-
-    brdf_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);
-    
-    emittance = direct_lighting_2(hit.intersection_point, objects, number_of_objects, current_medium_stack, light_index, sampled_direction, transmittance, distance);
-
-    if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance == vec3(0)){
-        return false;
-    }
-    bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(sampled_direction, hit.normal_vector)) > 0 ;
-    if (wrong_side){
-        return false;
-    }
-    return true;
-}
-
-
-vec3 compute_direct_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack){
-    // TODO: This is only for solid material, not for scattering. Make it clearer? Not sure...
-    int number_of_light_sources;
-    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
-    if (light_index == -1 || light_index == hit.intersected_object_index){
-        return colors::BLACK;
-    }
-
-    vec3 L = vec3(0);
-    vec3 sampled_vector, emittance, transmittance, brdf;
-    double light_pdf, brdf_pdf;
-    if (!sample_light(hit, objects, number_of_objects, current_medium_stack, light_index, sampled_vector, emittance, brdf, transmittance, brdf_pdf, light_pdf)){
         return L;
     }
-    double cosine = std::abs(dot_vectors(hit.normal_vector, sampled_vector));
-    double weight = mis_weight(1, light_pdf, 1, brdf_pdf);
-    if (light_pdf != 0){
-        L += weight * brdf * cosine * emittance * transmittance / light_pdf;
-    }
-
-    L *= (double) number_of_light_sources;
-    return L;
-}
-
-
-
-
-bool sample_light_scatter(const vec3& scatter_point, const vec3& incident_vector, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_index, vec3& sampled_direction, vec3& emittance, vec3& transmittance, double& phase_value, double& light_pdf){
-
-    vec3 random_point = objects[light_index] -> random_light_point(scatter_point, light_pdf);
-    if (light_pdf == 0){
-        return false;
-    }
-    sampled_direction = random_point - scatter_point;
+    
+    vec3 sampled_direction = random_point - hit.intersection_point;
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
-    double distance;
 
-    phase_value = current_medium_stack.get_medium() -> phase_function(incident_vector, sampled_direction);
+    double scatter_pdf;
+    if (is_scatter){
+        scatter_pdf = current_medium_stack.get_medium() -> phase_function(hit.incident_vector, sampled_direction);
+    }
+    else{
+        scatter_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);
+    }
     
-    emittance = direct_lighting_2(scatter_point, objects, number_of_objects, current_medium_stack, light_index, sampled_direction, transmittance, distance);
+    double distance;
+    vec3 transmittance;
+    vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium_stack, light_index, sampled_direction, transmittance, distance);
 
     if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance == vec3(0)){
-        return false;
-    }
-
-    return true;
-}
-
-
-vec3 compute_direct_light_scattering(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack){
-    int number_of_light_sources;
-    int light_index = sample_random_light(objects, number_of_objects, number_of_light_sources);
-    if (light_index == -1 || light_index == hit.intersected_object_index){
-        return colors::BLACK;
-    }
-
-    vec3 L = vec3(0);
-    vec3 sampled_vector, emittance, transmittance;
-    double light_pdf, phase_value;
-    if (!sample_light_scatter(hit.intersection_point, hit.incident_vector, objects, number_of_objects, current_medium_stack, light_index, sampled_vector, emittance, transmittance, phase_value, light_pdf)){
         return L;
     }
 
-    double weight = mis_weight(1, light_pdf, 1, phase_value);
-    if (light_pdf != 0){
-        L += weight * phase_value * emittance * transmittance / light_pdf;
+    double weight = mis_weight(1, light_pdf, 1, scatter_pdf);
+    if (is_scatter){
+        L = weight * scatter_pdf * emittance * transmittance / light_pdf;
     }
-
+    else{
+        bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(sampled_direction, hit.normal_vector)) > 0 ;
+        if (wrong_side){
+            return L;
+        }
+        double cosine = std::abs(dot_vectors(hit.normal_vector, sampled_direction));
+        L = weight * brdf * cosine * emittance * transmittance / light_pdf;
+    }
+    
     L *= (double) number_of_light_sources;
+
     return L;
 }

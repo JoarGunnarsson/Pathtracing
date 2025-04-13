@@ -286,8 +286,8 @@ BrdfData MicrofacetMaterial::sample_diffuse(const MicrofacetSampleArgs& args) co
 BrdfData MicrofacetMaterial::sample_reflection(const MicrofacetSampleArgs& args) const{
     BrdfData data;
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
-    data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
     data.outgoing_vector = reflect_vector(-args.incident_vector, args.sampled_half_vector);
+    data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
     data.brdf_over_pdf = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     data.type = REFLECTED;
     return data;

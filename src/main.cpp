@@ -72,7 +72,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 
                 // TODO: Compute direct light using MIS for scattering. Should be identical to diffuse objects except the 
                 // phase function is used instead of the brdf.
-                color += compute_direct_light_scattering(ray_hit, objects, number_of_objects, medium_stack) * throughput;
+                color += sample_light(ray_hit, objects, number_of_objects, medium_stack, true) * throughput;
                 // TODO: In sample_direct, do some MIS. The other part of MIS is done if it hits an object?
                 // If we do some direct light, we turn the ray diffuse. This is inherited by the next ray for n==1 transparent materials.
                 // Save the phase function for the scattered ray, this will be used by MIS later.
@@ -111,7 +111,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
             
             if (constants::enable_next_event_estimation){
-                color += compute_direct_light(ray_hit, objects, number_of_objects, medium_stack) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
+                color += sample_light(ray_hit, objects, number_of_objects, medium_stack, false) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
             
             // Sample the material for a new direction.
@@ -295,7 +295,7 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(4), (vec3(1,1,1)) * 1);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(10), (vec3(1,1,0)) * 4);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -362,10 +362,10 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(0, 0.8, 1);
     bool smooth_shade = false;
-    //ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
-    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball2};
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
     ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
 

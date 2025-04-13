@@ -144,9 +144,7 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
 
 vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction, const MediumStack& current_medium_stack);
 double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
-bool sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_vector, vec3& transmittance, vec3& brdf, vec3& light_emittance, double& pdf);
-vec3 compute_direct_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const bool is_scatter);
 
 
-vec3 compute_direct_light_scattering(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
 #endif
