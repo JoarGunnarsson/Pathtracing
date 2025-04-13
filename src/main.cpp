@@ -44,7 +44,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     bool has_hit_surface = false;
 
     vec3 saved_point;
-    double brdf_pdf;
+    double scatter_pdf;
 
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++){
         Medium* medium = medium_stack.get_medium();
@@ -70,14 +70,11 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 ray_hit.intersection_point = scatter_point;
                 // TODO: This is reached for scattering mediums with no scattering, is that really correct? Look over distance sampling...
 
-                // TODO: Compute direct light using MIS for scattering. Should be identical to diffuse objects except the 
-                // phase function is used instead of the brdf.
                 color += sample_light(ray_hit, objects, number_of_objects, medium_stack, true) * throughput;
-                // TODO: In sample_direct, do some MIS. The other part of MIS is done if it hits an object?
-                // If we do some direct light, we turn the ray diffuse. This is inherited by the next ray for n==1 transparent materials.
-                // Save the phase function for the scattered ray, this will be used by MIS later.
+
                 ray.type = DIFFUSE;
-                brdf_pdf = medium -> phase_function(ray.direction_vector, scattered_direction);
+                scatter_pdf = medium -> phase_function(ray.direction_vector, scattered_direction);
+                saved_point = scatter_point;
             }
             ray.starting_position = scatter_point;
             ray.direction_vector = scattered_direction;
@@ -92,8 +89,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
             Object* hit_object = objects[ray_hit.intersected_object_index];
 
-            //TODO: The code below should be used for scattered ray direct light too. Instead of brdf_pdf, use phase_function pdf?
-
             // If a light source is hit, compute the light_pdf based on the saved_point (previous hitpoint) and use MIS to add the light.
             // Could move this to a separate function, make it clearer what it is doing.
             if (hit_object -> is_light_source()){
@@ -103,7 +98,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 }
                 else{
                     double light_pdf = objects[ray_hit.intersected_object_index] -> light_pdf(ray_hit.intersection_point, saved_point, ray_hit.primitive_ID);
-                    weight = mis_weight(1, brdf_pdf, 1, light_pdf);
+                    weight = mis_weight(1, scatter_pdf, 1, light_pdf);
                 }
                 vec3 light_emittance = hit_object -> get_light_emittance(ray_hit);
 
@@ -114,10 +109,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 color += sample_light(ray_hit, objects, number_of_objects, medium_stack, false) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
             
-            // Sample the material for a new direction.
             BrdfData brdf_result = hit_object -> sample(ray_hit);
-            // Check if the hit material allows direct light computations to pass through the object (transparent objects with n==1).
-            // If so, the outgoing ray inherits the incoming ray type. Otherwise, the brdf_pdf used in MIS is updated.
             // TODO: Rename allow_direct_light!
             // TODO: Rename is_virtual_surface variable...
             bool is_virtual_surface = hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light();
@@ -125,8 +117,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 brdf_result.type = ray.type;
             }
             else{ 
-                brdf_pdf = brdf_result.pdf;
-                // TODO: This was together with the other ray_hit stuff at the end, moved here for scattered ray MIS.
+                scatter_pdf = brdf_result.pdf;
                 saved_point = ray_hit.intersection_point;
             }
             throughput *= brdf_result.brdf_over_pdf;
@@ -154,7 +145,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray.starting_position = ray_hit.intersection_point;
             ray.direction_vector = brdf_result.outgoing_vector;
             ray.type = brdf_result.type;
-            // TODO: For scattered rays, this needs to be handled with care. Perhaps don't update for transparent/specular rays?...
         }
 
         if (depth < constants::force_tracing_limit){
@@ -295,7 +285,7 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(10), (vec3(1,1,0)) * 4);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(0), (vec3(1,1,1) - colors::BLUE) * 5.0);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
