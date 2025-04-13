@@ -35,9 +35,9 @@ class Medium{
 
         virtual double sample_distance() const;
         virtual vec3 sample_direction(const vec3& incident_vector) const;
+        virtual double phase_function(const vec3& incident_vector, const vec3& outgoing_vector) const;
         virtual vec3 transmittance_albedo(const double distance) const;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const;
-        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
 
     protected:
         vec3 scattering_albedo;
@@ -59,7 +59,6 @@ class ScatteringMediumHomogenous : public Medium{
         using Medium::Medium;
         virtual double sample_distance() const override;
         virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const override;
-        virtual vec3 sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const override;
 };
 
 #endif

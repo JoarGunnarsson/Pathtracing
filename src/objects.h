@@ -142,10 +142,11 @@ class Triangle: public Object{
 bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
 
-double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
-vec3 trace_ray_towards_lightsource(Ray& ray, Object** objects, const int number_of_objects, const MediumStack& old_medium_stack, const int light_source_index, vec3& transmittance);
-vec3 sample_light_strength(const vec3& point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_direction, vec3& transmittance, double& pdf);
-void sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_vector, vec3& transmittance, vec3& brdf, vec3& light_emittance, double& pdf);
-vec3 compute_direct_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
 vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction, const MediumStack& current_medium_stack);
+double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
+bool sample_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack, const int light_source_index, vec3& sampled_vector, vec3& transmittance, vec3& brdf, vec3& light_emittance, double& pdf);
+vec3 compute_direct_light(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
+
+
+vec3 compute_direct_light_scattering(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack);
 #endif

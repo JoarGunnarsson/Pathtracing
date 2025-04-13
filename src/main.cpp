@@ -65,13 +65,22 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         
         if (scatter){
             vec3 scatter_point = ray.starting_position + ray.direction_vector * scatter_distance;
+            vec3 scattered_direction = medium -> sample_direction(ray.direction_vector);
             if (constants::enable_next_event_estimation){
+                ray_hit.intersection_point = scatter_point;
                 // TODO: This is reached for scattering mediums with no scattering, is that really correct? Look over distance sampling...
-                color += medium -> sample_direct(scatter_point, objects, number_of_objects, medium_stack) * throughput;
+
+                // TODO: Compute direct light using MIS for scattering. Should be identical to diffuse objects except the 
+                // phase function is used instead of the brdf.
+                color += compute_direct_light_scattering(ray_hit, objects, number_of_objects, medium_stack) * throughput;
+                // TODO: In sample_direct, do some MIS. The other part of MIS is done if it hits an object?
+                // If we do some direct light, we turn the ray diffuse. This is inherited by the next ray for n==1 transparent materials.
+                // Save the phase function for the scattered ray, this will be used by MIS later.
                 ray.type = DIFFUSE;
+                brdf_pdf = medium -> phase_function(ray.direction_vector, scattered_direction);
             }
             ray.starting_position = scatter_point;
-            ray.direction_vector = medium -> sample_direction(ray.direction_vector);
+            ray.direction_vector = scattered_direction;
         }     
         else{
             if (!has_hit_surface){
@@ -84,34 +93,43 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             Object* hit_object = objects[ray_hit.intersected_object_index];
 
             //TODO: The code below should be used for scattered ray direct light too. Instead of brdf_pdf, use phase_function pdf?
-            double weight;
-            if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
-                weight = 1;
-            }
-            else{
-                double light_pdf = objects[ray_hit.intersected_object_index] -> light_pdf(ray_hit.intersection_point, saved_point, ray_hit.primitive_ID);
-                weight = mis_weight(1, brdf_pdf, 1, light_pdf);
-            }
-            vec3 light_emittance = hit_object -> get_light_emittance(ray_hit);
+
+            // If a light source is hit, compute the light_pdf based on the saved_point (previous hitpoint) and use MIS to add the light.
+            // Could move this to a separate function, make it clearer what it is doing.
             if (hit_object -> is_light_source()){
-                std::cout << weight << "\n";
+                double weight;
+                if (!constants::enable_next_event_estimation || depth == 0 || is_specular_ray){
+                    weight = 1;
+                }
+                else{
+                    double light_pdf = objects[ray_hit.intersected_object_index] -> light_pdf(ray_hit.intersection_point, saved_point, ray_hit.primitive_ID);
+                    weight = mis_weight(1, brdf_pdf, 1, light_pdf);
+                }
+                vec3 light_emittance = hit_object -> get_light_emittance(ray_hit);
+
                 color += weight * light_emittance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
             }
             
             if (constants::enable_next_event_estimation){
                 color += compute_direct_light(ray_hit, objects, number_of_objects, medium_stack) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
-
+            
+            // Sample the material for a new direction.
             BrdfData brdf_result = hit_object -> sample(ray_hit);
-            if (hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light()){
+            // Check if the hit material allows direct light computations to pass through the object (transparent objects with n==1).
+            // If so, the outgoing ray inherits the incoming ray type. Otherwise, the brdf_pdf used in MIS is updated.
+            // TODO: Rename allow_direct_light!
+            // TODO: Rename is_virtual_surface variable...
+            bool is_virtual_surface = hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light();
+            if (is_virtual_surface){
                 brdf_result.type = ray.type;
             }
-            else{
-                // TODO: For microfacet material, this is often 0, which I find strange.
+            else{ 
                 brdf_pdf = brdf_result.pdf;
+                // TODO: This was together with the other ray_hit stuff at the end, moved here for scattered ray MIS.
+                saved_point = ray_hit.intersection_point;
             }
-
-            throughput *= brdf_result.brdf_multiplier;
+            throughput *= brdf_result.brdf_over_pdf;
 
             double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
             double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
@@ -136,7 +154,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray.starting_position = ray_hit.intersection_point;
             ray.direction_vector = brdf_result.outgoing_vector;
             ray.type = brdf_result.type;
-            saved_point = ray_hit.intersection_point;
+            // TODO: For scattered rays, this needs to be handled with care. Perhaps don't update for transparent/specular rays?...
         }
 
         if (depth < constants::force_tracing_limit){
@@ -193,7 +211,7 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
 
 
 void print_progress(double progress){
-    if (progress < 1.0) {
+    if (progress <= 1.0) {
         int bar_width = 60;
 
         std::clog << "[";
@@ -238,6 +256,8 @@ Scene create_scene(){
     DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
     manager -> add_material(green_diffuse_material);
 
+
+    /*
     MaterialData hieroglyph_data;
     hieroglyph_data.albedo_map = create_value_map_3D("./maps/hieroglyph_wall.map", 1, 1);
     DiffuseMaterial* hieroglyph_material = new DiffuseMaterial(hieroglyph_data);
@@ -247,6 +267,7 @@ Scene create_scene(){
     sandstone_data.albedo_map = create_value_map_3D("./maps/sandstone_floor.map");
     DiffuseMaterial* sandstone_material = new DiffuseMaterial(sandstone_data);
     manager -> add_material(sandstone_material);
+    */
 
     MaterialData gold_data;
     gold_data.albedo_map = new ValueMap3D(colors::GOLD);
@@ -266,7 +287,7 @@ Scene create_scene(){
     manager -> add_material(light_source_material);
 
     MaterialData glass_data;
-    glass_data.refractive_index = 1.5;
+    glass_data.refractive_index = 1;
     BeersLawMedium* glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
     glass_data.medium = glass_medium;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
@@ -274,7 +295,7 @@ Scene create_scene(){
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(1), (vec3(1,1,1)) * 1);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(4), (vec3(1,1,1)) * 1);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -305,14 +326,15 @@ Scene create_scene(){
     MaterialData cobble_data;
     cobble_data.albedo_map = cobble_map;
     DiffuseMaterial* cobble_material = new DiffuseMaterial(cobble_data);
-    */
+    
 
     MaterialData model_data;
     model_data.albedo_map = create_value_map_3D("./maps/bunny.map", 1, -1);
     DiffuseMaterial* model_material = new DiffuseMaterial(model_data);
     manager -> add_material(model_material);
+    */
 
-    //T ODO: Fix back wall    
+    //TODO: Fix back wall    
     Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
     Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, white_diffuse_material);
     Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, red_diffuse_material);
@@ -333,7 +355,7 @@ Scene create_scene(){
     */
 
     Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
-    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, gold_material);
+    Sphere* ball2 = new Sphere(vec3(0.45, 0.5, 0.6), 0.35, scattering_glass_material);
 
     Rectangle* light_source = new Rectangle(vec3(0, 2.199, 1), vec3(0,0,-1), vec3(1,0,0), 1, 1, light_source_material);
     
@@ -342,8 +364,8 @@ Scene create_scene(){
     bool smooth_shade = false;
     //ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
-    int number_of_objects = 9;
-    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball1, ball2};
+    int number_of_objects = 8;
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball2};
 
     ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
 
@@ -410,6 +432,7 @@ int main() {
             normal_buffer[idx] = data.pixel_normal;
         }
     }
+    print_progress(1);
 
     raw_data_file.close();
  

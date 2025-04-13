@@ -72,12 +72,11 @@ vec3 DiffuseMaterial::eval(const Hit& hit, const double u, const double v) const
 BrdfData DiffuseMaterial::sample(const Hit& hit, const double u, const double v) const{
     vec3 adjusted_normal = dot_vectors(hit.incident_vector, hit.normal_vector) < 0 ? hit.normal_vector : -hit.normal_vector;
     vec3 outgoing_vector = sample_cosine_hemisphere(adjusted_normal);
-    vec3 brdf_multiplier = albedo_map -> get(u, v);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
-    data.brdf_multiplier = brdf_multiplier;
-    data.type = DIFFUSE;
+    data.brdf_over_pdf = albedo_map -> get(u, v);
     data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    data.type = DIFFUSE;
     return data;
 }
 
@@ -95,7 +94,7 @@ BrdfData ReflectiveMaterial::sample(const Hit& hit, const double u, const double
     vec3 outgoing_vector = reflect_vector(hit.incident_vector, adjusted_normal);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
-    data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
+    data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
     data.type = REFLECTED;
     return data;
 }
@@ -149,13 +148,13 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     BrdfData data;
     if (is_reflected){
         data.type = REFLECTED;
-        data.brdf_multiplier = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
         data.outgoing_vector = reflect_vector(hit.incident_vector, normal_into_interface);
+        data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
     }
     else{
         data.type = TRANSMITTED;
-        data.brdf_multiplier = colors::WHITE;
         data.outgoing_vector = transmitted_vector;
+        data.brdf_over_pdf = colors::WHITE;
     }
 
     return data;
@@ -243,16 +242,17 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
 }
 
 vec3 MicrofacetMaterial::eval(const Hit& hit, const double u, const double v) const{
+    // TODO: This needs outgoing vector if I want to return non-zero values for specular reflection (might result in lower variance, but only if alpha != 0!).
     MicrofacetData data = prepare_microfacet_data(hit, u, v);
     double random_num = random_uniform(0, 1);
     bool reflect_specular = random_num < data.F_r;
     if (reflect_specular){
-        return colors::BLACK;
+        return colors::BLACK; // pdf * reflected_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     }
     double transmit = random_uniform(0, 1) > percentage_diffuse_map -> get(u, v);
 
     if (transmit){
-        return colors::BLACK;
+        return colors::BLACK; // pdf * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     }
 
     return albedo_map -> get(u, v) / M_PI;
@@ -276,20 +276,20 @@ vec3 MicrofacetMaterial::specular_sample(const vec3& normal_vector, const double
 
 BrdfData MicrofacetMaterial::sample_diffuse(const MicrofacetSampleArgs& args) const{
     BrdfData data;
-    data.brdf_multiplier = albedo_map -> get(args.u, args.v);
     data.outgoing_vector = sample_cosine_hemisphere(args.normal_vector);
-    data.type = DIFFUSE;
+    data.brdf_over_pdf = albedo_map -> get(args.u, args.v);
     data.pdf = dot_vectors(args.normal_vector, data.outgoing_vector) / M_PI;
+    data.type = DIFFUSE;
     return data;
 }
 
 BrdfData MicrofacetMaterial::sample_reflection(const MicrofacetSampleArgs& args) const{
     BrdfData data;
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
-    data.outgoing_vector = reflect_vector(-args.incident_vector, args.sampled_half_vector);
-    data.brdf_multiplier = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
-    data.type = REFLECTED;
     data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
+    data.outgoing_vector = reflect_vector(-args.incident_vector, args.sampled_half_vector);
+    data.brdf_over_pdf = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
+    data.type = REFLECTED;
     return data;
 }
 
@@ -303,7 +303,7 @@ BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& arg
     BrdfData data;
     data.outgoing_vector = refracted_vector;
 
-    data.brdf_multiplier = G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
+    data.brdf_over_pdf = G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     data.type = TRANSMITTED;
     data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
     return data;
@@ -338,13 +338,11 @@ BrdfData MicrofacetMaterial::sample(const Hit& hit, const double u, const double
         args.outside = data.outside;
         double random_num2 = random_uniform(0, 1);
         bool diffuse = random_num2 < percentage_diffuse_map -> get(u, v);
-        return diffuse ? sample_diffuse(args) : sample_transmission(args); // TODO: Actually, I don't think we should have diffuse here. Separate into Microfacet and Transmission Microfacet?
+        return diffuse ? sample_diffuse(args) : sample_transmission(args);
     }
 }
 
-double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{ 
-    // TODO: The normal thing could be it's own function, and the refractive index is handled outside, before sample etc is called. 
-    // TODO: Also, this should be called in sample? Furthermore, add a new function for direct light stuff.
+double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{  
     vec3 half_vector;
     bool reflected = dot_vectors(incident_vector, normal_vector) * dot_vectors(outgoing_vector, normal_vector) < 0;
     if (reflected){
@@ -353,8 +351,7 @@ double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inc
     else{
         half_vector = normalize_vector(incident_vector - outgoing_vector); // TODO: Add refractive indices here. ###
     }
-
-    return D(half_vector, normal_vector, roughness_map -> get(u, v)) * dot_vectors(half_vector, normal_vector);
+    return D(half_vector, normal_vector, std::max(roughness_map -> get(u, v), constants::EPSILON)) * dot_vectors(half_vector, normal_vector);
 }
 
 

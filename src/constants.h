@@ -6,7 +6,7 @@ namespace constants
 {
     const int WIDTH = 100;
     const int HEIGHT = 100;
-    const int samples_per_pixel = 10;
+    const int samples_per_pixel = 40000;
     const int max_recursion_depth = 100;
     const int force_tracing_limit = 3;
 
@@ -14,11 +14,11 @@ namespace constants
     const double max_ray_distance = 1.0 / 0.0;
     const double air_refractive_index = 1;
 
-    const bool enable_next_event_estimation = false;
+    const bool enable_next_event_estimation = true;
 
     const bool enable_anti_aliasing = true;
 
-    const bool enable_denoising = true;
+    const bool enable_denoising = false;
     const int denoising_iterations = 5;
     const double sigma_rt = 2;
     const double sigma_x = 5;

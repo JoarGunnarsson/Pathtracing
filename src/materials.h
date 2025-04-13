@@ -14,7 +14,7 @@ class Medium;
 
 struct BrdfData{
     vec3 outgoing_vector;
-    vec3 brdf_multiplier;
+    vec3 brdf_over_pdf;
     int type = DIFFUSE;
     double pdf;
 };

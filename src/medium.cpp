@@ -14,16 +14,16 @@ vec3 Medium::sample_direction(const vec3& incident_vector) const{
     return sample_spherical();
 }
 
+double Medium::phase_function(const vec3& incident_vector, const vec3& outgoing_vector) const{
+    return 1.0/(4 * M_PI);
+}
+
 vec3 Medium::transmittance_albedo(const double distance) const{
     return exp_vector(-extinction_albedo * distance);
 }
 
 vec3 Medium::sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const{
     return colors::WHITE;
-}
-
-vec3 Medium::sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const{
-    return colors::BLACK;
 }
 
 
@@ -48,11 +48,6 @@ vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_ob
     }
     pdf *= 1.0 / 3.0;
     return scatter ? tr * scattering_albedo / pdf : tr / pdf;
-}
-
-vec3 ScatteringMediumHomogenous::sample_direct(const vec3& scattering_point, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const{
-    vec3 sampled_direction; 
-    return direct_lighting(scattering_point, objects, number_of_objects, sampled_direction, current_medium_stack) * 0.25 / M_PI;
 }
 
 
