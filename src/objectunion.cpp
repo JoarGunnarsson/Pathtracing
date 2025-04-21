@@ -58,8 +58,8 @@ bool ObjectUnion::is_light_source() const {
     return contains_light_source;
 }
 
-vec3 ObjectUnion::eval(const Hit& hit) const {
-    return objects[hit.primitive_ID]  -> eval(hit);
+vec3 ObjectUnion::eval(const Hit& hit, const vec3& outgoing_vector) const {
+    return objects[hit.primitive_ID]  -> eval(hit, outgoing_vector);
 }
 
 BrdfData ObjectUnion::sample(const Hit& hit) const {

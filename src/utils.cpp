@@ -130,6 +130,7 @@ vec3 refract_vector(const vec3& incident_vector, const vec3& normal_vector, cons
 }
 
 double fresnel_dielectric(const double cos_incident, const double n1, const double n2){
+    // Can result in nans - seems to be caused by rays entering through the surface of concave models.
     double sin_incident = sqrt(1 - cos_incident * cos_incident);
     double cos_transmitted = sqrt(1 - pow(n1 / n2 * sin_incident, 2));
     double n1_cos_incident = n1 * cos_incident;

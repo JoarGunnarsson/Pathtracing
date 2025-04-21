@@ -52,7 +52,7 @@ Material::~Material(){
 
 bool Material::allow_direct_light() const { return false; }
 bool Material::compute_direct_light() const { return false; }
-vec3 Material::eval(const Hit& hit, const double u, const double v) const{ return vec3(); }
+vec3 Material::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{ return vec3(0); }
 BrdfData Material::sample(const Hit& hit, const double u, const double v) const{ return BrdfData(); }
 double Material::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{ return 0; }
 
@@ -65,7 +65,7 @@ bool DiffuseMaterial::compute_direct_light() const{
     return true; 
 }
 
-vec3 DiffuseMaterial::eval(const Hit& hit, const double u, const double v) const{
+vec3 DiffuseMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
     return albedo_map -> get(u, v) / M_PI;
 }
 
@@ -85,7 +85,7 @@ double DiffuseMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incide
 }
 
 
-vec3 ReflectiveMaterial::eval(const Hit& hit, const double u, const double v) const{
+vec3 ReflectiveMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
     return colors::BLACK;
 }
 
@@ -106,7 +106,7 @@ double ReflectiveMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inc
 
 
 bool TransparentMaterial::allow_direct_light() const { return refractive_index == 1; }
-vec3 TransparentMaterial::eval(const Hit& hit, const double u, const double v) const{
+vec3 TransparentMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
     return colors::BLACK;
 }
 
@@ -160,10 +160,6 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     return data;
 }
 
-double TransparentMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{ 
-    return 0;
-}
-
 
 bool MicrofacetMaterial::compute_direct_light() const{ 
     return true;
@@ -197,7 +193,7 @@ double MicrofacetMaterial::G1(const vec3& half_vector, const vec3& normal_vector
 }
 
 double MicrofacetMaterial::G(const vec3& half_vector, const vec3& normal_vector, const vec3& incident_vector, const vec3& outgoing_vector, const double alpha) const{
-    return G1(half_vector, normal_vector, incident_vector, alpha) * G1(half_vector, normal_vector, outgoing_vector, alpha);
+    return G1(half_vector, normal_vector, -incident_vector, alpha) * G1(half_vector, normal_vector, outgoing_vector, alpha);
 }
 
 MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const double u, const double v) const{
@@ -241,24 +237,12 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
     return data;
 }
 
-vec3 MicrofacetMaterial::eval(const Hit& hit, const double u, const double v) const{
-    // TODO: This needs outgoing vector if I want to return non-zero values for specular reflection (might result in lower variance, but only if alpha != 0!).
-    MicrofacetData data = prepare_microfacet_data(hit, u, v);
-    double random_num = random_uniform(0, 1);
-    bool reflect_specular = random_num < data.F_r;
-    if (reflect_specular){
-        return colors::BLACK; // pdf * reflected_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
-    }
-    double transmit = random_uniform(0, 1) > percentage_diffuse_map -> get(u, v);
-
-    if (transmit){
-        return colors::BLACK; // pdf * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
-    }
-
-    return albedo_map -> get(u, v) / M_PI;
+vec3 MicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
+    return vec3(0.0);
 }
 
 vec3 MicrofacetMaterial::specular_sample(const vec3& normal_vector, const double alpha) const{
+    // Samples half_angle_vector
     double r1 = random_uniform(0, 1);
     double r2 = random_uniform(0, 1);
     double phi = 2 * M_PI * r2;
@@ -286,15 +270,15 @@ BrdfData MicrofacetMaterial::sample_diffuse(const MicrofacetSampleArgs& args) co
 BrdfData MicrofacetMaterial::sample_reflection(const MicrofacetSampleArgs& args) const{
     BrdfData data;
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
-    data.outgoing_vector = reflect_vector(-args.incident_vector, args.sampled_half_vector);
-    data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
+    data.outgoing_vector = reflect_vector(args.incident_vector, args.sampled_half_vector);
+    data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v); /// TODO: move from brdf_pdf to D() * ()!
     data.brdf_over_pdf = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     data.type = REFLECTED;
     return data;
 }
 
 BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& args) const{
-    vec3 refracted_vector = refract_vector(-args.incident_vector, -args.sampled_half_vector, args.eta);
+    vec3 refracted_vector = refract_vector(args.incident_vector, -args.sampled_half_vector, args.eta);
 
     if (refracted_vector.length() == 0){
         return sample_reflection(args);
@@ -302,7 +286,6 @@ BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& arg
 
     BrdfData data;
     data.outgoing_vector = refracted_vector;
-
     data.brdf_over_pdf = G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     data.type = TRANSMITTED;
     data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v);
@@ -320,12 +303,13 @@ BrdfData MicrofacetMaterial::sample(const Hit& hit, const double u, const double
     double cosine_factor = std::abs(i_dot_h / (i_dot_n * n_dot_h));
 
     double random_num = random_uniform(0, 1);
+
     bool reflect_specular = random_num <= data.F_r;
     
     MicrofacetSampleArgs args;
     args.sampled_half_vector = data.half_vector;
     args.normal_vector = -data.normal_into_interface;
-    args.incident_vector = -hit.incident_vector;
+    args.incident_vector = hit.incident_vector;
     args.cosine_factor = cosine_factor;
     args.u = u;
     args.v = v;
@@ -342,18 +326,96 @@ BrdfData MicrofacetMaterial::sample(const Hit& hit, const double u, const double
     }
 }
 
-double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{  
-    vec3 half_vector;
-    bool reflected = dot_vectors(incident_vector, normal_vector) * dot_vectors(outgoing_vector, normal_vector) < 0;
-    if (reflected){
-        half_vector = normalize_vector(outgoing_vector + incident_vector);
-    }
-    else{
-        half_vector = normalize_vector(incident_vector - outgoing_vector); // TODO: Add refractive indices here. ###
-    }
-    return D(half_vector, normal_vector, std::max(roughness_map -> get(u, v), constants::EPSILON)) * dot_vectors(half_vector, normal_vector);
+double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
+    return 0.0;
 }
 
+
+double GlossyMaterial::compute_fresnel_glossy(const vec3& incident_vector, const vec3& half_vector, const vec3& normal_vector, const double u, const double v) const{
+    double n1, k1, n2, k2;
+    double incoming_dot_normal = dot_vectors(incident_vector, normal_vector);
+    bool outside = incoming_dot_normal <= 0.0;
+    if (outside){
+        n1 = constants::air_refractive_index;
+        k1 = 0;
+        n2 = refractive_index;
+        k2 = extinction_coefficient;
+    }
+    else{
+        n1 = refractive_index;
+        k1 = extinction_coefficient;
+        n2 = constants::air_refractive_index;
+        k2 = 0;
+    }
+
+    double alpha = std::max(roughness_map -> get(u, v), constants::EPSILON);
+
+
+    double i_dot_h = -dot_vectors(incident_vector, half_vector);
+
+    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
+    return F_r;
+}
+
+
+vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
+    // TODO: Actually this is not correct, refer to pbrt for correct solution. Some question marks about that implementation, is 1 - F_r good enough?.
+
+    vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+    double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
+    /// TODO: Remove?
+    double rand_nr = random_uniform(0, 1);
+    if (rand_nr <= F_r){
+        return vec3(0);
+    }
+    return albedo_map -> get(u, v) / M_PI;
+}
+
+BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) const{
+    MicrofacetData data = prepare_microfacet_data(hit, u, v);
+            
+    double i_dot_h = dot_vectors(hit.incident_vector, data.half_vector);
+    double i_dot_n = dot_vectors(hit.incident_vector, data.normal_into_interface);
+    double n_dot_h = dot_vectors(data.half_vector, data.normal_into_interface);
+
+    double cosine_factor = std::abs(i_dot_h / (i_dot_n * n_dot_h));
+
+    double random_num = random_uniform(0, 1);
+
+    bool reflect_specular = random_num <= data.F_r;
+    
+    MicrofacetSampleArgs args;
+    args.sampled_half_vector = data.half_vector;
+    args.normal_vector = -data.normal_into_interface;
+    args.incident_vector = hit.incident_vector;
+    args.cosine_factor = cosine_factor;
+    args.u = u;
+    args.v = v;
+    args.alpha = data.alpha;
+
+    if (reflect_specular){
+        return sample_reflection(args);
+    }
+
+    return sample_diffuse(args);
+}
+
+
+double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
+    // Convention: Normal vector facing away from the interface, incident vector as well
+    // TODO: Update the pdf to add the diffuse part!.
+    
+    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); // Uses convention of facing towards the intersection point
+    
+    double F_r = compute_fresnel_glossy(incident_vector, half_vector, normal_vector, u, v);
+    /// TODO: Remove?
+    double rand_nr = random_uniform(0, 1);
+    if (rand_nr <= F_r){
+        return D(half_vector, normal_vector, std::max(roughness_map -> get(u, v), constants::EPSILON)) * dot_vectors(half_vector, normal_vector);
+    }
+    // TODO: Add method get_alpha or something.
+    return std::abs(dot_vectors(outgoing_vector, normal_vector)) / M_PI; 
+}
 
 MaterialManager::~MaterialManager(){
     for (int i = 0; i < current_idx; i++){

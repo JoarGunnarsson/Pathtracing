@@ -11,9 +11,9 @@ vec3 Object::get_UV(const vec3& point) const { return vec3(); }
 Material* Object::get_material(const int primitive_ID) const { return material; }
 bool Object::is_light_source() const { return material -> is_light_source; }
 
-vec3 Object::eval(const Hit& hit) const{
+vec3 Object::eval(const Hit& hit, const vec3& outgoing_vector) const{
     vec3 UV = get_UV(hit.intersection_point);
-    return material -> eval(hit, UV[0], UV[1]);
+    return material -> eval(hit, outgoing_vector, UV[0], UV[1]);
 }
 
 BrdfData Object::sample(const Hit& hit) const{
@@ -492,15 +492,6 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         return L;
     }
 
-    vec3 brdf;
-    if (!is_scatter){
-        brdf = objects[hit.intersected_object_index] -> eval(hit); // TODO: Fix eval for microfacet?. Works currently but could be useful for lower [variance?]. If so can't have specular for microfacet sample.
-    
-        if (brdf == vec3(0)){
-            return L;
-        }  
-    }
-
     double light_pdf;
     vec3 random_point = objects[light_index] -> random_light_point(hit.intersection_point, light_pdf);
     if (light_pdf == 0){
@@ -511,11 +502,21 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
 
-    double scatter_pdf;
+    vec3 brdf;
+    if (!is_scatter){
+        brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction); // TODO: Fix eval for microfacet?. Works currently but could be useful for lower [variance?]. If so can't have specular for microfacet sample.
+    
+        if (brdf == vec3(0)){
+            return L;
+        }  
+    }
+
+    double scatter_pdf; // TODO: Rename variable name?
     if (is_scatter){
         scatter_pdf = current_medium_stack.get_medium() -> phase_function(hit.incident_vector, sampled_direction);
     }
     else{
+        // TODO: Problem here with eval brightness etc.
         scatter_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);
     }
     

@@ -78,7 +78,7 @@ class Material{
         
     virtual bool allow_direct_light() const;
     virtual bool compute_direct_light() const;
-    virtual vec3 eval(const Hit& hit, const double u, const double v) const;
+    virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const;
     virtual BrdfData sample(const Hit& hit, const double u, const double v) const;
     virtual double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const;
     vec3 get_light_emittance(const double u, const double v) const;
@@ -90,7 +90,7 @@ class DiffuseMaterial : public Material{
         using Material::Material;
 
     bool compute_direct_light() const override;
-    vec3 eval(const Hit& hit, const double u, const double v) const override;
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
@@ -100,7 +100,7 @@ class ReflectiveMaterial : public Material{
     public:
         using Material::Material;
 
-    vec3 eval(const Hit& hit, const double u, const double v) const override;
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
@@ -111,9 +111,8 @@ class TransparentMaterial : public Material{
         using Material::Material;
 
     bool allow_direct_light() const override;
-    vec3 eval(const Hit& hit, const double u, const double v) const override;
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
-    double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
 
 
@@ -127,11 +126,40 @@ class MicrofacetMaterial : public Material{
     double G1(const vec3& half_vector, const vec3& normal_vector, const vec3& v, const double alpha) const;
     double G(const vec3& half_vector, const vec3& normal_vector, const vec3& incident_vector, const vec3& outgoing_vector, const double alpha) const;
     MicrofacetData prepare_microfacet_data(const Hit& hit, const double u, const double v) const;
-    vec3 eval(const Hit& hit, const double u, const double v) const override;
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     vec3 specular_sample(const vec3& normal_vector, const double alpha) const;
     BrdfData sample_diffuse(const MicrofacetSampleArgs& args) const;
     BrdfData sample_reflection(const MicrofacetSampleArgs& args) const;
     BrdfData sample_transmission(const MicrofacetSampleArgs& args) const;
+    BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
+};
+
+
+class GlossyMaterial : public MicrofacetMaterial{
+    public:
+        using MicrofacetMaterial::MicrofacetMaterial;
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
+    double compute_fresnel_glossy(const vec3& incident_vector, const vec3& half_vector, const vec3& normal_vector, const double u, const double v) const;
+    BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
+};
+
+
+class MetallicMaterial : public MicrofacetMaterial{
+    public:
+        using MicrofacetMaterial::MicrofacetMaterial;
+
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
+    BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
+};
+
+
+class TransparentMicrofacetMaterial : public MicrofacetMaterial{
+    public:
+        using MicrofacetMaterial::MicrofacetMaterial;
+
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };

@@ -17,7 +17,7 @@ class ObjectUnion : public Object{
 
         virtual Material* get_material(const int primitive_ID) const override;
         virtual bool is_light_source() const override;
-        virtual vec3 eval(const Hit& hit) const override;
+        virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const override;
         virtual BrdfData sample(const Hit& hit) const override;
         virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const override;
         virtual vec3 get_light_emittance(const Hit& hit) const override;

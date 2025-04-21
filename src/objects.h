@@ -27,7 +27,7 @@ class Object{
         virtual vec3 get_UV(const vec3& point) const;
         virtual Material* get_material(const int primitive_ID) const;
         virtual bool is_light_source() const;
-        virtual vec3 eval(const Hit& hit) const;
+        virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const;
         vec3 sample_direct(const Hit& hit, Object** objects, const int number_of_objects, const MediumStack& current_medium_stack) const;
         virtual BrdfData sample(const Hit& hit) const;
         virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const;
