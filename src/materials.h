@@ -122,6 +122,7 @@ class MicrofacetMaterial : public Material{
 
     bool compute_direct_light() const override;
     double chi(const double x) const;
+    double get_alpha(const double u, const double v) const;
     double D(const vec3& half_vector, const vec3& normal_vector, const double alpha) const;
     double G1(const vec3& half_vector, const vec3& normal_vector, const vec3& v, const double alpha) const;
     double G(const vec3& half_vector, const vec3& normal_vector, const vec3& incident_vector, const vec3& outgoing_vector, const double alpha) const;

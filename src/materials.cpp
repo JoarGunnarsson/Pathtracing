@@ -169,6 +169,10 @@ double MicrofacetMaterial::chi(const double x) const{
     return x > 0 ? 1 : 0;
 }
 
+double MicrofacetMaterial::get_alpha(const double u, const double v) const{
+    return std::max(roughness_map -> get(u, v), constants::EPSILON);
+}
+
 double MicrofacetMaterial::D(const vec3& half_vector, const vec3& normal_vector, const double alpha) const{
     double cos_theta = dot_vectors(half_vector, normal_vector);
     double cos_theta_2 = cos_theta * cos_theta;
@@ -183,6 +187,7 @@ double MicrofacetMaterial::D(const vec3& half_vector, const vec3& normal_vector,
 
 
 double MicrofacetMaterial::G1(const vec3& half_vector, const vec3& normal_vector, const vec3& v, const double alpha) const{
+    // Uses convention of v facing away from intersection.
     double cos_theta = dot_vectors(half_vector, v);
     double tan_theta = sqrt((1.0 - cos_theta * cos_theta) / (cos_theta * cos_theta));
     double a = 1.0 / (alpha * tan_theta);
@@ -219,7 +224,7 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
         k2 = 0;
     }
 
-    double alpha = std::max(roughness_map -> get(u, v), constants::EPSILON);
+    double alpha = get_alpha(u, v);
 
     vec3 sampled_half_vector = specular_sample(-normal_into_interface, alpha);
             
@@ -270,10 +275,10 @@ BrdfData MicrofacetMaterial::sample_diffuse(const MicrofacetSampleArgs& args) co
 BrdfData MicrofacetMaterial::sample_reflection(const MicrofacetSampleArgs& args) const{
     BrdfData data;
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
-    data.outgoing_vector = reflect_vector(args.incident_vector, args.sampled_half_vector);
-    data.pdf = brdf_pdf(data.outgoing_vector, args.incident_vector, args.normal_vector, args.u, args.v); /// TODO: move from brdf_pdf to D() * ()!
+    data.outgoing_vector = reflect_vector(args.incident_vector, args.sampled_half_vector); // TODO: Remove below??!
+    data.pdf = D(args.sampled_half_vector, args.normal_vector, get_alpha(args.u, args.v)) * dot_vectors(args.sampled_half_vector, args.normal_vector);
     data.brdf_over_pdf = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
-    data.type = REFLECTED;
+    data.type = DIFFUSE;
     return data;
 }
 
@@ -348,74 +353,86 @@ double GlossyMaterial::compute_fresnel_glossy(const vec3& incident_vector, const
         k2 = 0;
     }
 
-    double alpha = std::max(roughness_map -> get(u, v), constants::EPSILON);
-
+    double alpha = get_alpha(u, v);
 
     double i_dot_h = -dot_vectors(incident_vector, half_vector);
 
     double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
+    if (isnan(F_r)){
+        return 0.0;
+    }
     return F_r;
 }
 
 
 vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
     // TODO: Actually this is not correct, refer to pbrt for correct solution. Some question marks about that implementation, is 1 - F_r good enough?.
-
+    // Looks like the dragon is glowing...
+    // I get negatives when using this... look into that.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+
     double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
-    /// TODO: Remove?
-    double rand_nr = random_uniform(0, 1);
-    if (rand_nr <= F_r){
-        return vec3(0);
-    }
-    return albedo_map -> get(u, v) / M_PI;
+
+    vec3 diffuse = (1 - F_r) * albedo_map -> get(u, v) / M_PI;
+
+    double alpha = get_alpha(u, v);
+    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
+    vec3 specular = reflection_color * F_r * d_factor * g_factor * denom_factor;
+    return diffuse + specular;
 }
 
 BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) const{
-    MicrofacetData data = prepare_microfacet_data(hit, u, v);
-            
-    double i_dot_h = dot_vectors(hit.incident_vector, data.half_vector);
-    double i_dot_n = dot_vectors(hit.incident_vector, data.normal_into_interface);
-    double n_dot_h = dot_vectors(data.half_vector, data.normal_into_interface);
+    // TODO: Add hit_into_interface etc.
+    // If roughness is too small, we get a delta distribution. Simplify the division by the pdf to circumvent.
+    double rand_1 = random_uniform(0, 1);
 
-    double cosine_factor = std::abs(i_dot_h / (i_dot_n * n_dot_h));
-
-    double random_num = random_uniform(0, 1);
-
-    bool reflect_specular = random_num <= data.F_r;
-    
-    MicrofacetSampleArgs args;
-    args.sampled_half_vector = data.half_vector;
-    args.normal_vector = -data.normal_into_interface;
-    args.incident_vector = hit.incident_vector;
-    args.cosine_factor = cosine_factor;
-    args.u = u;
-    args.v = v;
-    args.alpha = data.alpha;
-
-    if (reflect_specular){
-        return sample_reflection(args);
+    vec3 outgoing_vector, half_vector;
+    if (rand_1 <= 0.5){
+        outgoing_vector = sample_cosine_hemisphere(hit.normal_vector);
+        half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+    }
+    else{
+        half_vector = specular_sample(hit.normal_vector, get_alpha(u, v));
+        outgoing_vector = reflect_vector(hit.incident_vector, half_vector);
     }
 
-    return sample_diffuse(args);
-}
+    double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
 
+    vec3 diffuse = albedo_map -> get(u, v) / M_PI;
+
+    double alpha = get_alpha(u, v);
+    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
+    vec3 specular = reflection_color * std::max(F_r * d_factor * g_factor * denom_factor, 0.0);
+
+    BrdfData brdf_data;
+    brdf_data.outgoing_vector = outgoing_vector;
+    brdf_data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : (diffuse + specular) * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
+    brdf_data.type = DIFFUSE;
+    return brdf_data;
+}
 
 double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
     // Convention: Normal vector facing away from the interface, incident vector as well
     // TODO: Update the pdf to add the diffuse part!.
+    // TODO: Is this correct even?
     
-    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); // Uses convention of facing towards the intersection point
-    
-    double F_r = compute_fresnel_glossy(incident_vector, half_vector, normal_vector, u, v);
-    /// TODO: Remove?
-    double rand_nr = random_uniform(0, 1);
-    if (rand_nr <= F_r){
-        return D(half_vector, normal_vector, std::max(roughness_map -> get(u, v), constants::EPSILON)) * dot_vectors(half_vector, normal_vector);
-    }
-    // TODO: Add method get_alpha or something.
-    return std::abs(dot_vectors(outgoing_vector, normal_vector)) / M_PI; 
+    double diffuse_pdf = std::max(dot_vectors(normal_vector, outgoing_vector) / M_PI, 0.0); // max 0
+
+    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
+
+    double half_vector_pdf = D(half_vector, normal_vector, get_alpha(u, v)) * dot_vectors(half_vector, normal_vector);
+    double specular_pdf = std::max(half_vector_pdf / (4.0 * dot_vectors(outgoing_vector, half_vector)), 0.0); 
+
+    return 0.5 * (diffuse_pdf + specular_pdf);
 }
+
 
 MaterialManager::~MaterialManager(){
     for (int i = 0; i < current_idx; i++){
