@@ -6,7 +6,7 @@ namespace constants
 {
     const int WIDTH = 500;
     const int HEIGHT = 500;
-    const int samples_per_pixel = 100;
+    const int samples_per_pixel = 1000;
     const int max_recursion_depth = 100;
     const int force_tracing_limit = 3;
 

@@ -504,7 +504,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
 
     vec3 brdf;
     if (!is_scatter){
-        brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction); // TODO: Fix eval for microfacet?. Works currently but could be useful for lower [variance?]. If so can't have specular for microfacet sample.
+        brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction);
     
         if (brdf == vec3(0)){
             return L;
@@ -516,7 +516,6 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         scatter_pdf = current_medium_stack.get_medium() -> phase_function(hit.incident_vector, sampled_direction);
     }
     else{
-        // TODO: Problem here with eval brightness etc.
         scatter_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);
     }
     

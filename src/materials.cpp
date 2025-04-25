@@ -170,6 +170,7 @@ double MicrofacetMaterial::chi(const double x) const{
 }
 
 double MicrofacetMaterial::get_alpha(const double u, const double v) const{
+    // roughness for 0.01 and above seems to work without nans - perhaps set that as the limit?
     return std::max(roughness_map -> get(u, v), constants::EPSILON);
 }
 
@@ -353,8 +354,6 @@ double GlossyMaterial::compute_fresnel_glossy(const vec3& incident_vector, const
         k2 = 0;
     }
 
-    double alpha = get_alpha(u, v);
-
     double i_dot_h = -dot_vectors(incident_vector, half_vector);
 
     double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
@@ -366,14 +365,32 @@ double GlossyMaterial::compute_fresnel_glossy(const vec3& incident_vector, const
 
 
 vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
-    // TODO: Actually this is not correct, refer to pbrt for correct solution. Some question marks about that implementation, is 1 - F_r good enough?.
-    // Looks like the dragon is glowing...
-    // I get negatives when using this... look into that.
+    // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
     double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
 
-    vec3 diffuse = (1 - F_r) * albedo_map -> get(u, v) / M_PI;
+    double n1, k1, n2, k2;
+    double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
+    bool outside = incoming_dot_normal <= 0.0;
+    if (outside){
+        n1 = constants::air_refractive_index;
+        k1 = 0;
+        n2 = refractive_index;
+        k2 = extinction_coefficient;
+    }
+    else{
+        n1 = refractive_index;
+        k1 = extinction_coefficient;
+        n2 = constants::air_refractive_index;
+        k2 = 0;
+    }
+
+    double R_0_sqrt = (n1 - n2) / (n1 + n2);
+    double R_0 = R_0_sqrt * R_0_sqrt;
+    double fac1 = std::min((1.0-dot_vectors(hit.normal_vector, -hit.incident_vector)/2.0), 1.0);
+    double fac2 = std::min((1.0-dot_vectors(hit.normal_vector, outgoing_vector)/2.0), 1.0);
+    vec3 diffuse = albedo_map -> get(u, v) * 28.0 / (23.0 * M_PI) * (1 - R_0) * (1-fac1*fac1*fac1*fac1*fac1) * (1-fac2*fac2*fac2*fac2*fac2);
 
     double alpha = get_alpha(u, v);
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
@@ -399,31 +416,20 @@ BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) 
         outgoing_vector = reflect_vector(hit.incident_vector, half_vector);
     }
 
-    double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
-
-    vec3 diffuse = albedo_map -> get(u, v) / M_PI;
-
-    double alpha = get_alpha(u, v);
-    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
-    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
-    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
-    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
-    vec3 specular = reflection_color * std::max(F_r * d_factor * g_factor * denom_factor, 0.0);
+    vec3 brdf = eval(hit, outgoing_vector, u, v);
 
     BrdfData brdf_data;
     brdf_data.outgoing_vector = outgoing_vector;
     brdf_data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
-    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : (diffuse + specular) * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : brdf * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
     brdf_data.type = DIFFUSE;
     return brdf_data;
 }
 
 double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
     // Convention: Normal vector facing away from the interface, incident vector as well
-    // TODO: Update the pdf to add the diffuse part!.
-    // TODO: Is this correct even?
-    
-    double diffuse_pdf = std::max(dot_vectors(normal_vector, outgoing_vector) / M_PI, 0.0); // max 0
+
+    double diffuse_pdf = std::max(dot_vectors(normal_vector, outgoing_vector) / M_PI, 0.0);
 
     vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
 
