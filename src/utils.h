@@ -24,6 +24,9 @@ struct Hit{
     vec3 intersection_point;
     vec3 incident_vector;
     vec3 normal_vector;
+    vec3 normal_vector_out_from_interface;
+    bool outside;
+    // TODO: Save normal - facing away from intersection + bool for outside vs inside?
 };
 
 struct Ray{

@@ -120,6 +120,7 @@ vec3 reflect_vector(const vec3& direction_vector, const vec3& normal_vector){
 }
 
 vec3 refract_vector(const vec3& incident_vector, const vec3& normal_vector, const double eta){
+    // Uses convention of normal_vector going into material.
     double cos_incident = dot_vectors(normal_vector, incident_vector);
     double length_in_normal_direction_squared = 1 - eta * eta * (1 - cos_incident * cos_incident);
     if (length_in_normal_direction_squared < 0){

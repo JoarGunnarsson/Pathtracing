@@ -58,6 +58,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
             ray_hit.distance = constants::max_ray_distance;
         }
+        // save refractive indices here? Take from hit object + current/next medium?
         
         bool scatter = scatter_distance < ray_hit.distance;
         scatter_distance = std::min(scatter_distance, ray_hit.distance);
@@ -102,7 +103,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 }
                 vec3 light_emittance = hit_object -> get_light_emittance(ray_hit);
 
-                color += weight * light_emittance * throughput * (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0);
+                color += weight * light_emittance * throughput; // TODO: What does this dot product do?  (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0
             }
             
             if (constants::enable_next_event_estimation){
@@ -112,7 +113,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             BrdfData brdf_result = hit_object -> sample(ray_hit);
             // TODO: Rename allow_direct_light!
             // TODO: Rename is_virtual_surface variable...
-            bool is_virtual_surface = hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light();
+            bool is_virtual_surface = hit_object -> get_material(ray_hit.primitive_ID) -> allow_direct_light(); //This deviates from usual pattern of object method calling material method, but is better?
             if (is_virtual_surface){
                 brdf_result.type = ray.type;
             }
@@ -122,11 +123,10 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
             throughput *= brdf_result.brdf_over_pdf;
 
-            double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
-            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
+            double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector_out_from_interface);
+            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector_out_from_interface);
             
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
-            bool entering = incoming_dot_normal < 0;
 
             // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
             // TODO: Can save current_medium and next_medium, and pass that into sample and compute_direct_light.
@@ -135,7 +135,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
                 // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
                 // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
-                if (entering){
+                if (ray_hit.outside){
                     medium_stack.add_medium(new_medium, ray_hit.intersected_object_index);
                 }
                 else{
@@ -267,6 +267,14 @@ Scene create_scene(){
     GlossyMaterial* plastic_material = new GlossyMaterial(plastic_data);
     manager -> add_material(plastic_material);
 
+    MaterialData rough_glass_data;
+    rough_glass_data.refractive_index = 1.5;
+    rough_glass_data.roughness_map = new ValueMap1D(0.01);
+    BeersLawMedium* rough_glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
+    rough_glass_data.medium = rough_glass_medium;
+    TransparentMicrofacetMaterial* rough_glass_material = new TransparentMicrofacetMaterial(rough_glass_data);
+    manager -> add_material(rough_glass_material);
+
     MaterialData light_material_data;
     light_material_data.albedo_map =  new ValueMap3D(colors::WHITE * 0.8);
     light_material_data.emission_color_map =  new ValueMap3D(colors::WARM_WHITE);
@@ -362,7 +370,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(-0.3, 0.3, 1.3);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", rough_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};

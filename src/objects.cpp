@@ -23,7 +23,7 @@ BrdfData Object::sample(const Hit& hit) const{
 
 double Object::brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const{
     vec3 UV = get_UV(hit.intersection_point);
-    return material -> brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, UV[0], UV[1]);
+    return material -> brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector_out_from_interface, UV[0], UV[1]);
 }
 
 vec3 Object::get_light_emittance(const Hit& hit) const{
@@ -405,6 +405,10 @@ bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int nu
 
     closest_hit.intersection_point = ray.starting_position + ray.direction_vector * closest_hit.distance;
     closest_hit.normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.primitive_ID);
+    // TODO: add normal_out_from_interface - maybe even replace normal_vector if that is fine...
+    closest_hit.outside = dot_vectors(ray.direction_vector, closest_hit.normal_vector) < 0;
+    closest_hit.normal_vector_out_from_interface = closest_hit.outside ? closest_hit.normal_vector : -closest_hit.normal_vector;
+    closest_hit.normal_vector = -closest_hit.normal_vector;
     closest_hit.incident_vector = ray.direction_vector;
     return true;
  }
@@ -468,8 +472,7 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
         }
         ray.starting_position = light_hit.intersection_point;
         
-        double incoming_dot_normal = dot_vectors(light_hit.normal_vector, ray.direction_vector);
-        bool leaving_object = incoming_dot_normal > 0;
+        bool leaving_object = !light_hit.outside;
         Medium* new_medium = objects[light_hit.intersected_object_index] -> get_material(light_hit.primitive_ID) -> medium;
         if (leaving_object){
             new_medium_stack.pop_medium(light_hit.intersected_object_index);
@@ -508,7 +511,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     if (!is_scatter){
         brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction);
     
-        if (brdf == vec3(0)){
+        if (brdf.length_squared() == 0){
             return L;
         }  
     }
@@ -525,7 +528,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     vec3 transmittance;
     vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium_stack, light_index, sampled_direction, transmittance, distance);
 
-    if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance == vec3(0)){
+    if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance.length_squared() == 0){
         return L;
     }
 
@@ -534,11 +537,11 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         L = weight * scatter_pdf * emittance * transmittance / light_pdf;
     }
     else{
-        bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(sampled_direction, hit.normal_vector)) > 0 ;
+        bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface) * dot_vectors(sampled_direction, hit.normal_vector_out_from_interface)) > 0 ;
         if (wrong_side){
             return L;
         }
-        double cosine = std::abs(dot_vectors(hit.normal_vector, sampled_direction));
+        double cosine = std::max(dot_vectors(hit.normal_vector_out_from_interface, sampled_direction), 0.0); // TODO: used to be abs here, but I did not like that - but test!
         L = weight * brdf * cosine * emittance * transmittance / light_pdf;
     }
     
