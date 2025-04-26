@@ -79,7 +79,11 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
             int q = idx_from_coordinates(x, y, constants::WIDTH);
             double weight = compute_weight(p, q, kernel_data, pixel_buffer, position_buffer, normal_buffer);
             double kernel_value = kernel_data.kernel[kernel_idx];
-            new_pixel_value += kernel_value * pixel_buffer[q] * weight;
+            vec3 pixel_contribution = kernel_value * pixel_buffer[q] * weight;
+            if (isnan(pixel_contribution.length_squared())){
+                pixel_contribution = vec3(0.0);
+            }
+            new_pixel_value += pixel_contribution;
             normalization += kernel_value * weight;
         }
     }
