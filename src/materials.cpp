@@ -114,11 +114,8 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     double incident_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
     vec3 normal_into_interface;
     bool outside = incident_dot_normal < 0.0;
-    // TODO: Look at the next medium, use that as refractive index!
-    double n1;
-    double k1;
-    double n2;
-    double k2;
+    // TODO: Look at the current medium, use that as refractive index! Update for extinction coefficient!
+    double n1, k1, n2, k2;
     if (outside){
         normal_into_interface = -hit.normal_vector;
         n1 = constants::air_refractive_index;
@@ -337,38 +334,9 @@ double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inc
 }
 
 
-double GlossyMaterial::compute_fresnel_glossy(const vec3& incident_vector, const vec3& half_vector, const vec3& normal_vector, const double u, const double v) const{
-    double n1, k1, n2, k2;
-    double incoming_dot_normal = dot_vectors(incident_vector, normal_vector);
-    bool outside = incoming_dot_normal <= 0.0;
-    if (outside){
-        n1 = constants::air_refractive_index;
-        k1 = 0;
-        n2 = refractive_index;
-        k2 = extinction_coefficient;
-    }
-    else{
-        n1 = refractive_index;
-        k1 = extinction_coefficient;
-        n2 = constants::air_refractive_index;
-        k2 = 0;
-    }
-
-    double i_dot_h = -dot_vectors(incident_vector, half_vector);
-
-    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
-    if (isnan(F_r)){
-        return 0.0;
-    }
-    return F_r;
-}
-
-
 vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
-
-    double F_r = compute_fresnel_glossy(hit.incident_vector, half_vector, hit.normal_vector, u, v);
 
     double n1, k1, n2, k2;
     double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
@@ -385,6 +353,10 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
         n2 = constants::air_refractive_index;
         k2 = 0;
     }
+
+    double i_dot_h = -dot_vectors(hit.incident_vector, half_vector);
+
+    double F_r = schlick_fresnel(i_dot_h, n1, k1, n2, k2);
 
     double R_0_sqrt = (n1 - n2) / (n1 + n2);
     double R_0 = R_0_sqrt * R_0_sqrt;
@@ -439,6 +411,63 @@ double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inciden
     return 0.5 * (diffuse_pdf + specular_pdf);
 }
 
+
+vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const{
+    // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
+    vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+
+    double n1, k1, n2, k2;
+    double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector);
+    bool outside = incoming_dot_normal <= 0.0;
+    if (outside){
+        n1 = constants::air_refractive_index;
+        k1 = 0;
+        n2 = refractive_index;
+        k2 = extinction_coefficient;
+    }
+    else{
+        n1 = refractive_index;
+        k1 = extinction_coefficient;
+        n2 = constants::air_refractive_index;
+        k2 = 0;
+    }
+
+    double i_dot_h = -dot_vectors(hit.incident_vector, half_vector);
+
+    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
+
+    double alpha = get_alpha(u, v);
+    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
+    vec3 specular = reflection_color * F_r * d_factor * g_factor * denom_factor;
+    return specular;
+}
+
+BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double v) const{
+    // TODO: Add hit_into_interface etc.
+
+    vec3 half_vector = specular_sample(hit.normal_vector, get_alpha(u, v));
+    vec3 outgoing_vector = reflect_vector(hit.incident_vector, half_vector);
+
+    vec3 brdf = eval(hit, outgoing_vector, u, v);
+
+    BrdfData brdf_data;
+    brdf_data.outgoing_vector = outgoing_vector;
+    brdf_data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : brdf * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
+    brdf_data.type = DIFFUSE;
+    return brdf_data;
+}
+
+double MetallicMicrofacet::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
+    // TODO: Repeats code from glossy, maybe can create method for microfacet?
+    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
+    double half_vector_pdf = D(half_vector, normal_vector, get_alpha(u, v)) * dot_vectors(half_vector, normal_vector);
+    double pdf = std::max(half_vector_pdf / (4.0 * dot_vectors(outgoing_vector, half_vector)), 0.0); 
+    return pdf;
+}
 
 MaterialManager::~MaterialManager(){
     for (int i = 0; i < current_idx; i++){

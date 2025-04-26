@@ -502,6 +502,8 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
 
+    Medium* current_medium = current_medium_stack.get_medium();
+
     vec3 brdf;
     if (!is_scatter){
         brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction);
@@ -513,7 +515,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
 
     double scatter_pdf; // TODO: Rename variable name?
     if (is_scatter){
-        scatter_pdf = current_medium_stack.get_medium() -> phase_function(hit.incident_vector, sampled_direction);
+        scatter_pdf = current_medium -> phase_function(hit.incident_vector, sampled_direction);
     }
     else{
         scatter_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);

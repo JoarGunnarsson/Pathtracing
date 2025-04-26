@@ -253,11 +253,11 @@ Scene create_scene(){
 
     MaterialData gold_data;
     gold_data.albedo_map = new ValueMap3D(colors::GOLD);
-    gold_data.roughness_map = new ValueMap1D(0.);
+    gold_data.roughness_map = new ValueMap1D(0.01);
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
     gold_data.is_dielectric = false;
-    MicrofacetMaterial* gold_material = new MicrofacetMaterial(gold_data);
+    MetallicMicrofacet* gold_material = new MetallicMicrofacet(gold_data);
     manager -> add_material(gold_material);
 
     MaterialData plastic_data;
@@ -362,7 +362,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(-0.3, 0.3, 1.3);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", plastic_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};

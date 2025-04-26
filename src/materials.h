@@ -141,13 +141,12 @@ class GlossyMaterial : public MicrofacetMaterial{
     public:
         using MicrofacetMaterial::MicrofacetMaterial;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
-    double compute_fresnel_glossy(const vec3& incident_vector, const vec3& half_vector, const vec3& normal_vector, const double u, const double v) const;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
 
 
-class MetallicMaterial : public MicrofacetMaterial{
+class MetallicMicrofacet : public MicrofacetMaterial{
     public:
         using MicrofacetMaterial::MicrofacetMaterial;
 

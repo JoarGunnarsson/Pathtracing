@@ -179,13 +179,18 @@ double fresnel_conductor(double cos_theta_real, const double n1, const double k1
     return 0.5 * real(R_p + R_s);
 }
 
-double fresnel_multiplier(const double cos_incident, const double n1, const double k1, const double n2, const double k2, const bool is_dielectric){
+double schlick_fresnel(const double cos_incident, const double n1, const double k1, const double n2, const double k2){
     double R_0_sqrt = (n1 - n2) / (n1 + n2);
     double R_0 = R_0_sqrt * R_0_sqrt;
     double x = 1 - cos_incident;
     double fresnel = R_0 + (1 - R_0) * (x * x * x * x * x);
+    if (isnan(fresnel) || fresnel < 0 || fresnel > 1){
+        return 0;
+    }
     return fresnel;
+}
 
+double fresnel_multiplier(const double cos_incident, const double n1, const double k1, const double n2, const double k2, const bool is_dielectric){
     if (is_dielectric || (k1==0 && k2==0)){
         return fresnel_dielectric(cos_incident, n1, n2);
     }
