@@ -224,7 +224,7 @@ MicrofacetData MicrofacetMaterial::prepare_microfacet_data(const Hit& hit, const
 
     double alpha = get_alpha(u, v);
 
-    vec3 sampled_half_vector = specular_sample(-normal_into_interface, alpha);
+    vec3 sampled_half_vector = sample_half_vector(-normal_into_interface, alpha);
             
     double i_dot_h = dot_vectors(hit.incident_vector, sampled_half_vector);
 
@@ -244,7 +244,7 @@ vec3 MicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const
     return vec3(0.0);
 }
 
-vec3 MicrofacetMaterial::specular_sample(const vec3& normal_vector, const double alpha) const{
+vec3 MicrofacetMaterial::sample_half_vector(const vec3& normal_vector, const double alpha) const{
     // Samples half_angle_vector
     double r1 = random_uniform(0, 1);
     double r2 = random_uniform(0, 1);
@@ -261,33 +261,15 @@ vec3 MicrofacetMaterial::specular_sample(const vec3& normal_vector, const double
     return x_hat * sin_theta * cos(phi) + y_hat * sin_theta * sin(phi) + normal_vector * cos_theta;
 }
 
-BrdfData MicrofacetMaterial::sample_diffuse(const MicrofacetSampleArgs& args) const{
-    BrdfData data;
-    data.outgoing_vector = sample_cosine_hemisphere(args.normal_vector);
-    data.brdf_over_pdf = albedo_map -> get(args.u, args.v);
-    data.pdf = dot_vectors(args.normal_vector, data.outgoing_vector) / M_PI;
-    data.type = DIFFUSE;
-    return data;
-}
-
-BrdfData MicrofacetMaterial::sample_reflection(const MicrofacetSampleArgs& args) const{
-    BrdfData data;
-    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(args.u, args.v);
-    data.outgoing_vector = reflect_vector(args.incident_vector, args.sampled_half_vector); // TODO: Remove below??!
-    data.pdf = D(args.sampled_half_vector, args.normal_vector, get_alpha(args.u, args.v)) * dot_vectors(args.sampled_half_vector, args.normal_vector);
-    data.brdf_over_pdf = reflection_color * G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
-    data.type = DIFFUSE;
-    return data;
-}
+vec3 MicrofacetMaterial::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{ return vec3(0); }
 
 BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& args) const{
     vec3 refracted_vector = refract_vector(args.incident_vector, -args.sampled_half_vector, args.eta);
-
+    BrdfData data;
     if (refracted_vector.length() == 0){
-        return sample_reflection(args);
+        return data;//sample_reflection(args);
     }
 
-    BrdfData data;
     data.outgoing_vector = refracted_vector;
     data.brdf_over_pdf = G(args.sampled_half_vector, args.normal_vector, args.incident_vector, data.outgoing_vector, args.alpha) * args.cosine_factor;
     data.type = TRANSMITTED;
@@ -295,38 +277,25 @@ BrdfData MicrofacetMaterial::sample_transmission(const MicrofacetSampleArgs& arg
     return data;
 }
 
-
 BrdfData MicrofacetMaterial::sample(const Hit& hit, const double u, const double v) const{
-    MicrofacetData data = prepare_microfacet_data(hit, u, v);
-            
-    double i_dot_h = dot_vectors(hit.incident_vector, data.half_vector);
-    double i_dot_n = dot_vectors(hit.incident_vector, data.normal_into_interface);
-    double n_dot_h = dot_vectors(data.half_vector, data.normal_into_interface);
+    // TODO: Add hit_into_interface etc.
+    BrdfData brdf_data;
+    brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : eval(hit, brdf_data.outgoing_vector, u, v) * dot_vectors(brdf_data.outgoing_vector, hit.normal_vector) / brdf_data.pdf;
+    brdf_data.type = DIFFUSE;
+    return brdf_data;
+}
 
-    double cosine_factor = std::abs(i_dot_h / (i_dot_n * n_dot_h));
+double MicrofacetMaterial::diffuse_pdf(const vec3& outgoing_vector, const vec3& normal_vector) const{
+    return std::max(dot_vectors(normal_vector, outgoing_vector) / M_PI, 0.0);
+}
 
-    double random_num = random_uniform(0, 1);
+double MicrofacetMaterial::specular_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{
+    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
 
-    bool reflect_specular = random_num <= data.F_r;
-    
-    MicrofacetSampleArgs args;
-    args.sampled_half_vector = data.half_vector;
-    args.normal_vector = -data.normal_into_interface;
-    args.incident_vector = hit.incident_vector;
-    args.cosine_factor = cosine_factor;
-    args.u = u;
-    args.v = v;
-    args.alpha = data.alpha;
-    if (reflect_specular){
-        return sample_reflection(args);
-    }
-    else{
-        args.eta = data.eta;
-        args.outside = data.outside;
-        double random_num2 = random_uniform(0, 1);
-        bool diffuse = random_num2 < percentage_diffuse_map -> get(u, v);
-        return diffuse ? sample_diffuse(args) : sample_transmission(args);
-    }
+    double half_vector_pdf = D(half_vector, normal_vector, get_alpha(u, v)) * dot_vectors(half_vector, normal_vector);
+    return std::max(half_vector_pdf / (4.0 * dot_vectors(outgoing_vector, half_vector)), 0.0); 
 }
 
 double MicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
@@ -373,42 +342,19 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
     return diffuse + specular;
 }
 
-BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) const{
-    // TODO: Add hit_into_interface etc.
-    // If roughness is too small, we get a delta distribution. Simplify the division by the pdf to circumvent.
+vec3 GlossyMaterial::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{
     double rand_1 = random_uniform(0, 1);
-
-    vec3 outgoing_vector, half_vector;
     if (rand_1 <= 0.5){
-        outgoing_vector = sample_cosine_hemisphere(hit.normal_vector);
-        half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+        return sample_cosine_hemisphere(normal_vector);
     }
     else{
-        half_vector = specular_sample(hit.normal_vector, get_alpha(u, v));
-        outgoing_vector = reflect_vector(hit.incident_vector, half_vector);
+        vec3 half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
+        return reflect_vector(incident_vector, half_vector);
     }
-
-    vec3 brdf = eval(hit, outgoing_vector, u, v);
-
-    BrdfData brdf_data;
-    brdf_data.outgoing_vector = outgoing_vector;
-    brdf_data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
-    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : brdf * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
-    brdf_data.type = DIFFUSE;
-    return brdf_data;
 }
 
-double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
-    // Convention: Normal vector facing away from the interface, incident vector as well
-
-    double diffuse_pdf = std::max(dot_vectors(normal_vector, outgoing_vector) / M_PI, 0.0);
-
-    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
-
-    double half_vector_pdf = D(half_vector, normal_vector, get_alpha(u, v)) * dot_vectors(half_vector, normal_vector);
-    double specular_pdf = std::max(half_vector_pdf / (4.0 * dot_vectors(outgoing_vector, half_vector)), 0.0); 
-
-    return 0.5 * (diffuse_pdf + specular_pdf);
+double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const { 
+    return 0.5 * (diffuse_pdf(outgoing_vector, normal_vector) + specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v));
 }
 
 
@@ -445,28 +391,13 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
     return specular;
 }
 
-BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double v) const{
-    // TODO: Add hit_into_interface etc.
-
-    vec3 half_vector = specular_sample(hit.normal_vector, get_alpha(u, v));
-    vec3 outgoing_vector = reflect_vector(hit.incident_vector, half_vector);
-
-    vec3 brdf = eval(hit, outgoing_vector, u, v);
-
-    BrdfData brdf_data;
-    brdf_data.outgoing_vector = outgoing_vector;
-    brdf_data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
-    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : brdf * dot_vectors(outgoing_vector, hit.normal_vector) / brdf_data.pdf;
-    brdf_data.type = DIFFUSE;
-    return brdf_data;
+vec3 MetallicMicrofacet::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{
+    vec3 half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
+    return reflect_vector(incident_vector, half_vector);
 }
 
 double MetallicMicrofacet::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const {
-    // TODO: Repeats code from glossy, maybe can create method for microfacet?
-    vec3 half_vector = normalize_vector(outgoing_vector - incident_vector); 
-    double half_vector_pdf = D(half_vector, normal_vector, get_alpha(u, v)) * dot_vectors(half_vector, normal_vector);
-    double pdf = std::max(half_vector_pdf / (4.0 * dot_vectors(outgoing_vector, half_vector)), 0.0); 
-    return pdf;
+    return specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v);
 }
 
 MaterialManager::~MaterialManager(){

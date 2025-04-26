@@ -128,11 +128,12 @@ class MicrofacetMaterial : public Material{
     double G(const vec3& half_vector, const vec3& normal_vector, const vec3& incident_vector, const vec3& outgoing_vector, const double alpha) const;
     MicrofacetData prepare_microfacet_data(const Hit& hit, const double u, const double v) const;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
-    vec3 specular_sample(const vec3& normal_vector, const double alpha) const;
-    BrdfData sample_diffuse(const MicrofacetSampleArgs& args) const;
-    BrdfData sample_reflection(const MicrofacetSampleArgs& args) const;
+    vec3 sample_half_vector(const vec3& normal_vector, const double alpha) const;
+    virtual vec3 sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const;
     BrdfData sample_transmission(const MicrofacetSampleArgs& args) const;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    double diffuse_pdf(const vec3& outgoing_vector, const vec3& normal_vector) const;
+    double specular_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
 
@@ -141,7 +142,7 @@ class GlossyMaterial : public MicrofacetMaterial{
     public:
         using MicrofacetMaterial::MicrofacetMaterial;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
-    BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    vec3 sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
 
@@ -151,7 +152,7 @@ class MetallicMicrofacet : public MicrofacetMaterial{
         using MicrofacetMaterial::MicrofacetMaterial;
 
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
-    BrdfData sample(const Hit& hit, const double u, const double v) const override;
+    vec3 sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const override;
 };
 
