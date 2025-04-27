@@ -123,8 +123,8 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
             throughput *= brdf_result.brdf_over_pdf;
 
-            double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector_out_from_interface);
-            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector_out_from_interface);
+            double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
+            double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
             
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
 
@@ -269,7 +269,7 @@ Scene create_scene(){
 
     MaterialData rough_glass_data;
     rough_glass_data.refractive_index = 1.5;
-    rough_glass_data.roughness_map = new ValueMap1D(0.01);
+    rough_glass_data.roughness_map = new ValueMap1D(0.3);
     BeersLawMedium* rough_glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
     rough_glass_data.medium = rough_glass_medium;
     TransparentMicrofacetMaterial* rough_glass_material = new TransparentMicrofacetMaterial(rough_glass_data);
@@ -317,7 +317,6 @@ Scene create_scene(){
     frosty_glassData.albedo_map = pure_white_map;
     frosty_glassData.refractive_index = 1.5;
     frosty_glassData.roughness_map = new ValueMap1D(0.1);
-    frosty_glassData.percentage_diffuse_map = new ValueMap1D(0.0);
     MicrofacetMaterial* _material = new MicrofacetMaterial(frosty_glassData);
 
     MaterialData sakura_data;
@@ -370,7 +369,7 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(-0.3, 0.3, 1.3);
     bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", rough_glass_material, smooth_shade, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};

@@ -23,7 +23,7 @@ BrdfData Object::sample(const Hit& hit) const{
 
 double Object::brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const{
     vec3 UV = get_UV(hit.intersection_point);
-    return material -> brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector_out_from_interface, UV[0], UV[1]);
+    return material -> brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, UV[0], UV[1]);
 }
 
 vec3 Object::get_light_emittance(const Hit& hit) const{
@@ -404,11 +404,10 @@ bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int nu
     }
 
     closest_hit.intersection_point = ray.starting_position + ray.direction_vector * closest_hit.distance;
-    closest_hit.normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.primitive_ID);
+    vec3 normal_vector = objects[closest_hit.intersected_object_index] -> get_normal_vector(closest_hit.intersection_point, closest_hit.primitive_ID);
     // TODO: add normal_out_from_interface - maybe even replace normal_vector if that is fine...
-    closest_hit.outside = dot_vectors(ray.direction_vector, closest_hit.normal_vector) < 0;
-    closest_hit.normal_vector_out_from_interface = closest_hit.outside ? closest_hit.normal_vector : -closest_hit.normal_vector;
-    closest_hit.normal_vector = -closest_hit.normal_vector;
+    closest_hit.outside = dot_vectors(ray.direction_vector, normal_vector) < 0;
+    closest_hit.normal_vector = closest_hit.outside ? normal_vector : -normal_vector;
     closest_hit.incident_vector = ray.direction_vector;
     return true;
  }
@@ -537,11 +536,11 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         L = weight * scatter_pdf * emittance * transmittance / light_pdf;
     }
     else{
-        bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface) * dot_vectors(sampled_direction, hit.normal_vector_out_from_interface)) > 0 ;
+        bool wrong_side = (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(sampled_direction, hit.normal_vector)) > 0 ;
         if (wrong_side){
             return L;
         }
-        double cosine = std::max(dot_vectors(hit.normal_vector_out_from_interface, sampled_direction), 0.0); // TODO: used to be abs here, but I did not like that - but test!
+        double cosine = std::max(dot_vectors(hit.normal_vector, sampled_direction), 0.0); // TODO: used to be abs here, but I did not like that - but test!
         L = weight * brdf * cosine * emittance * transmittance / light_pdf;
     }
     

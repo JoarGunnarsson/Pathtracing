@@ -18,10 +18,6 @@ Material::Material(MaterialData data){
         data.roughness_map = new ValueMap1D(0);
     }
 
-    if (!data.percentage_diffuse_map){
-        data.percentage_diffuse_map = new ValueMap1D(1);
-    }
-
     albedo_map = data.albedo_map;
     refractive_index = data.refractive_index;
     emission_color_map = data.emission_color_map;
@@ -36,7 +32,6 @@ Material::Material(MaterialData data){
     is_light_source = data.is_light_source;
 
     roughness_map = data.roughness_map;
-    percentage_diffuse_map = data.percentage_diffuse_map;
 
     medium = data.medium;
 }
@@ -46,7 +41,6 @@ Material::~Material(){
     delete emission_color_map;
     delete light_intensity_map;
     delete roughness_map;
-    delete percentage_diffuse_map;
     delete medium;
 }
 
@@ -70,11 +64,11 @@ vec3 DiffuseMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const do
 }
 
 BrdfData DiffuseMaterial::sample(const Hit& hit, const double u, const double v) const{
-    vec3 outgoing_vector = sample_cosine_hemisphere(hit.normal_vector_out_from_interface);
+    vec3 outgoing_vector = sample_cosine_hemisphere(hit.normal_vector);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
     data.brdf_over_pdf = albedo_map -> get(u, v);
-    data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector_out_from_interface, u, v);
+    data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
     data.type = DIFFUSE;
     return data;
 }
@@ -89,14 +83,13 @@ vec3 ReflectiveMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const
 }
 
 BrdfData ReflectiveMaterial::sample(const Hit& hit, const double u, const double v) const{
-    vec3 outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector_out_from_interface);
+    vec3 outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
     data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
     data.type = REFLECTED;
     return data;
 }
-
 
 double ReflectiveMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const{ 
     return 0;
@@ -124,11 +117,11 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
         k2 = 0;
     }
 
-    vec3 transmitted_vector = refract_vector(hit.incident_vector, -hit.normal_vector_out_from_interface, n1 / n2);
+    vec3 transmitted_vector = refract_vector(hit.incident_vector, -hit.normal_vector, n1 / n2);
 
     double F_r = 1;
     if (transmitted_vector.length_squared() != 0){
-        double cos_incident = -dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface);
+        double cos_incident = -dot_vectors(hit.incident_vector, hit.normal_vector);
         F_r = fresnel_multiplier(cos_incident, n1, k1, n2, k2, is_dielectric);
     }
 
@@ -138,8 +131,8 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     BrdfData data;
     if (is_reflected){
         data.type = REFLECTED;
-        data.outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector_out_from_interface);
-        data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v); // Red here, only if total internal.
+        data.outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector);
+        data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
     }
     else{
         data.type = TRANSMITTED;
@@ -245,15 +238,15 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
 
     double R_0_sqrt = (n1 - n2) / (n1 + n2);
     double R_0 = R_0_sqrt * R_0_sqrt;
-    double fac1 = std::min((1.0-dot_vectors(hit.normal_vector_out_from_interface, -hit.incident_vector)/2.0), 1.0);
-    double fac2 = std::min((1.0-dot_vectors(hit.normal_vector_out_from_interface, outgoing_vector)/2.0), 1.0);
+    double fac1 = std::min((1.0-dot_vectors(hit.normal_vector, -hit.incident_vector)/2.0), 1.0);
+    double fac2 = std::min((1.0-dot_vectors(hit.normal_vector, outgoing_vector)/2.0), 1.0);
     vec3 diffuse = albedo_map -> get(u, v) * 28.0 / (23.0 * M_PI) * (1 - R_0) * (1-fac1*fac1*fac1*fac1*fac1) * (1-fac2*fac2*fac2*fac2*fac2);
 
     double alpha = get_alpha(u, v);
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
-    double d_factor = D(half_vector, hit.normal_vector_out_from_interface, alpha) * dot_vectors(half_vector, hit.normal_vector_out_from_interface);
-    double g_factor = G(half_vector, hit.normal_vector_out_from_interface, hit.incident_vector, outgoing_vector, alpha);
-    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface) * dot_vectors(hit.normal_vector_out_from_interface, outgoing_vector));
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
     vec3 specular = reflection_color * F_r * d_factor * g_factor * denom_factor;
     return diffuse + specular;
 }
@@ -271,9 +264,9 @@ vec3 GlossyMaterial::sample_outgoing(const vec3& incident_vector, const vec3& no
 
 BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) const{
     BrdfData brdf_data;
-    brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector_out_from_interface, u, v);
-    brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector_out_from_interface, u, v);
-    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : eval(hit, brdf_data.outgoing_vector, u, v) * dot_vectors(brdf_data.outgoing_vector, hit.normal_vector_out_from_interface) / brdf_data.pdf;
+    brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : eval(hit, brdf_data.outgoing_vector, u, v) * dot_vectors(brdf_data.outgoing_vector, hit.normal_vector) / brdf_data.pdf;
     brdf_data.type = DIFFUSE;
     // TODO: The above cos term, should it be normal vector or half vector? I think maybe it was half vector before but I changed it? But test anyways.
     return brdf_data;
@@ -289,7 +282,7 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
     double n1, k1, n2, k2;
-    double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface); // TODO: This is wrong, use hit variable instead.
+    double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector); // TODO: This is wrong, use hit variable instead.
     bool outside = incoming_dot_normal <= 0.0;
     if (outside){
         n1 = constants::air_refractive_index;
@@ -310,9 +303,9 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
 
     double alpha = get_alpha(u, v);
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
-    double d_factor = D(half_vector, hit.normal_vector_out_from_interface, alpha) * dot_vectors(half_vector, hit.normal_vector_out_from_interface);
-    double g_factor = G(half_vector, hit.normal_vector_out_from_interface, hit.incident_vector, outgoing_vector, alpha);
-    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface) * dot_vectors(hit.normal_vector_out_from_interface, outgoing_vector));
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(hit.normal_vector, outgoing_vector));
     vec3 specular = reflection_color * F_r * d_factor * g_factor * denom_factor;
     return specular;
 }
@@ -324,9 +317,9 @@ vec3 MetallicMicrofacet::sample_outgoing(const vec3& incident_vector, const vec3
 
 BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double v) const{
     BrdfData brdf_data;
-    brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector_out_from_interface, u, v);
-    brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector_out_from_interface, u, v);
-    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : eval(hit, brdf_data.outgoing_vector, u, v) * dot_vectors(brdf_data.outgoing_vector, hit.normal_vector_out_from_interface) / brdf_data.pdf;
+    brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
+    brdf_data.brdf_over_pdf = brdf_data.pdf == 0 ? 0 : eval(hit, brdf_data.outgoing_vector, u, v) * dot_vectors(brdf_data.outgoing_vector, hit.normal_vector) / brdf_data.pdf;
     brdf_data.type = DIFFUSE;
     // TODO: The above cos term, should it be normal vector or half vector? I think maybe it was half vector before but I changed it? But test anyways.
     return brdf_data;
@@ -378,10 +371,10 @@ BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, c
     BrdfData brdf_data;
 
     vec3 half_vector;
-    brdf_data.outgoing_vector = sample_outgoing(half_vector, hit.incident_vector, hit.normal_vector_out_from_interface, hit.outside, u, v);
+    brdf_data.outgoing_vector = sample_outgoing(half_vector, hit.incident_vector, hit.normal_vector, hit.outside, u, v);
     
-    double cosine_factor = dot_vectors(hit.incident_vector, half_vector) / (dot_vectors(hit.incident_vector, hit.normal_vector_out_from_interface) * dot_vectors(half_vector, hit.normal_vector_out_from_interface));
-    brdf_data.brdf_over_pdf = G(half_vector, hit.normal_vector_out_from_interface, hit.incident_vector, brdf_data.outgoing_vector, get_alpha(u, v)) * cosine_factor;
+    double cosine_factor = dot_vectors(hit.incident_vector, half_vector) / (dot_vectors(hit.incident_vector, hit.normal_vector) * dot_vectors(half_vector, hit.normal_vector));
+    brdf_data.brdf_over_pdf = G(half_vector, hit.normal_vector, hit.incident_vector, brdf_data.outgoing_vector, get_alpha(u, v)) * cosine_factor;
     brdf_data.type = REFLECTED; // Change to just specular?
     return brdf_data;
 }

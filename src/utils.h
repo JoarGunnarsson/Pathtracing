@@ -23,10 +23,8 @@ struct Hit{
     double distance = constants::max_ray_distance;
     vec3 intersection_point;
     vec3 incident_vector;
-    vec3 normal_vector;
-    vec3 normal_vector_out_from_interface;
+    vec3 normal_vector; // Points out from intersection.
     bool outside;
-    // TODO: Save normal - facing away from intersection + bool for outside vs inside?
 };
 
 struct Ray{
