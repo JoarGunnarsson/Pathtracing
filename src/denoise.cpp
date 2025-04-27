@@ -81,7 +81,8 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
             double kernel_value = kernel_data.kernel[kernel_idx];
             vec3 pixel_contribution = kernel_value * pixel_buffer[q] * weight;
             if (isnan(pixel_contribution.length_squared())){
-                pixel_contribution = vec3(0.0);
+                pixel_contribution = vec3(0.0); //TODO: Did this fix the issue?
+                weight = 0.0;
             }
             new_pixel_value += pixel_contribution;
             normalization += kernel_value * weight;
@@ -108,7 +109,6 @@ void one_denoising_iteration(const int iteration, const KernelData& kernel_data,
 
 void denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
         KernelData kernel_data;
-
     for (int iteration = 0; iteration < constants::denoising_iterations; iteration++){
         one_denoising_iteration(iteration, kernel_data, pixel_buffer, position_buffer, normal_buffer);
         kernel_data.sigma_rt /= 2.0;
