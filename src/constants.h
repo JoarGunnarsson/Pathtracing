@@ -4,9 +4,9 @@
 
 namespace constants
 {
-    const int WIDTH = 500;
-    const int HEIGHT = 500;
-    const int samples_per_pixel = 50;
+    const int WIDTH = 300;
+    const int HEIGHT = 300;
+    const int samples_per_pixel = 10;
     const int max_recursion_depth = 100;
     const int force_tracing_limit = 3;
 

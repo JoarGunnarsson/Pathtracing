@@ -253,7 +253,7 @@ Scene create_scene(){
 
     MaterialData gold_data;
     gold_data.albedo_map = new ValueMap3D(colors::GOLD);
-    gold_data.roughness_map = new ValueMap1D(0.01);
+    gold_data.roughness_map = new ValueMap1D(0.3);
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
     gold_data.is_dielectric = false;
@@ -291,7 +291,7 @@ Scene create_scene(){
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
-    scattering_glass_data.refractive_index = 1;
+    scattering_glass_data.refractive_index = 1.;
     ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(20), (vec3(1,1,1) - colors::BLUE) * 5.0);
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
@@ -299,6 +299,7 @@ Scene create_scene(){
 
     MaterialData mirror_data;
     ReflectiveMaterial* mirror_material = new ReflectiveMaterial(mirror_data);
+    manager -> add_material(mirror_material);
 
     MaterialData world_data;
     world_data.albedo_map = create_value_map_3D("./maps/world.map");
@@ -342,12 +343,12 @@ Scene create_scene(){
     DiffuseMaterial* sandstone_material = new DiffuseMaterial(sandstone_data);
     manager -> add_material(sandstone_material);
 
-    Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), sandstone_material);
-    Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, hieroglyph_material);
-    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
-    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, hieroglyph_material);
+    Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
+    Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, white_diffuse_material);
+    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, red_diffuse_material);
+    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, green_diffuse_material);
     Plane* roof = new Plane(vec3(0,2.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
-    Rectangle* back_wall = new Rectangle(vec3(0,1.55,3.5), vec3(0,1,0), vec3(1,0,0), 3.85, 1.55*2, hieroglyph_material);
+    Rectangle* back_wall = new Rectangle(vec3(0,1.55,3.5), vec3(0,1,0), vec3(1,0,0), 3.85, 1.55*2, white_diffuse_material);
 
     /*
     Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
@@ -362,17 +363,17 @@ Scene create_scene(){
     */
 
     Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
-    Sphere* ball2 = new Sphere(vec3(-0.3, 0.3, 1.3), 0.2, glass_material);
+    Sphere* ball2 = new Sphere(vec3(-0.3, 0.3, 1.3), 0.2, gold_material);
 
     Sphere* light_source = new Sphere(vec3(-1, 2.199, 1), 1, light_source_material);
     
     double desired_size = 0.5;
     vec3 desired_center = vec3(-0.3, 0.3, 1.3);
-    bool smooth_shade = false;
-    ObjectUnion* loaded_model = load_object_model("./models/dragon.obj", gold_material, smooth_shade, desired_center, desired_size);
+    bool smooth_shade = true;
+    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
 
     int number_of_objects = 8;
-    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball2};
 
     ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
 

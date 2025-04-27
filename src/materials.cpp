@@ -103,18 +103,14 @@ vec3 TransparentMaterial::eval(const Hit& hit, const vec3& outgoing_vector, cons
 
 BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const double v) const{
     // TODO: Look at the current medium, use that as refractive index! Update for extinction coefficient!
-    double n1, k1, n2, k2;
+    double n1, n2;
     if (hit.outside){
         n1 = constants::air_refractive_index;
-        k1 = 0;
         n2 = refractive_index;
-        k2 = extinction_coefficient;
     }
     else{
         n1 = refractive_index;
-        k1 = extinction_coefficient;
         n2 = constants::air_refractive_index;
-        k2 = 0;
     }
 
     vec3 transmitted_vector = refract_vector(hit.incident_vector, -hit.normal_vector, n1 / n2);
@@ -122,7 +118,7 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     double F_r = 1;
     if (transmitted_vector.length_squared() != 0){
         double cos_incident = -dot_vectors(hit.incident_vector, hit.normal_vector);
-        F_r = fresnel_multiplier(cos_incident, n1, k1, n2, k2, is_dielectric);
+        F_r = fresnel_multiplier(cos_incident, n1, 0, n2, 0, true);
     }
 
     double random_num = random_uniform(0, 1);
@@ -132,14 +128,12 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
     if (is_reflected){
         data.type = REFLECTED;
         data.outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector);
-        data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
     }
     else{
         data.type = TRANSMITTED;
         data.outgoing_vector = transmitted_vector;
-        data.brdf_over_pdf = colors::WHITE;
     }
-
+    data.brdf_over_pdf = colors::WHITE;
     return data;
 }
 
@@ -218,23 +212,19 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
-    double n1, k1, n2, k2;
+    double n1, n2;
     if (hit.outside){
         n1 = constants::air_refractive_index;
-        k1 = 0;
         n2 = refractive_index;
-        k2 = extinction_coefficient;
     }
     else{
         n1 = refractive_index;
-        k1 = extinction_coefficient;
         n2 = constants::air_refractive_index;
-        k2 = 0;
     }
 
     double i_dot_h = -dot_vectors(hit.incident_vector, half_vector);
 
-    double F_r = schlick_fresnel(i_dot_h, n1, k1, n2, k2);
+    double F_r = schlick_fresnel(i_dot_h, n1, 0, n2, 0);
 
     double R_0_sqrt = (n1 - n2) / (n1 + n2);
     double R_0 = R_0_sqrt * R_0_sqrt;
@@ -282,9 +272,7 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
     double n1, k1, n2, k2;
-    double incoming_dot_normal = dot_vectors(hit.incident_vector, hit.normal_vector); // TODO: This is wrong, use hit variable instead.
-    bool outside = incoming_dot_normal <= 0.0;
-    if (outside){
+    if (hit.outside){
         n1 = constants::air_refractive_index;
         k1 = 0;
         n2 = refractive_index;
@@ -299,7 +287,7 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
 
     double i_dot_h = -dot_vectors(hit.incident_vector, half_vector);
 
-    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
+    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, false);
 
     double alpha = get_alpha(u, v);
     vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map -> get(u, v);
@@ -339,24 +327,20 @@ vec3 TransparentMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_ve
 };
 
 vec3 TransparentMicrofacetMaterial::sample_outgoing(vec3& half_vector, const vec3& incident_vector, const vec3& normal_vector, const bool outside, const double u, const double v) const{
-    double n1, k1, n2, k2;
+    double n1, n2;
     if (outside){
         n1 = constants::air_refractive_index;
-        k1 = 0;
         n2 = refractive_index;
-        k2 = extinction_coefficient;
     }
     else{
         n1 = refractive_index;
-        k1 = extinction_coefficient;
         n2 = constants::air_refractive_index;
-        k2 = 0;
     }
 
     half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
 
     double i_dot_h = -dot_vectors(incident_vector, half_vector);
-    double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, is_dielectric);
+    double F_r = fresnel_multiplier(i_dot_h, n1, 0, n2, 0, true);
 
     vec3 refracted_vector = refract_vector(incident_vector, -half_vector, n1 / n2);
     double rand_num = random_uniform(0, 1);
