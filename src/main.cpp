@@ -2,6 +2,7 @@
 #include <fstream>
 #include <chrono>
 #include <stdexcept>
+#include <thread>
 #include "vec3.h"
 #include "colors.h"
 #include "denoise.h"
@@ -327,15 +328,31 @@ void clear_scene(Scene& scene){
 }
 
 
+void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, vec3* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
+    int totals = constants::HEIGHT * constants::WIDTH;
+    for (int i = 0; i < number_of_pixels; i++){
+        int idx = start_idx + i;
+        double progress = idx / (double) totals;
+        //print_progress(progress);
+        int x = idx % constants::WIDTH;
+        int y = constants::HEIGHT - idx / constants::HEIGHT;
+        PixelData data = compute_pixel_color(x, y, scene);
+        pixel_buffer[idx] = data.pixel_color;
+        position_buffer[idx] = data.pixel_position;
+        normal_buffer[idx] = data.pixel_normal;
+    }
+    std::clog << "Thread complete.\n";
+}
+
 int main() {
     std::ofstream raw_data_file;
     raw_data_file.open(constants::raw_output_file_name);
 
     if (constants::enable_denoising){
-            raw_data_file << "1\n";
+        raw_data_file << "1\n";
     }
     else{
-            raw_data_file << "0\n";
+        raw_data_file << "0\n";
     }
 
     raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
@@ -351,18 +368,25 @@ int main() {
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
 
-    for (int y = constants::HEIGHT - 1; y >= 0; y--) {
-        double progress = double(constants::HEIGHT - 1 - y) / (double) constants::HEIGHT;
-        print_progress(progress);
-        for (int x = 0; x < constants::WIDTH; x++) {
-            PixelData data = compute_pixel_color(x, y, scene);
-            int idx = ((constants::HEIGHT - 1 - y) * constants::WIDTH) + x;
-            print_pixel_color(tone_map(data.pixel_color), raw_data_file);
-            pixel_buffer[idx] = data.pixel_color;
-            position_buffer[idx] = data.pixel_position;
-            normal_buffer[idx] = data.pixel_normal;
-        }
+    int number_of_threads = std::thread::hardware_concurrency();
+    std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
+    std::thread thread_array[number_of_threads];
+
+    int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) number_of_threads);
+    for (int i = 0; i < number_of_threads; i++){
+        int start_idx = pixels_per_thread * i;
+        int pixels_to_handle = std::min(pixels_per_thread, constants::WIDTH * constants::HEIGHT - i * pixels_per_thread);
+        thread_array[i] = std::thread(raytrace_section, start_idx, pixels_to_handle, scene, pixel_buffer, position_buffer, normal_buffer);
     }
+
+    for (int i = 0; i < number_of_threads; i++){
+        thread_array[i].join();
+    }
+
+    for (int i = 0; i < constants::WIDTH * constants::HEIGHT; i++){
+        print_pixel_color(tone_map(pixel_buffer[i]), raw_data_file);
+    }
+
     print_progress(1);
 
     raw_data_file.close();
