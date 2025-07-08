@@ -190,8 +190,8 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
         
         ray.direction_vector = scene.camera -> get_starting_directions(new_x, new_y);
         PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
-            data.pixel_position = sampled_data.pixel_position;
-            data.pixel_normal = sampled_data.pixel_normal;
+        data.pixel_position = sampled_data.pixel_position;
+        data.pixel_normal = sampled_data.pixel_normal;
         pixel_color += sampled_data.pixel_color;    
     }
 
@@ -219,17 +219,10 @@ void print_progress(double progress){
 
 
 Scene create_scene(){
-    /*
-    
-    ValueMap3D* sakura_map = create_value_map_3D("./maps/sakura.map");
-    ValueMap3D* temple_map = create_value_map_3D("./maps/temple.map");
-    ValueMap3D* cobble_map = create_value_map_3D("./maps/cobblestone.map");
-    ValueMap1D* world_roughnessMap = create_value_map_1D("./maps/world_roughness.map");
-    */
 
     MaterialManager* manager = new MaterialManager();
     MaterialData white_data;
-    white_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
+    white_data.albedo_map = new ValueMap3D(colors::WHITE * 0.7);
     DiffuseMaterial* white_diffuse_material = new DiffuseMaterial(white_data);
     manager -> add_material(white_diffuse_material);
     
@@ -248,11 +241,6 @@ Scene create_scene(){
     DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
     manager -> add_material(green_diffuse_material);
 
-
-    /*
-
-    */
-
     MaterialData gold_data;
     gold_data.albedo_map = new ValueMap3D(colors::GOLD);
     gold_data.roughness_map = new ValueMap1D(0.3);
@@ -262,25 +250,10 @@ Scene create_scene(){
     MetallicMicrofacet* gold_material = new MetallicMicrofacet(gold_data);
     manager -> add_material(gold_material);
 
-    MaterialData plastic_data;
-    plastic_data.albedo_map = new ValueMap3D(colors::BLUE);
-    plastic_data.roughness_map = new ValueMap1D(0.1);
-    plastic_data.refractive_index = 1.5;
-    GlossyMaterial* plastic_material = new GlossyMaterial(plastic_data);
-    manager -> add_material(plastic_material);
-
-    MaterialData rough_glass_data;
-    rough_glass_data.refractive_index = 1.5;
-    rough_glass_data.roughness_map = new ValueMap1D(0.3);
-    BeersLawMedium* rough_glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0, vec3(0));
-    rough_glass_data.medium = rough_glass_medium;
-    TransparentMicrofacetMaterial* rough_glass_material = new TransparentMicrofacetMaterial(rough_glass_data);
-    manager -> add_material(rough_glass_material);
-
     MaterialData light_material_data;
     light_material_data.albedo_map =  new ValueMap3D(colors::WHITE * 0.8);
     light_material_data.emission_color_map =  new ValueMap3D(colors::WARM_WHITE);
-    light_material_data.light_intensity_map = new ValueMap1D(10.0);
+    light_material_data.light_intensity_map = new ValueMap1D(200.0);
     light_material_data.is_light_source = true;
     DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
     manager -> add_material(light_source_material);
@@ -293,8 +266,8 @@ Scene create_scene(){
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
-    scattering_glass_data.refractive_index = 1.;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(20), (vec3(1,1,1) - colors::BLUE) * 5.0, vec3(0));
+    scattering_glass_data.refractive_index = 1.33;
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(0.2, 0.2, 0.3)*0, vec3(2.7,1.,1.1)*0.5, vec3(0));
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -303,81 +276,27 @@ Scene create_scene(){
     ReflectiveMaterial* mirror_material = new ReflectiveMaterial(mirror_data);
     manager -> add_material(mirror_material);
 
-    MaterialData world_data;
-    world_data.albedo_map = create_value_map_3D("./maps/world.map");
-    world_data.roughness_map = new ValueMap1D(0.1);
-    world_data.refractive_index = 0.277;
-    world_data.extinction_coefficient = 2.92;
-    world_data.is_dielectric = false;
-    MicrofacetMaterial* glossy_world = new MicrofacetMaterial(world_data);
-    manager -> add_material(glossy_world);
-    /*
-    MaterialData glass_data;
-    glass_data.refractive_index = 1.5;
-    TransparentMaterial* pane1_material = new TransparentMaterial(glass_data);
-
-    MaterialData frosty_glass_data;
-    frosty_glassData.albedo_map = pure_white_map;
-    frosty_glassData.refractive_index = 1.5;
-    frosty_glassData.roughness_map = new ValueMap1D(0.1);
-    MicrofacetMaterial* _material = new MicrofacetMaterial(frosty_glassData);
-
-    MaterialData sakura_data;
-    sakura_data.albedo_map = sakura_map;
-    DiffuseMaterial* sakura_material = new DiffuseMaterial(sakura_data);
-    
-
-    MaterialData model_data;
-    model_data.albedo_map = create_value_map_3D("./maps/bunny.map", 1, -1);
-    DiffuseMaterial* model_material = new DiffuseMaterial(model_data);
-    manager -> add_material(model_material);
-    */
-
-    //TODO: Fix back wall - What does this mean??
-
-    MaterialData hieroglyph_data;
-    hieroglyph_data.albedo_map = create_value_map_3D("./maps/hieroglyph_wall.map", 1, 1);
-    DiffuseMaterial* hieroglyph_material = new DiffuseMaterial(hieroglyph_data);
-    manager -> add_material(hieroglyph_material);
-
-    MaterialData sandstone_data;
-    sandstone_data.albedo_map = create_value_map_3D("./maps/sandstone_floor.map");
-    DiffuseMaterial* sandstone_material = new DiffuseMaterial(sandstone_data);
-    manager -> add_material(sandstone_material);
-
     Plane* this_floor = new Plane(vec3(0,0,0), vec3(1,0,0), vec3(0,0,-1), white_diffuse_material);
     Rectangle* front_wall = new Rectangle(vec3(0,1.55,-0.35), vec3(1,0,0), vec3(0,1,0), 2, 1.55*2, white_diffuse_material);
-    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, red_diffuse_material);
-    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, green_diffuse_material);
+    Rectangle* left_wall = new Rectangle(vec3(-1,1.55,1.575), vec3(0,0,-1), vec3(0,1,0), 3.85, 1.55*2, white_diffuse_material);
+    Rectangle* right_wall = new Rectangle(vec3(1,1.55,1.575), vec3(0,0,1), vec3(0,1,0), 3.85, 1.55*2, white_diffuse_material);
     Plane* roof = new Plane(vec3(0,2.2,0), vec3(1,0,0), vec3(0,0,1), white_diffuse_material);
     Rectangle* back_wall = new Rectangle(vec3(0,1.55,3.5), vec3(0,1,0), vec3(1,0,0), 3.85, 1.55*2, white_diffuse_material);
-
-    /*
-    Rectangle* front_pane1 = new Rectangle(vec3(-0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
-    Rectangle* back_pane1 = new Rectangle(vec3(-0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane1_material);
-    Object** pane1_objects = new Object*[2]{front_pane1, back_pane1};
-    ObjectUnion* pane1 = new ObjectUnion(pane1_objects, 2);
-
-    Rectangle* front_pane2 = new Rectangle(vec3(0.25,0.5,1.2), vec3(1,0,0), vec3(0,1,0), 0.5, 0.5, pane2_material);
-    Rectangle* back_pane2 = new Rectangle(vec3(0.25,0.5,1.15), vec3(-1,0,0), vec3(0,1,0), 0.5, 0.5, pane2_material);
-    Object** pane2_objects = new Object*[2]{front_pane2, back_pane2};
-    ObjectUnion* pane2 = new ObjectUnion(pane2_objects, 2);
-    */
 
     Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
     Sphere* ball2 = new Sphere(vec3(-0.3, 0.3, 1.3), 0.2, gold_material);
 
-    Sphere* light_source = new Sphere(vec3(-1, 2.199, 1), 1, light_source_material);
+    Sphere* light_source = new Sphere(vec3(-1, 2.199, 1), 0.2, light_source_material);
     
-    double desired_size = 0.5;
-    vec3 desired_center = vec3(-0.3, 0.3, 1.3);
-    bool smooth_shade = true;
+    double desired_size = 0.6;
+    vec3 desired_center = vec3(-0.3, 0.1, 1.3);
+    bool smooth_shade = false;
     bool transform_object = true;
     // TODO: Actually, use struct called object_transform, can set it to nullptr if no transformation should be made.
-    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, transform_object, desired_center, desired_size);
+    ObjectUnion* loaded_model = load_object_model("./models/water_cube.obj", scattering_glass_material, smooth_shade, transform_object, desired_center, desired_size);
 
     int number_of_objects = 8;
-    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball2};
+    Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model};
 
     ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0, vec3(0));
 
