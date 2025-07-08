@@ -190,16 +190,14 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
         
         ray.direction_vector = scene.camera -> get_starting_directions(new_x, new_y);
         PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
-        if (i == 0){
             data.pixel_position = sampled_data.pixel_position;
             data.pixel_normal = sampled_data.pixel_normal;
-        }
         pixel_color += sampled_data.pixel_color;    
     }
 
-    vec3 average_pixel_color = pixel_color / (double) constants::samples_per_pixel;
-
-    data.pixel_color = average_pixel_color;
+    data.pixel_color = pixel_color / (double) constants::samples_per_pixel;
+    data.pixel_position = data.pixel_position / (double) constants::samples_per_pixel;
+    data.pixel_normal = data.pixel_normal / (double) constants::samples_per_pixel;
     return data;
 }
 
