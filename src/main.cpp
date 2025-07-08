@@ -62,6 +62,10 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         
         bool scatter = scatter_distance < ray_hit.distance;
         scatter_distance = std::min(scatter_distance, ray_hit.distance);
+        if (scatter){
+            color += medium -> sample_emission() * throughput;
+        }
+
         throughput *= medium -> sample(objects, number_of_objects, scatter_distance, scatter);
         
         if (scatter){
@@ -69,7 +73,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             vec3 scattered_direction = medium -> sample_direction(ray.direction_vector);
             if (constants::enable_next_event_estimation){
                 ray_hit.intersection_point = scatter_point;
-                // TODO: This is reached for scattering mediums with no scattering, is that really correct? Look over distance sampling...
 
                 color += sample_light(ray_hit, objects, number_of_objects, medium_stack, true) * throughput;
 
@@ -77,6 +80,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 scatter_pdf = medium -> phase_function(ray.direction_vector, scattered_direction);
                 saved_point = scatter_point;
             }
+            
             ray.starting_position = scatter_point;
             ray.direction_vector = scattered_direction;
         }     
@@ -270,7 +274,7 @@ Scene create_scene(){
     MaterialData rough_glass_data;
     rough_glass_data.refractive_index = 1.5;
     rough_glass_data.roughness_map = new ValueMap1D(0.3);
-    BeersLawMedium* rough_glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
+    BeersLawMedium* rough_glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0, vec3(0));
     rough_glass_data.medium = rough_glass_medium;
     TransparentMicrofacetMaterial* rough_glass_material = new TransparentMicrofacetMaterial(rough_glass_data);
     manager -> add_material(rough_glass_material);
@@ -285,14 +289,14 @@ Scene create_scene(){
 
     MaterialData glass_data;
     glass_data.refractive_index = 1.5;
-    BeersLawMedium* glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 1.0);
+    BeersLawMedium* glass_medium = new BeersLawMedium(vec3(0), (vec3(1,1,1) - colors::BLUE) * 0.0, vec3(0));
     glass_data.medium = glass_medium;
     TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
     manager -> add_material(glass_material);
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1.;
-    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(20), (vec3(1,1,1) - colors::BLUE) * 5.0);
+    ScatteringMediumHomogenous* scattering_glass_medium = new ScatteringMediumHomogenous(vec3(20), (vec3(1,1,1) - colors::BLUE) * 5.0, vec3(0));
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager -> add_material(scattering_glass_material);
@@ -370,12 +374,14 @@ Scene create_scene(){
     double desired_size = 0.5;
     vec3 desired_center = vec3(-0.3, 0.3, 1.3);
     bool smooth_shade = true;
-    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, desired_center, desired_size);
+    bool transform_object = true;
+    // TODO: Actually, use struct called object_transform, can set it to nullptr if no transformation should be made.
+    ObjectUnion* loaded_model = load_object_model("./models/bunny.obj", scattering_glass_material, smooth_shade, transform_object, desired_center, desired_size);
 
     int number_of_objects = 8;
     Object** objects = new Object*[number_of_objects]{this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, ball2};
 
-    ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0);
+    ScatteringMediumHomogenous* background_medium = new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) * 0.0, vec3(0));
 
     vec3 camera_position = vec3(-1, 0.5, 2.2);
     vec3 viewing_direction = vec3(0.8, -0.3, -1);

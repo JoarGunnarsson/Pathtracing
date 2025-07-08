@@ -1,8 +1,8 @@
 #include "medium.h"
 
 
-Medium::Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo) : 
-scattering_albedo(_scattering_albedo), absorption_albedo(_absorption_albedo) {
+Medium::Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient) : 
+scattering_albedo(_scattering_albedo), absorption_albedo(_absorption_albedo), emission_coefficient(_emission_coefficient){
     extinction_albedo = absorption_albedo + scattering_albedo;
 }
 
@@ -26,8 +26,12 @@ vec3 Medium::sample(Object** objects, const int number_of_objects, const double 
     return colors::WHITE;
 }
 
+vec3 Medium::sample_emission() const{
+    return colors::BLACK;
+}
 
-BeersLawMedium::BeersLawMedium(const vec3& _scattering_albedo, const vec3& _absorption_albedo) : Medium(0, _absorption_albedo){}
+
+BeersLawMedium::BeersLawMedium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient) : Medium(0, _absorption_albedo, _emission_coefficient){}
 
 vec3 BeersLawMedium::sample(Object** object, const int number_of_objects, const double distance, const bool scatter) const{
     return transmittance_albedo(distance);
@@ -36,7 +40,10 @@ vec3 BeersLawMedium::sample(Object** object, const int number_of_objects, const 
 
 double ScatteringMediumHomogenous::sample_distance() const{
     int channel = random_int(0, 3);
-    return -std::log(1.0 - random_uniform(0, 1)) / extinction_albedo[channel];
+    if (extinction_albedo[channel] == 0){
+        return constants::max_ray_distance;
+    }
+    return -std::log(random_uniform(0, 1)) / extinction_albedo[channel];
 }
 
 vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const{
@@ -47,7 +54,17 @@ vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_ob
         pdf += density[i];
     }
     pdf *= 1.0 / 3.0;
+
     return scatter ? tr * scattering_albedo / pdf : tr / pdf;
+}
+
+vec3 ScatteringMediumHomogenous::sample_emission() const{
+    double pdf = 0;
+    for (int i = 0; i < 3; i++){
+        pdf += extinction_albedo[i];
+    }
+    pdf *= 1.0 / 3.0;
+    return emission_coefficient * absorption_albedo / pdf;
 }
 
 

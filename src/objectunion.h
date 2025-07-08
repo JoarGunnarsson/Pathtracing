@@ -101,6 +101,6 @@ struct TriangleCreationResult{
 
 TriangleCreationResult construct_triangle(TriangleConstructionArgs& args);
 int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array, Object** triangle_array, Material* material, const bool enable_smooth_shading);
-ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading, const vec3& center, const double size);
+ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading, const bool move_object, const vec3& center, const double size);
 
 #endif
