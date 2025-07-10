@@ -4,9 +4,9 @@
 
 namespace constants
 {
-    const int WIDTH = 4000;
-    const int HEIGHT = 4000;
-    const int samples_per_pixel = 500;
+    const int WIDTH = 1000;
+    const int HEIGHT = 1000;
+    const int samples_per_pixel = 10;
     const int max_recursion_depth = 100;
     const int force_tracing_limit = 3;
 
@@ -20,9 +20,9 @@ namespace constants
 
     const bool enable_denoising = true;
     const int denoising_iterations = 5;
-    const double sigma_rt = 0.2;
+    const double sigma_rt = 1;
     const double sigma_x = 0.5;
-    const double sigma_n = 0.1;
+    const double sigma_n = 0.4;
 
     const std::string raw_output_file_name = "./temp/raw_data.txt";
     const std::string denoised_output_file_name = "./temp/denoised_data.txt";
