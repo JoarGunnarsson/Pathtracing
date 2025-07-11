@@ -344,14 +344,26 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
     std::clog << "Thread complete.\n";
 }
 
+
+void run_denoising(vec3* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
+    std::ofstream denoised_data_file;
+    denoised_data_file.open(constants::denoised_output_file_name);
+    
+    denoised_data_file << "P3\n";
+    denoised_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    denoised_data_file << "255\n";
+
+    denoise(pixel_buffer, position_buffer, normal_buffer);
+
+    for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
+        print_pixel_color(tone_map(pixel_buffer[i]), denoised_data_file);
+    }
+
+    denoised_data_file.close();
+}
+
+
 int main() {
-    std::ofstream raw_data_file;
-    raw_data_file.open(constants::raw_output_file_name);
-
-    raw_data_file << "P3\n";
-    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-    raw_data_file << "255\n";
-
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
 
     Scene scene = create_scene();
@@ -368,6 +380,13 @@ int main() {
     std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
     std::thread thread_array[number_of_threads];
 
+    std::ofstream raw_data_file;
+    raw_data_file.open(constants::raw_output_file_name);
+
+    raw_data_file << "P3\n";
+    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    raw_data_file << "255\n";
+
     int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) number_of_threads);
     for (int i = 0; i < number_of_threads; i++){
         int start_idx = pixels_per_thread * i;
@@ -383,30 +402,16 @@ int main() {
         print_pixel_color(tone_map(pixel_buffer[i]), raw_data_file);
     }
 
-    print_progress(1);
-
     raw_data_file.close();
+
+    print_progress(1);
+    std::clog << std::endl;
  
     if (constants::enable_denoising){
-        std::ofstream denoised_data_file;
-        denoised_data_file.open(constants::denoised_output_file_name);
-        
-        denoised_data_file << "P3\n";
-        denoised_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-        denoised_data_file << "255\n";
-
-        denoise(pixel_buffer, position_buffer, normal_buffer);
-
-        for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
-            print_pixel_color(tone_map(pixel_buffer[i]), denoised_data_file);
-        }
-
-        denoised_data_file.close();
+        run_denoising(pixel_buffer, position_buffer, normal_buffer);
     }
 
-    std::clog << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     clear_scene(scene);
