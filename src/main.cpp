@@ -14,7 +14,7 @@
 
 
 void print_pixel_color(const vec3& rgb, std::ofstream& file){
-    file << rgb[0] << ' ' << rgb[1] << ' ' << rgb[2] << '\n';
+    file << int(255 * rgb[0]) << ' ' << int(255 * rgb[1]) << ' ' << int(255 * rgb[2]) << '\n';
 }
 
 
@@ -348,14 +348,10 @@ int main() {
     std::ofstream raw_data_file;
     raw_data_file.open(constants::raw_output_file_name);
 
-    if (constants::enable_denoising){
-        raw_data_file << "1\n";
-    }
-    else{
-        raw_data_file << "0\n";
-    }
+    raw_data_file << "P3\n";
+    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    raw_data_file << "255\n";
 
-    raw_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
 
     Scene scene = create_scene();
@@ -395,7 +391,9 @@ int main() {
         std::ofstream denoised_data_file;
         denoised_data_file.open(constants::denoised_output_file_name);
         
-        denoised_data_file << "SIZE:" << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+        denoised_data_file << "P3\n";
+        denoised_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+        denoised_data_file << "255\n";
 
         denoise(pixel_buffer, position_buffer, normal_buffer);
 
