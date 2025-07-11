@@ -13,7 +13,7 @@ namespace BVH{
                 max_point.e[j] = std::max(this_max_point[j], max_point[j]);
             }
         }
-        return max_point;
+        return max_point + vec3(constants::EPSILON);
     }
 
 
@@ -28,7 +28,7 @@ namespace BVH{
                 min_point.e[j] = std::min(this_min_point[j], min_point[j]);
             }
         }
-        return min_point;
+        return min_point - vec3(constants::EPSILON);
     }
 
 
