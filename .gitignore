@@ -13,3 +13,4 @@ main
 *.pyc
 __pycache__
 *.dSYM
+*.dat

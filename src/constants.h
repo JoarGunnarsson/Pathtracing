@@ -24,8 +24,8 @@ namespace constants
     const double sigma_x = 0.5;
     const double sigma_n = 0.4;
 
-    const std::string raw_output_file_name = "./temp/raw_data.txt";
-    const std::string denoised_output_file_name = "./temp/denoised_data.txt";
+    const char* const raw_file_name = "./temp/raw.dat";
+    const char* const raw_denoised_file_name = "./temp/raw_denoised.dat";
 }
 
 #endif

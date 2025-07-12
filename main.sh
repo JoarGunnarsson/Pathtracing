@@ -50,4 +50,5 @@ if [[ "$name" != *.png ]]; then
 fi
 
 echo "Running program. The result can be found in Images/$name"
-./main > temp/log.txt && python python_utils/to_png.py $name
+width=$(./main)
+python python_utils/to_png.py --name $name --width $width

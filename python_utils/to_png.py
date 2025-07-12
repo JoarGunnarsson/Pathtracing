@@ -1,47 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-
-load_denoising_file = False
-
-def read_data(file_name):
-    arr = []
-    with open(file_name, "r") as file:
-        file_contents = file.read()
-        for iter, line in enumerate(file_contents.split("\n")):
-            if line != "":
-                arr.append(line)
-    return arr
+import argparse
 
 
-def load_image_data(file_name, is_raw_data):
-    global load_denoising_file
-    image_data = []
+parser = argparse.ArgumentParser()
+parser.add_argument("--name", type=str, help="Name of the resulting image.")
+parser.add_argument("--width", type=int, help="The width of the image.")
+args = parser.parse_args()
 
-    data_array = read_data(file_name)
 
-    if is_raw_data:
-        load_denoising_file = data_array.pop(0) == "1"
-
-    width_and_height = data_array[0][5:].split(" ")
-
-    width, height = int(width_and_height[0]), int(width_and_height[1])
-
-    for line in data_array[1:]:
-        cleaned_line = line
-        values = cleaned_line.split(" ")
-        rgb_values = [float(x) for x in values if x != " " and x != ""]
-        image_data.append(rgb_values)
+def load_image_data(file_name, width):
+    image = np.fromfile(file_name, dtype=np.float64, sep="")
+    height = image.shape[0] // (3 * width)
+    image = np.reshape(image, (width, height, 3))
     
-    if len(image_data) < height * width:
-        image_data[-1] = [0,0,0]
-    
-
-    image = np.zeros((width * height, 3))
-    image[:len(image_data), :] = np.array(image_data)
-
-    image = np.reshape(image, (height, width, 3))
-
     image_min = np.min(image)
     image_max = np.max(image)
     if image_min < 0:
@@ -49,15 +21,13 @@ def load_image_data(file_name, is_raw_data):
 
     if image_max > 1:
         print(f"Image maximum is greater than 1 ({image_max})!")
-
     return np.clip(image, 0, 1)
 
 
-image_name = sys.argv[1]
+default_image = load_image_data("temp/raw.dat", args.width)
+plt.imsave(f"Images/{args.name}", default_image)
 
-denoised_image = load_image_data("temp/raw_data.txt", True)
-plt.imsave(f"Images/{image_name}", denoised_image)
-
+load_denoising_file = True
 if load_denoising_file:
-    denoised_image = load_image_data("temp/denoised_data.txt", False)
-    plt.imsave(f"Images/denoised/{image_name}", denoised_image)
+    denoised_image = load_image_data("temp/raw_denoised.dat", args.width)
+    plt.imsave(f"Images/denoised/{args.name}", denoised_image)
