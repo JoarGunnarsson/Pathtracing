@@ -372,30 +372,34 @@ void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buf
 }
 
 
-int prepare_mmap_file(const char* file_name, const size_t file_size){
-    int fd = open(file_name, O_CREAT | O_RDWR,
-                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    
+double* create_mmap(const char* filepath, const size_t file_size, int& fd){
+    fd = open(filepath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1) {
-        perror("Error opening file!");
+        perror("Error opening file");
         exit(EXIT_FAILURE);
     }
 
-    int result = lseek(fd, file_size-1, SEEK_SET);
-    if (result == -1) {
+    if (ftruncate(fd, file_size) == -1) {
+        perror("Error setting file size");
         close(fd);
-        perror("Error calling lseek() to 'stretch' the file!");
         exit(EXIT_FAILURE);
     }
 
-    result = write(fd, "", 1);
-    if (result != 1) {
+    double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+    if (mmap_file == MAP_FAILED) {
+        perror("Error mapping file");
         close(fd);
-        perror("Error writing last byte of the file");
         exit(EXIT_FAILURE);
     }
+    return mmap_file;
+}
 
-    return fd;
+
+void close_mmap(double* mmap_file, const size_t file_size, const int fd){
+    if (munmap(mmap_file, file_size) == -1) {
+        perror("Error un-mapping the file");
+    }
+    close(fd);
 }
 
 
@@ -417,14 +421,8 @@ int main() {
     std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
     std::thread thread_array[number_of_threads];
 
-    int fd = prepare_mmap_file("temp/raw.dat", FILESIZE);
-    double* image = (double*)mmap(0, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (image == MAP_FAILED) {
-        close(fd);
-        perror("Error mmapping the file");
-        exit(EXIT_FAILURE);
-    }
-       
+    int image_fd;
+    double *image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
     int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) number_of_threads);
     for (int i = 0; i < number_of_threads; i++){
@@ -437,9 +435,9 @@ int main() {
         thread_array[i].join();
     }
 
-    std::cout << constants::WIDTH;
+    std::cout << constants::WIDTH << std::endl;
     std::ofstream raw_data_file;
-    raw_data_file.open(constants::raw_output_file_name);
+    raw_data_file.open(constants::output_file_name);
     
     raw_data_file << "P3\n";
     raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
@@ -460,6 +458,8 @@ int main() {
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
+
+    close_mmap(image, FILESIZE, image_fd);
 
     clear_scene(scene);
     return 0;
