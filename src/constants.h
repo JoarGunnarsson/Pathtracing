@@ -25,8 +25,7 @@ namespace constants
     const double sigma_n = 0.4;
 
     const char* const raw_file_name = "./temp/raw.dat";
-    const std::string output_file_name = "./temp/result.PPM";
-    const std::string denoised_output_file_name = "./temp/denoised.PPM";
+    const char* const raw_denoised_file_name = "./temp/raw_denoised.dat";
 }
 
 #endif

@@ -352,23 +352,7 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
 
 
 void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
-    return;
-    /*
-    std::ofstream denoised_data_file;
-    denoised_data_file.open(constants::denoised_output_file_name);
-    
-    denoised_data_file << "P3\n";
-    denoised_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-    denoised_data_file << "255\n";
-
     denoise(pixel_buffer, position_buffer, normal_buffer);
-
-    for (int i=0; i < constants::WIDTH * constants::HEIGHT; i++){
-        print_pixel_color(tone_map(pixel_buffer[i]), denoised_data_file);
-    }
-
-    denoised_data_file.close();
-     */
 }
 
 
@@ -384,7 +368,7 @@ double* create_mmap(const char* filepath, const size_t file_size, int& fd){
         close(fd);
         exit(EXIT_FAILURE);
     }
-
+    
     double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     if (mmap_file == MAP_FAILED) {
         perror("Error mapping file");
@@ -436,24 +420,19 @@ int main() {
     }
 
     std::cout << constants::WIDTH << std::endl;
-    std::ofstream raw_data_file;
-    raw_data_file.open(constants::output_file_name);
-    
-    raw_data_file << "P3\n";
-    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-    raw_data_file << "255\n";
-    for (int i = 0; i < constants::WIDTH * constants::HEIGHT; i++){
-        vec3 pixel_color = vec3(image[3*i], image[3*i+1], image[3*i+2]);
-        print_pixel_color(tone_map(pixel_color), raw_data_file);
-    }
-
-    raw_data_file.close();
 
     print_progress(1);
     std::clog << std::endl;
- 
+
     if (constants::enable_denoising){
-        run_denoising(image, position_buffer, normal_buffer);
+        int denoised_image_fd;
+        double *denoised_image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
+ 
+        for (int i = 0; i < constants::WIDTH * constants::HEIGHT * 3; i++){
+            denoised_image[i] = image[i];
+        }
+        run_denoising(denoised_image, position_buffer, normal_buffer);
+        close_mmap(denoised_image, FILESIZE, denoised_image_fd);
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -462,5 +441,8 @@ int main() {
     close_mmap(image, FILESIZE, image_fd);
 
     clear_scene(scene);
+
+    delete[] position_buffer;
+    delete[] normal_buffer;
     return 0;
 }

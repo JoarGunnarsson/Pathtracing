@@ -51,5 +51,4 @@ fi
 
 echo "Running program. The result can be found in Images/$name"
 width=$(./main)
-echo $width
 python python_utils/to_png.py --name $name --width $width

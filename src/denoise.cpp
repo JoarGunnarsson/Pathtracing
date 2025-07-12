@@ -33,8 +33,10 @@ void clamp_y_coordinate(int& y){
 }
 
 
-double compute_weight(const int p, const int q, const KernelData& kernel_data, const vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
-    double w_rt = std::exp(-(pixel_buffer[p] - pixel_buffer[q]).length() / (kernel_data.sigma_rt * kernel_data.sigma_rt));
+double compute_weight(const int p, const int q, const KernelData& kernel_data, const double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
+    vec3 pixel_p = vec3(pixel_buffer[3*p], pixel_buffer[3*p+1], pixel_buffer[3*p+2]);
+    vec3 pixel_q = vec3(pixel_buffer[3*q], pixel_buffer[3*q+1], pixel_buffer[3*q+2]);
+    double w_rt = std::exp(-(pixel_p - pixel_q).length() / (kernel_data.sigma_rt * kernel_data.sigma_rt));
     double w_x = std::exp(-(position_buffer[p] - position_buffer[q]).length() / (kernel_data.sigma_x * kernel_data.sigma_x));
     double w_n = std::exp(-(normal_buffer[p] - normal_buffer[q]).length() / (kernel_data.sigma_n * kernel_data.sigma_n));
 
@@ -59,7 +61,7 @@ int expand_kernel_idx(const int idx, const int hole_width){
 }
 
 
-vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration, const vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
+vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration, const double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
     vec3 new_pixel_value = vec3(0,0,0);
     double normalization = 0;
     int global_x;
@@ -79,7 +81,8 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
             int q = idx_from_coordinates(x, y, constants::WIDTH);
             double weight = compute_weight(p, q, kernel_data, pixel_buffer, position_buffer, normal_buffer);
             double kernel_value = kernel_data.kernel[kernel_idx];
-            vec3 pixel_contribution = kernel_value * pixel_buffer[q] * weight;
+            vec3 pixel_color = vec3(pixel_buffer[3*q], pixel_buffer[3*q+1], pixel_buffer[3*q+2]);
+            vec3 pixel_contribution = kernel_value * pixel_color * weight;
             if (isnan(pixel_contribution.length_squared())){
                 pixel_contribution = vec3(0.0); //TODO: Did this fix the issue?
                 weight = 0.0;
@@ -93,22 +96,26 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
 }
 
 
-void one_denoising_iteration(const int iteration, const KernelData& kernel_data, vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
-    vec3* tmp_pixel_buffer = new vec3[constants::WIDTH*constants::HEIGHT];
+void one_denoising_iteration(const int iteration, const KernelData& kernel_data, double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
+    double* tmp_pixel_buffer = new double[constants::WIDTH * constants::HEIGHT * 3];
     for (int j = 0; j < constants::WIDTH * constants::HEIGHT; j++){
-            tmp_pixel_buffer[j] = blur_pixel(j, kernel_data, iteration, pixel_buffer, position_buffer, normal_buffer);
+            vec3 blurred_pixel = blur_pixel(j, kernel_data, iteration, pixel_buffer, position_buffer, normal_buffer);
+
+            for (int i = 0; i < 3; i++){
+                tmp_pixel_buffer[3*j+i] = blurred_pixel[i];
+            }
     }
 
-    for (int j = 0; j < constants::WIDTH * constants::HEIGHT; j++){
-            pixel_buffer[j] = tmp_pixel_buffer[j];
+    for (int j = 0; j < constants::WIDTH * constants::HEIGHT * 3; j++){
+        pixel_buffer[j] = tmp_pixel_buffer[j];
     }
 
     delete[] tmp_pixel_buffer;
     
 }
 
-void denoise(vec3* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
-        KernelData kernel_data;
+void denoise(double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){
+    KernelData kernel_data;
     for (int iteration = 0; iteration < constants::denoising_iterations; iteration++){
         one_denoising_iteration(iteration, kernel_data, pixel_buffer, position_buffer, normal_buffer);
         kernel_data.sigma_rt /= 2.0;

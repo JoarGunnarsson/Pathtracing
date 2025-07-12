@@ -21,7 +21,7 @@ def load_image_data(file_name, width):
 
     if image_max > 1:
         print(f"Image maximum is greater than 1 ({image_max})!")
-    return image
+    return np.clip(image, 0, 1)
 
 
 default_image = load_image_data("temp/raw.dat", args.width)
@@ -29,5 +29,5 @@ plt.imsave(f"Images/{args.name}", default_image)
 
 load_denoising_file = True
 if load_denoising_file:
-    denoised_image = load_image_data("temp/raw.dat", args.width)
+    denoised_image = load_image_data("temp/raw_denoised.dat", args.width)
     plt.imsave(f"Images/denoised/{args.name}", denoised_image)
