@@ -3,6 +3,9 @@
 #include <chrono>
 #include <stdexcept>
 #include <thread>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
 #include "vec3.h"
 #include "colors.h"
 #include "denoise.h"
@@ -328,16 +331,19 @@ void clear_scene(Scene& scene){
 }
 
 
-void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, vec3* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
-    int totals = constants::HEIGHT * constants::WIDTH;
+void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, double* image, vec3* position_buffer, vec3* normal_buffer){
     for (int i = 0; i < number_of_pixels; i++){
         int idx = start_idx + i;
-        double progress = idx / (double) totals;
-        //print_progress(progress);
+
         int x = idx % constants::WIDTH;
         int y = constants::HEIGHT - idx / constants::HEIGHT;
         PixelData data = compute_pixel_color(x, y, scene);
-        pixel_buffer[idx] = data.pixel_color;
+        
+        vec3 pixel_color = tone_map(data.pixel_color);
+        for (int j = 0; j < 3; j++){
+            image[3*idx+j] = pixel_color[j];
+        }
+
         position_buffer[idx] = data.pixel_position;
         normal_buffer[idx] = data.pixel_normal;
     }
@@ -345,7 +351,9 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
 }
 
 
-void run_denoising(vec3* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
+void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buffer){
+    return;
+    /*
     std::ofstream denoised_data_file;
     denoised_data_file.open(constants::denoised_output_file_name);
     
@@ -360,6 +368,34 @@ void run_denoising(vec3* pixel_buffer, vec3* position_buffer, vec3* normal_buffe
     }
 
     denoised_data_file.close();
+     */
+}
+
+
+int prepare_mmap_file(const char* file_name, const size_t file_size){
+    int fd = open(file_name, O_CREAT | O_RDWR,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    
+    if (fd == -1) {
+        perror("Error opening file!");
+        exit(EXIT_FAILURE);
+    }
+
+    int result = lseek(fd, file_size-1, SEEK_SET);
+    if (result == -1) {
+        close(fd);
+        perror("Error calling lseek() to 'stretch' the file!");
+        exit(EXIT_FAILURE);
+    }
+
+    result = write(fd, "", 1);
+    if (result != 1) {
+        close(fd);
+        perror("Error writing last byte of the file");
+        exit(EXIT_FAILURE);
+    }
+
+    return fd;
 }
 
 
@@ -372,7 +408,8 @@ int main() {
     std::clog << "Time taken to build scene: " << std::chrono::duration_cast<std::chrono::seconds>(end_build - begin_build).count() << "[s]" << std::endl;
     
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    vec3* pixel_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
+
+    size_t FILESIZE = constants::WIDTH * constants::HEIGHT * 3 * sizeof(double);
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
 
@@ -380,26 +417,36 @@ int main() {
     std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
     std::thread thread_array[number_of_threads];
 
-    std::ofstream raw_data_file;
-    raw_data_file.open(constants::raw_output_file_name);
-
-    raw_data_file << "P3\n";
-    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
-    raw_data_file << "255\n";
+    int fd = prepare_mmap_file("temp/raw.dat", FILESIZE);
+    double* image = (double*)mmap(0, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (image == MAP_FAILED) {
+        close(fd);
+        perror("Error mmapping the file");
+        exit(EXIT_FAILURE);
+    }
+       
 
     int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) number_of_threads);
     for (int i = 0; i < number_of_threads; i++){
         int start_idx = pixels_per_thread * i;
         int pixels_to_handle = std::min(pixels_per_thread, constants::WIDTH * constants::HEIGHT - i * pixels_per_thread);
-        thread_array[i] = std::thread(raytrace_section, start_idx, pixels_to_handle, scene, pixel_buffer, position_buffer, normal_buffer);
+        thread_array[i] = std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer, normal_buffer);
     }
 
     for (int i = 0; i < number_of_threads; i++){
         thread_array[i].join();
     }
 
+    std::cout << constants::WIDTH;
+    std::ofstream raw_data_file;
+    raw_data_file.open(constants::raw_output_file_name);
+    
+    raw_data_file << "P3\n";
+    raw_data_file << constants::WIDTH << ' ' << constants::HEIGHT << "\n";
+    raw_data_file << "255\n";
     for (int i = 0; i < constants::WIDTH * constants::HEIGHT; i++){
-        print_pixel_color(tone_map(pixel_buffer[i]), raw_data_file);
+        vec3 pixel_color = vec3(image[3*i], image[3*i+1], image[3*i+2]);
+        print_pixel_color(tone_map(pixel_color), raw_data_file);
     }
 
     raw_data_file.close();
@@ -408,7 +455,7 @@ int main() {
     std::clog << std::endl;
  
     if (constants::enable_denoising){
-        run_denoising(pixel_buffer, position_buffer, normal_buffer);
+        run_denoising(image, position_buffer, normal_buffer);
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
