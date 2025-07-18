@@ -336,7 +336,7 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
         int idx = start_idx + i;
 
         int x = idx % constants::WIDTH;
-        int y = constants::HEIGHT - idx / constants::HEIGHT;
+        int y = constants::HEIGHT - idx / constants::WIDTH;
         PixelData data = compute_pixel_color(x, y, scene);
         
         vec3 pixel_color = tone_map(data.pixel_color);
