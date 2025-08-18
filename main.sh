@@ -15,7 +15,7 @@ show_help() {
 
 compile(){
     echo "Compiling."
-    clang++ -std=c++11 src/main.cpp src/bvh.cpp src/camera.cpp src/denoise.cpp src/materials.cpp src/medium.cpp src/objects.cpp src/objectunion.cpp src/utils.cpp src/valuemap.cpp src/vec3.cpp -o main -O3
+    clang++ -std=c++11 src/*.cpp -o main -O3
     echo "Finished compiling."
 }
 

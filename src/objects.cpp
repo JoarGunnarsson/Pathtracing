@@ -1,7 +1,7 @@
 #include "objects.h"
 
 
-// ****** Object base class implementation ****** 
+// ****** Object base class implementation ******
 Object::Object(Material* _material) : material(_material), area(0.0), primitive_ID(0) {}
 
 vec3 Object::max_axis_point() const { return vec3(); }
@@ -40,7 +40,7 @@ double Object::area_to_angle_PDF_factor(const vec3& surface_point, const vec3& i
     vec3 difference_vector = intersection_point - surface_point;
     vec3 vector_to_point = normalize_vector(difference_vector);
     double pdf = dot_vectors(normal_vector, vector_to_point) / difference_vector.length_squared();
-    return pdf; 
+    return pdf;
 }
 
 double Object::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const{
@@ -53,7 +53,7 @@ vec3 Object::random_light_point(const vec3& intersection_point, double& pdf) con
     return random_point;
 }
 
-// ****** Sphere class implementation ****** 
+// ****** Sphere class implementation ******
 
 /*
 Sphere::Sphere(const vec3& _position, const double _radius) : Object(){
@@ -129,7 +129,7 @@ vec3 Sphere::random_light_point(const vec3& intersection_point, double& pdf) con
     double sin_theta = sqrt(1 - cos_theta * cos_theta);
     double cos_alpha = (radius * radius + distance * distance - pow(distance * cos_theta - sqrt(radius * radius - pow(distance*sin_theta, 2)), 2)) / (2.0 * distance * radius);
     double sin_alpha = sqrt(1.0 - cos_alpha * cos_alpha);
-    
+
     vec3 x_hat;
     vec3 y_hat;
     vec3 z_hat = get_normal_vector(intersection_point, 0);
@@ -140,7 +140,7 @@ vec3 Sphere::random_light_point(const vec3& intersection_point, double& pdf) con
 }
 
 
-// ****** Plane class implementation ****** 
+// ****** Plane class implementation ******
 Plane::Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material) : Object(_material){
     position = _position;
     v1 = normalize_vector(_v1);
@@ -193,7 +193,7 @@ double Plane::light_pdf(const vec3& surface_point, const vec3& intersection_poin
 }
 
 
-// ****** Rectangle class implementation ****** 
+// ****** Rectangle class implementation ******
 Rectangle::Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2, Material*_material) : Plane(_position, _v1, _v2, _material){
     L1 = _L1;
     L2 = _L2;
@@ -236,7 +236,7 @@ vec3 Rectangle::generate_random_surface_point() const {
 }
 
 
-// ****** Triangle class implementation ****** 
+// ****** Triangle class implementation ******
 Triangle::Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material*_material) : Object(_material){
     p1 = _p1;
     p2 = _p2;
@@ -417,7 +417,7 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
     int light_source_idx_array[number_of_objects];
 
     number_of_light_sources = 0;
-    
+
     for (int i = 0; i < number_of_objects; i++){
         if (objects[i] -> is_light_source()){
             light_source_idx_array[number_of_light_sources] = i;
@@ -427,7 +427,7 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
     if (number_of_light_sources == 0){
         return -1;
     }
-    
+
     int random_index = random_int(0, number_of_light_sources);
     int light_index = light_source_idx_array[random_index];
     return light_index;
@@ -470,7 +470,7 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
             return vec3(0);
         }
         ray.starting_position = light_hit.intersection_point;
-        
+
         bool leaving_object = !light_hit.outside;
         Medium* new_medium = objects[light_hit.intersected_object_index] -> get_material(light_hit.primitive_ID) -> medium;
         if (leaving_object){
@@ -499,7 +499,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     if (light_pdf == 0){
         return L;
     }
-    
+
     vec3 sampled_direction = random_point - hit.intersection_point;
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
@@ -509,10 +509,10 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     vec3 brdf;
     if (!is_scatter){
         brdf = objects[hit.intersected_object_index] -> eval(hit, sampled_direction);
-    
+
         if (brdf.length_squared() == 0){
             return L;
-        }  
+        }
     }
 
     double scatter_pdf; // TODO: Rename variable name?
@@ -522,7 +522,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     else{
         scatter_pdf = objects[hit.intersected_object_index] -> brdf_pdf(sampled_direction, hit);
     }
-    
+
     double distance;
     vec3 transmittance;
     vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium_stack, light_index, sampled_direction, transmittance, distance);
@@ -543,7 +543,7 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         double cosine = std::max(dot_vectors(hit.normal_vector, sampled_direction), 0.0); // TODO: used to be abs here, but I did not like that - but test!
         L = weight * brdf * cosine * emittance * transmittance / light_pdf;
     }
-    
+
     L *= (double) number_of_light_sources;
 
     return L;

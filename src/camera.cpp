@@ -10,7 +10,7 @@ Camera::Camera(vec3 _position, vec3 _viewing_direction, vec3 _y_vector){
     }
     screen_y_vector = normalize_vector(_y_vector);
     screen_width = 1.0;
-    screen_height = screen_width * (double) constants::HEIGHT / (double) constants::WIDTH; 
+    screen_height = screen_width * (double) constants::HEIGHT / (double) constants::WIDTH;
     screen_x_vector = cross_vectors(viewing_direction, screen_y_vector);
     screen_position = position + viewing_direction;
 }

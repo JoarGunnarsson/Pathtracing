@@ -11,7 +11,7 @@
 
 
 class ObjectUnion : public Object{
-    public:        
+    public:
         ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH=false);
         ~ObjectUnion();
 
@@ -27,7 +27,7 @@ class ObjectUnion : public Object{
         virtual vec3 generate_random_surface_point() const override;
         virtual double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
         virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
-        
+
     private:
         Object** objects;
         int number_of_objects;

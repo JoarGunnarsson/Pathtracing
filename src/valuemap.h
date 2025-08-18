@@ -13,8 +13,8 @@ class ValueMap{
         ValueMap(const double _data, const int _width=1, const int _height=1, const double _uMax=1, const double _v_max=1);
         ValueMap(double* _data, const int _width=1, const int _height=1, const double _u_max=1, const double _v_max=1);
         ~ValueMap();
-        
-    protected: 
+
+    protected:
         double* data;
         int width;
         double u_max;

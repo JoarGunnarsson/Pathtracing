@@ -91,19 +91,19 @@ namespace BVH{
                 return false;
             }
         }
-        
+
         if (ray_interval.max < 0 || ray_interval.min == constants::max_ray_distance){
             return false;
         }
 
         distance = std::fmax(ray_interval.min, constants::EPSILON);
         return true;
-    }    
+    }
 
 
     void sort_by_axis(Object** triangles, int number_of_triangles, int axis){
-        std::sort(triangles, triangles + number_of_triangles, [axis](Object* obj1, Object* obj2){ 
-            return (obj1 -> compute_centroid())[axis] < (obj2 -> compute_centroid())[axis]; 
+        std::sort(triangles, triangles + number_of_triangles, [axis](Object* obj1, Object* obj2){
+            return (obj1 -> compute_centroid())[axis] < (obj2 -> compute_centroid())[axis];
             });
     }
 
@@ -155,7 +155,7 @@ namespace BVH{
             if (number_of_triangles == 0){
                 return false;
             }
-            Hit triangle_hit; 
+            Hit triangle_hit;
             bool hits_triangles = find_closest_hit(triangle_hit, ray, triangles, number_of_triangles);
             if (hits_triangles && triangle_hit.distance < hit.distance && triangle_hit.distance > constants::EPSILON){
                 hit.distance = triangle_hit.distance;
@@ -193,7 +193,7 @@ namespace BVH{
         else if (bvh1_hit){
             return node1 -> intersect(ray, hit);
         }
-        
+
         else if (bvh2_hit){
             return node2 -> intersect(ray, hit);
         }

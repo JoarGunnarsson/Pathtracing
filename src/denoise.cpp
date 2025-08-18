@@ -72,13 +72,14 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
             int expanded_dx = expand_kernel_idx(dx, kernel_data.hole_width);
             int expanded_dy = expand_kernel_idx(dy, kernel_data.hole_width);
             int kernel_idx = idx_from_coordinates(dx+2, dy+2, 5);
-            
+
             int x = global_x + expanded_dx;
             int y = global_y + expanded_dy;
 
             clamp_x_coordinate(x);
             clamp_y_coordinate(y);
             int q = idx_from_coordinates(x, y, constants::WIDTH);
+
             double weight = compute_weight(p, q, kernel_data, pixel_buffer, position_buffer, normal_buffer);
             double kernel_value = kernel_data.kernel[kernel_idx];
             vec3 pixel_color = vec3(pixel_buffer[3*q], pixel_buffer[3*q+1], pixel_buffer[3*q+2]);
@@ -111,7 +112,7 @@ void one_denoising_iteration(const int iteration, const KernelData& kernel_data,
     }
 
     delete[] tmp_pixel_buffer;
-    
+
 }
 
 void denoise(double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer){

@@ -63,7 +63,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray_hit.distance = constants::max_ray_distance;
         }
         // save refractive indices here? Take from hit object + current/next medium?
-        
+
         bool scatter = scatter_distance < ray_hit.distance;
         scatter_distance = std::min(scatter_distance, ray_hit.distance);
         if (scatter){
@@ -71,7 +71,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
         }
 
         throughput *= medium -> sample(objects, number_of_objects, scatter_distance, scatter);
-        
+
         if (scatter){
             vec3 scatter_point = ray.starting_position + ray.direction_vector * scatter_distance;
             vec3 scattered_direction = medium -> sample_direction(ray.direction_vector);
@@ -84,10 +84,10 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 scatter_pdf = medium -> phase_function(ray.direction_vector, scattered_direction);
                 saved_point = scatter_point;
             }
-            
+
             ray.starting_position = scatter_point;
             ray.direction_vector = scattered_direction;
-        }     
+        }
         else{
             if (!has_hit_surface){
                 data.pixel_position = ray_hit.intersection_point;
@@ -113,11 +113,11 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 
                 color += weight * light_emittance * throughput; // TODO: What does this dot product do?  (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0
             }
-            
+
             if (constants::enable_next_event_estimation){
                 color += sample_light(ray_hit, objects, number_of_objects, medium_stack, false) * throughput;//hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
             }
-            
+
             BrdfData brdf_result = hit_object -> sample(ray_hit);
             // TODO: Rename allow_direct_light!
             // TODO: Rename is_virtual_surface variable...
@@ -125,7 +125,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             if (is_virtual_surface){
                 brdf_result.type = ray.type;
             }
-            else{ 
+            else{
                 scatter_pdf = brdf_result.pdf;
                 saved_point = ray_hit.intersection_point;
             }
@@ -133,7 +133,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 
             double incoming_dot_normal = dot_vectors(ray_hit.incident_vector, ray_hit.normal_vector);
             double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
-            
+
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
 
             // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
@@ -164,14 +164,14 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             double random_value = random_uniform(0, 1);
             allow_recursion = random_value < random_threshold;
         }
-        
+
         if (!allow_recursion){
             break;
         }
 
         throughput /= random_threshold;
     }
-    
+
     data.pixel_color = color;
     return data;
  }
@@ -191,12 +191,12 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene){
             new_x += random_normal() / 3.0;
             new_y += random_normal() / 3.0;
         }
-        
+
         ray.direction_vector = scene.camera -> get_starting_directions(new_x, new_y);
         PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
         data.pixel_position = sampled_data.pixel_position;
         data.pixel_normal = sampled_data.pixel_normal;
-        pixel_color += sampled_data.pixel_color;    
+        pixel_color += sampled_data.pixel_color;
     }
 
     data.pixel_color = pixel_color / (double) constants::samples_per_pixel;
@@ -222,17 +222,17 @@ void print_progress(double progress){
 }
 
 
-Scene create_scene(){
+Scene create_scene_old(){
 
     MaterialManager* manager = new MaterialManager();
     MaterialData white_data;
     white_data.albedo_map = new ValueMap3D(colors::WHITE * 0.7);
     DiffuseMaterial* white_diffuse_material = new DiffuseMaterial(white_data);
     manager -> add_material(white_diffuse_material);
-    
+
     MaterialData white_reflective_data;
     white_reflective_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
-    ReflectiveMaterial* white_reflective_material = new ReflectiveMaterial(white_reflective_data);   
+    ReflectiveMaterial* white_reflective_material = new ReflectiveMaterial(white_reflective_data);
     manager -> add_material(white_reflective_material);
 
     MaterialData red_material_data;
@@ -290,8 +290,8 @@ Scene create_scene(){
     Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
     Sphere* ball2 = new Sphere(vec3(-0.3, 0.3, 1.3), 0.2, gold_material);
 
-    Sphere* light_source = new Sphere(vec3(-1, 2.199, 1), 0.2, light_source_material);
-    
+    Sphere* light_source = new Sphere(vec3(0, 2.199, 0), 0.2, light_source_material);
+
     double desired_size = 0.6;
     vec3 desired_center = vec3(-0.3, 0.1, 1.3);
     bool smooth_shade = false;
@@ -338,7 +338,7 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
         int x = idx % constants::WIDTH;
         int y = constants::HEIGHT - idx / constants::WIDTH;
         PixelData data = compute_pixel_color(x, y, scene);
-        
+
         vec3 pixel_color = tone_map(data.pixel_color);
         for (int j = 0; j < 3; j++){
             image[3*idx+j] = pixel_color[j];
@@ -346,6 +346,7 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
 
         position_buffer[idx] = data.pixel_position;
         normal_buffer[idx] = data.pixel_normal;
+
     }
     std::clog << "Thread complete.\n";
 }
@@ -368,7 +369,7 @@ double* create_mmap(const char* filepath, const size_t file_size, int& fd){
         close(fd);
         exit(EXIT_FAILURE);
     }
-    
+
     double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     if (mmap_file == MAP_FAILED) {
         perror("Error mapping file");
@@ -394,7 +395,7 @@ int main() {
 
     std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
     std::clog << "Time taken to build scene: " << std::chrono::duration_cast<std::chrono::seconds>(end_build - begin_build).count() << "[s]" << std::endl;
-    
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     size_t FILESIZE = constants::WIDTH * constants::HEIGHT * 3 * sizeof(double);
@@ -427,7 +428,7 @@ int main() {
     if (constants::enable_denoising){
         int denoised_image_fd;
         double *denoised_image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
- 
+
         for (int i = 0; i < constants::WIDTH * constants::HEIGHT * 3; i++){
             denoised_image[i] = image[i];
         }
