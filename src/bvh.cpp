@@ -92,22 +92,12 @@ namespace BVH{
             }
         }
         
-        if (ray_interval.min > constants::EPSILON){
-            distance = ray_interval.min;
-            if (distance == constants::max_ray_distance){
-                return false;
-            }
-            return true;
-        }
-        else if (ray_interval.max > constants::EPSILON){
-            distance = ray_interval.max;
-            if (distance == constants::max_ray_distance){
-                return false;
-            }
-            return true;
+        if (ray_interval.max < 0 || ray_interval.min == constants::max_ray_distance){
+            return false;
         }
 
-        return false;
+        distance = std::fmax(ray_interval.min, constants::EPSILON);
+        return true;
     }    
 
 
