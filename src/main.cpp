@@ -360,19 +360,25 @@ void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buf
 double* create_mmap(const char* filepath, const size_t file_size, int& fd){
     fd = open(filepath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1) {
-        perror("Error opening file");
+        perror("Error opening file.");
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncate(fd, 0) == -1){
+        perror("Error clearing temporary file.");
+        close(fd);
         exit(EXIT_FAILURE);
     }
 
     if (ftruncate(fd, file_size) == -1) {
-        perror("Error setting file size");
+        perror("Error setting file size.");
         close(fd);
         exit(EXIT_FAILURE);
     }
 
     double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     if (mmap_file == MAP_FAILED) {
-        perror("Error mapping file");
+        perror("Error mapping file.");
         close(fd);
         exit(EXIT_FAILURE);
     }
@@ -382,7 +388,7 @@ double* create_mmap(const char* filepath, const size_t file_size, int& fd){
 
 void close_mmap(double* mmap_file, const size_t file_size, const int fd){
     if (munmap(mmap_file, file_size) == -1) {
-        perror("Error un-mapping the file");
+        perror("Error un-mapping the file.");
     }
     close(fd);
 }
@@ -402,7 +408,7 @@ int main() {
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
 
-    int number_of_threads = std::thread::hardware_concurrency();
+    int number_of_threads = std::thread::hardware_concurrency() - 1;
     std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
     std::thread thread_array[number_of_threads];
 
