@@ -18,7 +18,7 @@ double random_uniform(const double low, const double high){
 }
 
 int random_int(const int low, const int high){
-    // Returns a random int between low (inclusive) and high (exclusive). 
+    // Returns a random int between low (inclusive) and high (exclusive).
     return (int) random_uniform(low, high);
 }
 
@@ -82,7 +82,7 @@ void set_perpendicular_vectors(const vec3& z_hat, vec3& x_hat, vec3& y_hat){
     if (std::abs(dot_vectors(non_parallel_vector, z_hat)) == 1.0){
         non_parallel_vector = vec3(0.0, 1.0, 0.0);
     }
-    
+
     x_hat = cross_vectors(z_hat, non_parallel_vector);
     x_hat = normalize_vector(x_hat);
     y_hat = cross_vectors(z_hat, x_hat);
@@ -97,7 +97,7 @@ vec3 sample_angled_hemisphere(const vec3& normal_vector, const double cos_max){
     double cos_theta = random_uniform(cos_max, 1);
     double sin_theta = sqrt(1 - (cos_theta * cos_theta));
     double x = sin_theta * cos(phi);
-    double y = sin_theta * sin(phi); 
+    double y = sin_theta * sin(phi);
     double z = cos_theta;
     return x_hat * x + y_hat * y + normal_vector * z;
 }
@@ -176,7 +176,7 @@ double fresnel_conductor(double cos_theta_real, const double n1, const double k1
     std::complex<double> f4 = f2 * sin_theta2;
 
     std::complex<double> R_s = (f1 - f2) / (f1 + f2);
-    std::complex<double> R_p = R_s * (f3 - f4) / (f3 + f4); 
+    std::complex<double> R_p = R_s * (f3 - f4) / (f3 + f4);
     return 0.5 * real(R_p + R_s);
 }
 

@@ -32,7 +32,7 @@ class Object{
         virtual BrdfData sample(const Hit& hit) const;
         virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const;
         virtual vec3 get_light_emittance(const Hit& hit) const;
-        virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const;    
+        virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const;
         virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const;
         virtual vec3 generate_random_surface_point() const;
         double area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const;
@@ -61,7 +61,7 @@ class Sphere: public Object{
 
 
 class Plane: public Object{
-    public:        
+    public:
         Plane(){}
         Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material*_material);
 
@@ -83,7 +83,7 @@ class Rectangle: public Plane{
     public:
         Rectangle(){}
         Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2, Material*_material);
-        
+
         vec3 get_UV(const vec3& point) const override;
         bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
         double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;

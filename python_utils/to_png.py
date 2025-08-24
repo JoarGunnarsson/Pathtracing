@@ -1,6 +1,7 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
 
 
 parser = argparse.ArgumentParser()
@@ -12,8 +13,8 @@ args = parser.parse_args()
 def load_image_data(file_name, width):
     image = np.fromfile(file_name, dtype=np.float64, sep="")
     height = image.shape[0] // (3 * width)
-    image = np.reshape(image, (width, height, 3))
-    
+    image = np.reshape(image, (height, width, 3))
+
     image_min = np.min(image)
     image_max = np.max(image)
     if image_min < 0:

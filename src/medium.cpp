@@ -1,7 +1,7 @@
 #include "medium.h"
 
 
-Medium::Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient) : 
+Medium::Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient) :
 scattering_albedo(_scattering_albedo), absorption_albedo(_absorption_albedo), emission_coefficient(_emission_coefficient){
     extinction_albedo = absorption_albedo + scattering_albedo;
 }
@@ -87,7 +87,7 @@ Medium* MediumStack::get_medium() const{
     if(stack_size == 0){
         return nullptr;
     }
-    
+
     return medium_array[stack_size-1];
 }
 
@@ -100,11 +100,11 @@ void MediumStack::add_medium(Medium* medium, const int id){
     bool found = false;
     for (int i = 0; i < stack_size; i++){
         if (medium_array[i] -> id == id){
-            //std::cout << "Error: 1. Found a medium with same ID!\n"; 
+            //std::cout << "Error: 1. Found a medium with same ID!\n";
             return;
         }
     }
-    
+
     medium -> id = id;
     medium_array[stack_size] = medium;
     stack_size++;

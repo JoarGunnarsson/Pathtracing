@@ -21,16 +21,16 @@ namespace BVH{
     class BoundingBox{
         public:
             double axis_length[3];
-            
+
             BoundingBox(){}
             BoundingBox(Object** _triangles, int number_of_triangles);
-        
+
             inline bool is_within_bounds(const double x, const double lower, const double higher) const{
                 return lower <= x && x <= higher;
             }
 
             Interval get_interval(const int axis) const;
-            bool intersect(Ray& ray, double& distance) const; 
+            bool intersect(Ray& ray, double& distance) const;
 
         private:
             vec3 p1;
@@ -50,7 +50,7 @@ namespace BVH{
     class Node{
         public:
             BoundingBox bounding_box;
-            
+
             Node(){}
             Node(Object** _triangles, int _number_of_triangles, int _leaf_size=12, int depth=0);
 
@@ -70,14 +70,14 @@ namespace BVH{
 
 
     class BoundingVolumeHierarchy{
-        public:            
+        public:
             BoundingVolumeHierarchy(){}
             BoundingVolumeHierarchy(Object** triangles, int number_of_triangles, int leaf_size);
 
             bool intersect(Hit& hit, Ray& ray) const;
 
         private:
-            Node* root_node;    
+            Node* root_node;
     };
 }
 

@@ -164,7 +164,7 @@ DataSizes get_vertex_data_sizes(const std::string& file_name){
     std::ifstream model_file(file_name);
     std::string line;
     DataSizes nums;
-    
+
     while(std::getline(model_file, line)){
         std::string first_word = get_nth_word(line, ' ', 0);
 
@@ -172,7 +172,7 @@ DataSizes get_vertex_data_sizes(const std::string& file_name){
         bool is_vertex_UV = first_word == "vt";
         bool is_vertex_normal = first_word == "vn";
         bool is_shape = first_word == "f";
-        
+
         if (is_vertex){
             nums.num_vertices++;
         }
@@ -189,7 +189,7 @@ DataSizes get_vertex_data_sizes(const std::string& file_name){
                     number_of_spaces++;
                 }
             }
-            
+
             bool is_triangle = number_of_spaces == 3;
             bool is_quad = number_of_spaces == 4;
             if (is_triangle){
@@ -276,7 +276,7 @@ void populate_vertex_vectors(PopulateVertexVectorData& args){
     std::string v_idx = get_nth_word(args.vertex_data, '/', 0);
     std::string UV_idx = get_nth_word(args.vertex_data, '/', 1);
     std::string n_idx = get_nth_word(args.vertex_data, '/', 2);
-    
+
     if (v_idx != ""){
         args.v = args.vertex_array[std::stoi(v_idx)-1];
         args.v_success = true;
@@ -308,7 +308,7 @@ TriangleCreationResult construct_triangle(TriangleConstructionArgs& args){
     populate_vertex_vectors(data3);
 
     bool loaded_vertices_successfully = data1.v_success && data2.v_success && data3.v_success;
-    
+
     TriangleCreationResult result;
 
     if (!loaded_vertices_successfully){
@@ -336,7 +336,7 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
     int shape_idx = 0;
     while(std::getline(model_file, line)){
         std::string first_word = get_nth_word(line, ' ', 0);
-        
+
         bool is_shape = first_word == "f";
         if (!is_shape){
             continue;
@@ -361,7 +361,7 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
                 triangle_array[shape_idx] = result1.triangle;
                 shape_idx++;
             }
-            
+
             TriangleConstructionArgs args2 = TriangleConstructionArgs(line, 1, 3, 4, material, vertex_array, vertex_UV_array, vertex_normal_array, enable_smooth_shading);
             TriangleCreationResult result2 = construct_triangle(args2);
             if (result1.success){

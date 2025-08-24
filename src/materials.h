@@ -50,7 +50,7 @@ struct MaterialData{
     ValueMap3D* emission_color_map = nullptr;
     ValueMap1D* light_intensity_map = nullptr;
     bool is_dielectric = true;
-    ValueMap1D* roughness_map = nullptr; 
+    ValueMap1D* roughness_map = nullptr;
     bool is_light_source = false;
     Medium* medium = nullptr;
 };
@@ -73,7 +73,7 @@ class Material{
         Material(){}
         Material(MaterialData data);
         ~Material();
-        
+
     virtual bool allow_direct_light() const;
     virtual bool compute_direct_light() const;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const;

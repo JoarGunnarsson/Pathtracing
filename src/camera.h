@@ -16,12 +16,12 @@ class Camera{
 
     private:
         vec3 viewing_direction;
-        vec3 screen_x_vector;   
+        vec3 screen_x_vector;
         vec3 screen_y_vector;
         vec3 screen_position;
         double screen_width;
         double screen_height;
-}; 
+};
 
 
 #endif
