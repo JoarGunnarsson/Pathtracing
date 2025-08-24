@@ -3,8 +3,8 @@
 
 
 void get_image_coordinates(int& x, int& y, const int idx){
-    x = idx % constants::HEIGHT;
-    y = (idx - x) / constants::WIDTH;
+    x = idx % constants::WIDTH;
+    y = idx / constants::WIDTH;
 }
 
 
