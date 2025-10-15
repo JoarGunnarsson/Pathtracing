@@ -36,15 +36,16 @@ vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID
 vec3 Object::generate_random_surface_point() const{ return vec3(); }
 
 double Object::area_to_angle_PDF_factor(const vec3& surface_point, const vec3& intersection_point, const int primitive_ID) const{
+    /* Returns a positive float, allowing both sides of the surface to emit light. */
     vec3 normal_vector = get_normal_vector(surface_point, primitive_ID);
     vec3 difference_vector = intersection_point - surface_point;
     vec3 vector_to_point = normalize_vector(difference_vector);
     double pdf = dot_vectors(normal_vector, vector_to_point) / difference_vector.length_squared();
-    return pdf;
+    return std::abs(pdf);
 }
 
 double Object::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const{
-    return std::abs(1.0 / (area * area_to_angle_PDF_factor(surface_point, intersection_point, primitive_id)));
+    return 1.0 / (area * area_to_angle_PDF_factor(surface_point, intersection_point, primitive_id));
 }
 
 vec3 Object::random_light_point(const vec3& intersection_point, double& pdf) const{
@@ -223,10 +224,6 @@ bool Rectangle::find_closest_object_hit(Hit& hit, Ray& ray) const {
     hit.distance = distance;
     hit.primitive_ID = primitive_ID;
     return true;
-}
-
-double Rectangle::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const {
-    return std::abs(1.0 / (area * area_to_angle_PDF_factor(surface_point, intersection_point, primitive_id)));
 }
 
 vec3 Rectangle::generate_random_surface_point() const {
@@ -545,6 +542,5 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     }
 
     L *= (double) number_of_light_sources;
-
     return L;
 }
