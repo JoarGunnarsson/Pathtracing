@@ -31,10 +31,17 @@ Below are a few different example scenes, showcasing different objects and mater
 To run the program and generate an image, simply execute the shell script `main.sh` file:
 
 ```
-./main.sh [-compile] [-name <name>] [-h]"
+Usage: ./main.sh [OPTIONS] [ARGS]
+
+Options:
+  -c, --compile           Compiles the project before running. (optional)
+  -n, --name <name>       Specify a name that ends in '.png', default 'result.png' (optional)
+  -h, --help              Show this message (optional)
+
+Example:
+  ./main.sh --compile --name 'result.png'
 ```
 
-Adding the -compile flag compiles the project before running, and using the -name flag sets the resulting image name (default: 'result.png').
 
 
 
