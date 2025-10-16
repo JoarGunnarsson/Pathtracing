@@ -1,15 +1,15 @@
 #!/bin/bash
 
 show_help() {
-    echo "Usage: ./main.sh [-compile] [-name <name>] [-h]"
+    echo "Usage: ./main.sh [OPTIONS] [ARGS]"
     echo ""
     echo "Options:"
-    echo "  -compile           Compiles the project before running. (optional)"
-    echo "  -name <name>       Specify a name that ends in '.png' (optional)"
-    echo "  -h                 Show this help message (optional)"
+    echo "  -c, --compile           Compiles the project before running. (optional)"
+    echo "  -n, --name <name>       Specify a name that ends in '.png', default 'result.png' (optional)"
+    echo "  -h, --help              Show this message (optional)"
     echo ""
     echo "Example:"
-    echo "  ./main.sh -compile -name 'result.png'"
+    echo "  ./main.sh --compile --name 'result.png'"
 }
 
 
@@ -26,19 +26,20 @@ echo ""
 # Parse arguments. Compiles project if compile flag is set. Also sets resulting image name if provided.
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -compile)
+        -c|--compile)
             compile
             ;;
-        -name)
+        -n|--name)
             name="$2"
             shift
             ;;
-        -h)
+        -h|--help)
             show_help
             exit 0
             ;;
         *)
             echo "Unknown option: $1"
+            exit 0
             ;;
     esac
     shift
