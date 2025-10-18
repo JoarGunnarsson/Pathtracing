@@ -10,7 +10,7 @@ MAP_FILE_PATH = pathlib.Path(__file__).parent.parent / "maps"
 
 
 class Modes:
-    TEXTURE = "texture"
+    ALBEDO = "albedo"
 
 
 def open_file(file_name):
@@ -20,10 +20,10 @@ def open_file(file_name):
     return plt.imread(file_path)
 
 
-def create_texture_map(input_file, output_file):
+def create_albedo_map(input_file, output_file):
     img = open_file(input_file)
     height, width, dim = img.shape[0], img.shape[1], img.shape[2]
-    print(f"Creating new texture map, based on file with width={width} and height={height}.")
+    print(f"Creating new albedo map, based on file with width={width} and height={height}.")
 
     img = np.reshape(img, (width * height, dim))
 
@@ -37,7 +37,7 @@ def create_texture_map(input_file, output_file):
     for rgb in img:
         for x in rgb[:3]:
             img_data.append(str(x))
-
+    print("write")
     write_data_to_file(output_file, img_data, width, height, 3)
 
 
@@ -51,18 +51,16 @@ def write_data_to_file(file_name, img_data, width, height, dimension):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("in_file", help="Input file path, relative to maps/.")
-    parser.add_argument("out_file", help="Output file path, relative to maps/.")
-    parser.add_argument(
-        "-m", "--mode", default=Modes.TEXTURE, help="Which mode to use. Available modes are: 'texture'."
-    )
+    parser.add_argument("in_file", help="input file path, relative to maps/")
+    parser.add_argument("out_file", help="output file path, relative to maps/")
+    parser.add_argument("-m", "--mode", default=Modes.TEXTURE, help="which mode to use, available modes are: 'albedo'")
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
-    if args.mode == Modes.TEXTURE:
-        create_texture_map(args.in_file, args.out_file)
+    if args.mode == Modes.ALBEDO:
+        create_albedo_map(args.in_file, args.out_file)
     else:
         raise ValueError(f"{args.mode} is not a valid mode!")
 

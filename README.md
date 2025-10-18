@@ -16,21 +16,49 @@ Below are a few different example scenes, showcasing different objects and mater
 
 ## Usage
 
+#### Main program
 To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
 
 ```
-Usage: ./main.sh [OPTIONS] [ARGS]
+usage: main.sh [-h] [--name NAME] [--compile]
 
-Options:
-  -c, --compile           Compiles the project before running. (optional)
-  -n, --name <name>       Specify a name that ends in '.png', default 'result.png' (optional)
-  -h, --help              Show this message (optional)
+options:
+  -h, --help              show this message (optional)
+  -c, --compile           compiles the project before running (optional)
+  -n, --name <name>       the filename of the generated image, default 'result.png' (optional)
+```
 
-Example:
-  ./main.sh --compile --name 'result.png'
+#### Utilities
+
+##### get_map.py
+
+`get_map.py` is a utility program used for turning images into UV-maps for different kinds of material properties, for example albedo.
+
+```
+Usage: get_map.py [-h] [-m MODE] in_file out_file
+
+positional arguments:
+  in_file               input file path, relative to maps/
+  out_file              output file path, relative to maps/
+
+options:
+  -h, --help            show this help message and exit
+  -m MODE, --mode MODE  which mode to use. Available modes are: 'albedo'
 ```
 
 
+#### to_png.py
+
+`to_png.png`is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
+
+```
+usage: to_png.py [-h] [--name NAME] [--width WIDTH]
+
+options:
+  -h, --help     show this help message and exit
+  --name NAME    name of the resulting image.
+  --width WIDTH  the width of the image.
+```
 
 
 ### Notes
