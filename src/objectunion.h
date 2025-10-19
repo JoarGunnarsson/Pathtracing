@@ -9,54 +9,54 @@
 #include "objects.h"
 #include "bvh.h"
 
+class ObjectUnion : public Object {
+  public:
+    ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH = false);
+    ~ObjectUnion();
 
-class ObjectUnion : public Object{
-    public:
-        ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH=false);
-        ~ObjectUnion();
+    virtual Material* get_material(const int primitive_ID) const override;
+    virtual bool is_light_source() const override;
+    virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const override;
+    virtual BrdfData sample(const Hit& hit) const override;
+    virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const override;
+    virtual vec3 get_light_emittance(const Hit& hit) const override;
+    virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
+    virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
+    int sample_random_primitive_index() const;
+    virtual vec3 generate_random_surface_point() const override;
+    virtual double light_pdf(const vec3& surface_point, const vec3& intersection_point,
+                             const int primitive_id) const override;
+    virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
 
-        virtual Material* get_material(const int primitive_ID) const override;
-        virtual bool is_light_source() const override;
-        virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const override;
-        virtual BrdfData sample(const Hit& hit) const override;
-        virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const override;
-        virtual vec3 get_light_emittance(const Hit& hit) const override;
-        virtual bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
-        virtual vec3 get_normal_vector(const vec3& surface_point, const int primitive_ID) const override;
-        int sample_random_primitive_index() const;
-        virtual vec3 generate_random_surface_point() const override;
-        virtual double light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const override;
-        virtual vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
-
-    private:
-        Object** objects;
-        int number_of_objects;
-        double* cumulative_area;
-        int* light_source_conversion_indices;
-        int number_of_light_sources;
-        BVH::BoundingVolumeHierarchy bvh;
-        bool use_BVH;
-        bool contains_light_source = false;
+  private:
+    Object** objects;
+    int number_of_objects;
+    double* cumulative_area;
+    int* light_source_conversion_indices;
+    int number_of_light_sources;
+    BVH::BoundingVolumeHierarchy bvh;
+    bool use_BVH;
+    bool contains_light_source = false;
 };
 
-
-struct DataSizes{
+struct DataSizes {
     int num_vertices = 0;
     int num_vertex_UVs = 0;
     int num_vertex_normals = 0;
     int num_triangles = 0;
 };
 
-
 int number_of_char_occurances(const std::string& line, const char character);
 std::string get_nth_word(const std::string& line, const char delimiter, const int n);
 DataSizes get_vertex_data_sizes(const std::string& file_name);
-void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array);
+void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, vec3* vertex_UV_array,
+                            vec3* vertex_normal_array);
 vec3 compute_average_position(const vec3* vertex_array, const int number_of_vertices);
 double maximum_distance(const vec3& center, const vec3* vertex_array, const int number_of_vertices);
-void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array, const int number_of_vertices);
+void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
+                    const int number_of_vertices);
 
-struct PopulateVertexVectorData{
+struct PopulateVertexVectorData {
     const std::string vertex_data;
     vec3 v;
     bool v_success = false;
@@ -68,15 +68,17 @@ struct PopulateVertexVectorData{
     const vec3* vertex_UV_array;
     const vec3* vertex_normal_array;
 
-    PopulateVertexVectorData(const std::string& data, const vec3* vertex_array, const vec3* vertex_UV_array, const vec3* vertex_normal_array)
-        : vertex_data(data), vertex_array(vertex_array), vertex_UV_array(vertex_UV_array), vertex_normal_array(vertex_normal_array) {}
+    PopulateVertexVectorData(const std::string& data, const vec3* vertex_array, const vec3* vertex_UV_array,
+                             const vec3* vertex_normal_array) :
+        vertex_data(data),
+        vertex_array(vertex_array),
+        vertex_UV_array(vertex_UV_array),
+        vertex_normal_array(vertex_normal_array) {}
 };
-
 
 void populate_vertex_vectors(PopulateVertexVectorData& args);
 
-
-struct TriangleConstructionArgs{
+struct TriangleConstructionArgs {
     const std::string triangle_data;
     const int idx1;
     const int idx2;
@@ -87,20 +89,29 @@ struct TriangleConstructionArgs{
     const vec3* vertex_normal_array;
     const bool enable_smooth_shading;
 
-    TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3, Material* material, const vec3* vertex_array,
-    const vec3* vertex_UV_array, const vec3* vertex_normal_array, const bool enable_smooth_shading) : triangle_data(data), idx1(idx1), idx2(idx2),
-    idx3(idx3), material(material), vertex_array(vertex_array), vertex_UV_array(vertex_UV_array), vertex_normal_array(vertex_normal_array), enable_smooth_shading(enable_smooth_shading) {}
+    TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3,
+                             Material* material, const vec3* vertex_array, const vec3* vertex_UV_array,
+                             const vec3* vertex_normal_array, const bool enable_smooth_shading) :
+        triangle_data(data),
+        idx1(idx1),
+        idx2(idx2),
+        idx3(idx3),
+        material(material),
+        vertex_array(vertex_array),
+        vertex_UV_array(vertex_UV_array),
+        vertex_normal_array(vertex_normal_array),
+        enable_smooth_shading(enable_smooth_shading) {}
 };
 
-
-struct TriangleCreationResult{
+struct TriangleCreationResult {
     Triangle* triangle;
     bool success = false;
 };
 
-
 TriangleCreationResult construct_triangle(TriangleConstructionArgs& args);
-int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array, Object** triangle_array, Material* material, const bool enable_smooth_shading);
-ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading, const bool move_object, const vec3& center, const double size);
+int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array,
+                            Object** triangle_array, Material* material, const bool enable_smooth_shading);
+ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
+                               const bool move_object, const vec3& center, const double size);
 
 #endif
