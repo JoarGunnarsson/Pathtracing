@@ -1,13 +1,12 @@
 import argparse
+import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--name", type=str, help="Name of the resulting image.")
-parser.add_argument("--width", type=int, help="The width of the image.")
-args = parser.parse_args()
+IMAGES_FILE_PATH = pathlib.Path(__file__).parent.parent / "Images"
+TMP_FILES_PATH = pathlib.Path(__file__).parent.parent / "temp"
 
 
 def load_image_data(file_name, width):
@@ -25,10 +24,23 @@ def load_image_data(file_name, width):
     return np.clip(image, 0, 1)
 
 
-default_image = load_image_data("temp/raw.dat", args.width)
-plt.imsave(f"Images/{args.name}", default_image)
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--name", type=str, help="name of the resulting image.")
+    parser.add_argument("--width", type=int, help="the width of the image.")
+    return parser.parse_args()
 
-load_denoising_file = True
-if load_denoising_file:
-    denoised_image = load_image_data("temp/raw_denoised.dat", args.width)
-    plt.imsave(f"Images/denoised/{args.name}", denoised_image)
+
+def main():
+    args = parse_arguments()
+    default_image = load_image_data(TMP_FILES_PATH / "raw.dat", args.width)
+    plt.imsave(IMAGES_FILE_PATH / args.name, default_image)
+
+    load_denoising_file = True
+    if load_denoising_file:
+        denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", args.width)
+        plt.imsave(IMAGES_FILE_PATH / "denoised" / "args.name", denoised_image)
+
+
+if __name__ == "__main__":
+    main()
