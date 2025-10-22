@@ -1,23 +1,29 @@
 #include "objects.h"
 
 // ****** Object base class implementation ******
+
 Object::Object(Material* _material) : material(_material), area(0.0), primitive_ID(0) {}
 
 vec3 Object::max_axis_point() const {
     return vec3();
 }
+
 vec3 Object::min_axis_point() const {
     return vec3();
 }
+
 vec3 Object::compute_centroid() const {
     return vec3();
 }
+
 vec3 Object::get_UV(const vec3& point) const {
     return vec3();
 }
+
 Material* Object::get_material(const int primitive_ID) const {
     return material;
 }
+
 bool Object::is_light_source() const {
     return material->is_light_source;
 }
@@ -45,9 +51,11 @@ vec3 Object::get_light_emittance(const Hit& hit) const {
 bool Object::find_closest_object_hit(Hit& hit, Ray& ray) const {
     return false;
 }
+
 vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
     return vec3();
 }
+
 vec3 Object::generate_random_surface_point() const {
     return vec3();
 }
@@ -73,14 +81,6 @@ vec3 Object::random_light_point(const vec3& intersection_point, double& pdf) con
 }
 
 // ****** Sphere class implementation ******
-
-/*
-Sphere::Sphere(const vec3& _position, const double _radius) : Object(){
-    position = _position;
-    radius = _radius;
-    area = 4 * M_PI * radius * radius;
-}
-*/
 
 Sphere::Sphere(const vec3& _position, const double _radius, Material* _material) : Object(_material) {
     position = _position;
@@ -161,6 +161,7 @@ vec3 Sphere::random_light_point(const vec3& intersection_point, double& pdf) con
 }
 
 // ****** Plane class implementation ******
+
 Plane::Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material* _material) : Object(_material) {
     position = _position;
     v1 = normalize_vector(_v1);
@@ -213,6 +214,7 @@ double Plane::light_pdf(const vec3& surface_point, const vec3& intersection_poin
 }
 
 // ****** Rectangle class implementation ******
+
 Rectangle::Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2,
                      Material* _material) :
     Plane(_position, _v1, _v2, _material) {
@@ -253,7 +255,12 @@ vec3 Rectangle::generate_random_surface_point() const {
     return v1 * r1 + v2 * r2 + position;
 }
 
+double Rectangle::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const {
+    return std::abs(1.0 / (area * area_to_angle_PDF_factor(surface_point, intersection_point, primitive_id)));
+}
+
 // ****** Triangle class implementation ******
+
 Triangle::Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material* _material) : Object(_material) {
     p1 = _p1;
     p2 = _p2;
@@ -560,8 +567,9 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         if (wrong_side) {
             return L;
         }
-        double cosine = std::max(dot_vectors(hit.normal_vector, sampled_direction),
-                                 0.0); // TODO: used to be abs here, but I did not like that - but test!
+        double cosine = std::max(dot_vectors(hit.normal_vector, sampled_direction), 0.0);
+        // TODO: used to be abs here, but I did not like that - but test!
+
         L = weight * brdf * cosine * emittance * transmittance / light_pdf;
     }
 
