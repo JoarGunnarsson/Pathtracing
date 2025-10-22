@@ -1,3 +1,4 @@
+#include <fstream>
 #include "valuemap.h"
 
 ValueMap::ValueMap(const int _data, const int _width, const int _height, const double _u_max, const double _v_max) {
@@ -47,48 +48,58 @@ vec3 ValueMap3D::get(const double u, const double v) const {
     return vec3(data[start_index], data[start_index + 1], data[start_index + 2]);
 }
 
-ValueMap1D* create_value_map_1D(const char* file_name, double u_max, double v_max) {
-    FILE* map_file = fopen(file_name, "r");
-    if (!map_file) {
-        return nullptr;
-    }
+ValueMap1D* create_value_map_1D(const std::string& file_name, double u_max, double v_max) {
+    std::ifstream map_file(file_name);
 
+    if (!map_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_name + "'");
+    }
+    std::string line;
+    std::getline(map_file, line);
+
+    std::istringstream iss(line);
     int width, height, dimension;
-    if (fscanf(map_file, "%d %d %d", &width, &height, &dimension) != 3) {
-        fclose(map_file);
-        return nullptr;
+
+    if (!(iss >> width >> height >> dimension)) {
+        throw std::runtime_error("File '" + file_name + "' does not follow the expected format");
     }
 
     int N = width * height * dimension;
     double* data_array = new double[N];
 
     for (int i = 0; i < N; i++) {
-        fscanf(map_file, "%lf", &data_array[i]);
+        std::getline(map_file, line);
+        std::istringstream iss(line);
+        iss >> data_array[i];
     }
 
-    fclose(map_file);
     return new ValueMap1D(data_array, width, height, u_max, v_max);
 }
 
-ValueMap3D* create_value_map_3D(const char* file_name, double u_max, double v_max) {
-    FILE* map_file = fopen(file_name, "r");
-    if (!map_file) {
-        return nullptr;
-    }
+ValueMap3D* create_value_map_3D(const std::string file_name, double u_max, double v_max) {
+    std::ifstream map_file(file_name);
 
+    if (!map_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_name + "'");
+    }
+    std::string line;
+    std::getline(map_file, line);
+
+    std::istringstream iss(line);
     int width, height, dimension;
-    if (fscanf(map_file, "%d %d %d", &width, &height, &dimension) != 3) {
-        fclose(map_file);
-        return nullptr;
+
+    if (!(iss >> width >> height >> dimension)) {
+        throw std::runtime_error("File '" + file_name + "' does not follow the expected format");
     }
 
     int N = width * height * dimension;
     double* data_array = new double[N];
 
     for (int i = 0; i < N; i++) {
-        fscanf(map_file, "%lf", &data_array[i]);
+        std::getline(map_file, line);
+        std::istringstream iss(line);
+        iss >> data_array[i];
     }
 
-    fclose(map_file);
     return new ValueMap3D(data_array, width, height, u_max, v_max);
 }
