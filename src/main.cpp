@@ -141,11 +141,9 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
 
             // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
             // TODO: Can save current_medium and next_medium, and pass that into sample and compute_direct_light.
+            // TODO: Each material should have inside and outside media
             Medium* new_medium = hit_object->get_material(ray_hit.primitive_ID)->medium;
             if (penetrating_boundary && new_medium) {
-                // Something about this is not really working, tries to pop medium while medium is not in stack. We enter multple times too.
-                // Seems to be an issue with concave objects, since the issue is not present for convex object unions (sphere etc).
-                // Probably due to numeric errors. Currently relatively rare, so can be ignored, but not very good.
                 if (ray_hit.outside) {
                     medium_stack.add_medium(new_medium, ray_hit.intersected_object_index);
                 }
