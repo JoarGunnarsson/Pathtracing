@@ -125,7 +125,7 @@ void MediumStack::pop_medium(const int id) {
     for (int i = stack_size - 1; i >= 0; i--) {
         if (medium_array[i]->id == id) {
             medium_array[i] = nullptr;
-            stack_size -= stack_size - i;
+            stack_size = i;
             return;
         }
     }
