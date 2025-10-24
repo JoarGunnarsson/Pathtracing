@@ -3,9 +3,6 @@
 #include <chrono>
 #include <stdexcept>
 #include <thread>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
 #include "vec3.h"
 #include "colors.h"
 #include "denoise.h"
@@ -14,10 +11,6 @@
 #include "utils.h"
 #include "constants.h"
 #include "objectunion.h"
-
-void print_pixel_color(const vec3& rgb, std::ofstream& file) {
-    file << int(255 * rgb[0]) << ' ' << int(255 * rgb[1]) << ' ' << int(255 * rgb[2]) << '\n';
-}
 
 struct Scene {
     Object** objects;
@@ -360,41 +353,6 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
 
 void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buffer) {
     denoise(pixel_buffer, position_buffer, normal_buffer);
-}
-
-double* create_mmap(const char* filepath, const size_t file_size, int& fd) {
-    fd = open(filepath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    if (fd == -1) {
-        perror("Error opening file.");
-        exit(EXIT_FAILURE);
-    }
-
-    if (ftruncate(fd, 0) == -1) {
-        perror("Error clearing temporary file.");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-
-    if (ftruncate(fd, file_size) == -1) {
-        perror("Error setting file size.");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-
-    double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-    if (mmap_file == MAP_FAILED) {
-        perror("Error mapping file.");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-    return mmap_file;
-}
-
-void close_mmap(double* mmap_file, const size_t file_size, const int fd) {
-    if (munmap(mmap_file, file_size) == -1) {
-        perror("Error un-mapping the file.");
-    }
-    close(fd);
 }
 
 int main() {

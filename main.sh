@@ -12,7 +12,7 @@ show_help() {
 
 compile(){
     echo "Compiling."
-    clang++ -std=c++11 src/*.cpp -o main -O3
+    clang++ -std=c++17 src/*.cpp -o main -O3
     echo "Finished compiling."
 }
 

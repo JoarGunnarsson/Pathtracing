@@ -41,6 +41,6 @@ class ValueMap3D : public ValueMap {
     vec3 get(const double u, const double v) const;
 };
 
-ValueMap1D* create_value_map_1D(const std::string file_name, double u_max = 1, double v_max = 1);
-ValueMap3D* create_value_map_3D(const std::string file_name, double u_max = 1, double v_max = 1);
+ValueMap1D* create_value_map_1D(const std::string& file_name, double u_max = 1, double v_max = 1);
+ValueMap3D* create_value_map_3D(const std::string& file_name, double u_max = 1, double v_max = 1);
 #endif
