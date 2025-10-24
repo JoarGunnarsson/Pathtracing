@@ -4,6 +4,9 @@
 #include "constants.h"
 #include <random>
 #include <complex>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 std::random_device rand_dev_normal;
 std::minstd_rand normal_generator(rand_dev_normal());
@@ -198,4 +201,40 @@ double fresnel_multiplier(const double cos_incident, const double n1, const doub
 
     return fresnel_conductor(cos_incident, n1, k1, n2, k2);
 }
+
+double* create_mmap(const char* filepath, const size_t file_size, int& fd) {
+    fd = open(filepath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    if (fd == -1) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncate(fd, 0) == -1) {
+        perror("Error clearing temporary file");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (ftruncate(fd, file_size) == -1) {
+        perror("Error setting file size");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
+    double* mmap_file = static_cast<double*>(mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+    if (mmap_file == MAP_FAILED) {
+        perror("Error mapping file");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+    return mmap_file;
+}
+
+void close_mmap(double* mmap_file, const size_t file_size, const int fd) {
+    if (munmap(mmap_file, file_size) == -1) {
+        perror("Error un-mapping the file");
+    }
+    close(fd);
+}
+
 #endif

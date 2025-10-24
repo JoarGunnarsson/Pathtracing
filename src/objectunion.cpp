@@ -160,6 +160,10 @@ std::string get_nth_word(const std::string& line, const char delimiter, const in
 
 DataSizes get_vertex_data_sizes(const std::string& file_name) {
     std::ifstream model_file(file_name);
+    if (!model_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_name + "'");
+    }
+
     std::string line;
     DataSizes nums;
 

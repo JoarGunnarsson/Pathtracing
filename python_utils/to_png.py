@@ -39,7 +39,7 @@ def main():
     load_denoising_file = True
     if load_denoising_file:
         denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", args.width)
-        plt.imsave(IMAGES_FILE_PATH / "denoised" / "args.name", denoised_image)
+        plt.imsave(IMAGES_FILE_PATH / "denoised" / args.name, denoised_image)
 
 
 if __name__ == "__main__":

@@ -47,48 +47,43 @@ vec3 ValueMap3D::get(const double u, const double v) const {
     return vec3(data[start_index], data[start_index + 1], data[start_index + 2]);
 }
 
-ValueMap1D* create_value_map_1D(const char* file_name, double u_max, double v_max) {
-    FILE* map_file = fopen(file_name, "r");
-    if (!map_file) {
-        return nullptr;
+template<typename ValueMapType>
+ValueMapType* create_value_map(const std::string& file_name, double u_max, double v_max) {
+    std::ifstream file(file_name, std::ios::binary);
+    if (!file) {
+        throw std::runtime_error("Could not open file '" + file_name + "'");
     }
 
-    int width, height, dimension;
-    if (fscanf(map_file, "%d %d %d", &width, &height, &dimension) != 3) {
-        fclose(map_file);
-        return nullptr;
+    file.seekg(0, std::ios::end);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    size_t N = size / sizeof(double);
+
+    double* data = new double[N];
+    if (!file.read(reinterpret_cast<char*>(data), size)) {
+        throw std::runtime_error("Error reading file '" + file_name + "'");
     }
 
-    int N = width * height * dimension;
-    double* data_array = new double[N];
-
-    for (int i = 0; i < N; i++) {
-        fscanf(map_file, "%lf", &data_array[i]);
+    int width = data[0];
+    int height = data[1];
+    int dimension = data[2];
+    if (width * height * dimension != N - 3) {
+        throw std::runtime_error("File '" + file_name + "' does not follow expected format and cannot be loaded");
+    }
+    double* data_array = new double[N - 3];
+    for (size_t i = 3; i < N; ++i) {
+        data_array[i - 3] = data[i];
     }
 
-    fclose(map_file);
-    return new ValueMap1D(data_array, width, height, u_max, v_max);
+    delete[] data;
+    return new ValueMapType(data_array, width, height, u_max, v_max);
 }
 
-ValueMap3D* create_value_map_3D(const char* file_name, double u_max, double v_max) {
-    FILE* map_file = fopen(file_name, "r");
-    if (!map_file) {
-        return nullptr;
-    }
+ValueMap1D* create_value_map_1D(const std::string& file_name, double u_max, double v_max) {
+    return create_value_map<ValueMap1D>(file_name, u_max, v_max);
+}
 
-    int width, height, dimension;
-    if (fscanf(map_file, "%d %d %d", &width, &height, &dimension) != 3) {
-        fclose(map_file);
-        return nullptr;
-    }
-
-    int N = width * height * dimension;
-    double* data_array = new double[N];
-
-    for (int i = 0; i < N; i++) {
-        fscanf(map_file, "%lf", &data_array[i]);
-    }
-
-    fclose(map_file);
-    return new ValueMap3D(data_array, width, height, u_max, v_max);
+ValueMap3D* create_value_map_3D(const std::string& file_name, double u_max, double v_max) {
+    return create_value_map<ValueMap3D>(file_name, u_max, v_max);
 }
