@@ -98,10 +98,6 @@ class vec3 {
         return e[i];
     }
 
-    inline double operator[](int i) const {
-        return e[i];
-    }
-
     inline double length() const {
         return std::sqrt(length_squared());
     }
@@ -119,6 +115,8 @@ class vec3 {
     }
 
     operator double*() const {
+        // Cast vec3 to double array, used for ValueMaps, which are responsible for deleting resource.
+        // TODO: Migrate to std::vector instead
         double* result = new double[3];
         result[0] = e[0];
         result[1] = e[1];
@@ -128,9 +126,9 @@ class vec3 {
 };
 
 inline vec3 operator*(double value, const vec3& v) {
-    const double v0 = v[0] * value;
-    const double v1 = v[1] * value;
-    const double v2 = v[2] * value;
+    double v0 = v[0] * value;
+    double v1 = v[1] * value;
+    double v2 = v[2] * value;
     return vec3(v0, v1, v2);
 }
 

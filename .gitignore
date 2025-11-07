@@ -16,3 +16,4 @@ __pycache__
 *.dat
 *.yaml
 .clang-format
+build
