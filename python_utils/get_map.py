@@ -25,7 +25,7 @@ def create_albedo_map(input_file, output_file):
     height, width, dim = img.shape[0], img.shape[1], 3
     print(f"Creating new albedo map based on file with width={width} and height={height}.")
 
-    img = np.reshape(img[:, :, 0:3], (width * height * dim,))
+    img = np.reshape(img[:, :, 0:dim], (width * height * dim,))
 
     if np.max(img) > 1:
         norm_val = 255
