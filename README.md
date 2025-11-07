@@ -34,14 +34,24 @@ Below are a few different example scenes, showcasing different objects and mater
 To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
 
 ```
-usage: main.sh [-h] [--name NAME] [--compile]
+usage: main.sh [-h] [--name NAME]
 
 options:
   -h, --help              show this message (optional)
-  -c, --compile           compiles the project before running (optional)
   -n, --name <name>       the filename of the generated image, default 'result.png' (optional)
 ```
 
+##### Building
+
+Before running the program, it needs to be built. This is done using CMake, and can be performed by simply executing the `build.sh` script:
+
+```
+usage: main.sh [-h] [--clean]
+
+options:
+  -h, --help              show this message (optional)
+  -c, --clean             cleans the build directory before building
+```
 
 #### Utilities
 

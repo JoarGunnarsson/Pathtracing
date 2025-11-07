@@ -5,7 +5,7 @@ BUILD_DIR=$SOURCE_DIR/build
 
 
 show_help() {
-    echo "usage: main.sh [-h] [--clean]"
+    echo "usage: build.sh [-h] [--clean]"
     echo ""
     echo "options:"
     echo "  -h, --help              show this message (optional)"
