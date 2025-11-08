@@ -77,12 +77,13 @@ options:
 `to_png.png`is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
 
 ```
-usage: to_png.py [-h] [--name NAME] [--width WIDTH]
+usage: to_png.py [-h] [--name NAME] [--settings_file SETTINGS_FILE]
 
 options:
-  -h, --help     show this help message and exit
-  --name NAME    name of the resulting image.
-  --width WIDTH  the width of the image.
+  -h, --help            show this help message and exit
+  --name NAME           name of the resulting image.
+  --settings_file SETTINGS_FILE
+                        the settings file path, relative to main project directory.
 ```
 
 

@@ -11,14 +11,7 @@
 #include "utils.h"
 #include "constants.h"
 #include "objectunion.h"
-
-struct Scene {
-    Object** objects;
-    int number_of_objects;
-    Camera* camera;
-    MaterialManager* material_manager;
-    Medium* medium;
-};
+#include "scene.h"
 
 struct PixelData {
     vec3 pixel_color = vec3(0, 0, 0);
@@ -216,110 +209,6 @@ void print_progress(double progress) {
     }
 }
 
-Scene create_scene_old() {
-    MaterialManager* manager = new MaterialManager();
-    MaterialData white_data;
-    white_data.albedo_map = new ValueMap3D(colors::WHITE * 0.7);
-    DiffuseMaterial* white_diffuse_material = new DiffuseMaterial(white_data);
-    manager->add_material(white_diffuse_material);
-
-    MaterialData white_reflective_data;
-    white_reflective_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
-    ReflectiveMaterial* white_reflective_material = new ReflectiveMaterial(white_reflective_data);
-    manager->add_material(white_reflective_material);
-
-    MaterialData red_material_data;
-    red_material_data.albedo_map = new ValueMap3D(colors::RED);
-    DiffuseMaterial* red_diffuse_material = new DiffuseMaterial(red_material_data);
-    manager->add_material(red_diffuse_material);
-
-    MaterialData green_material_data;
-    green_material_data.albedo_map = new ValueMap3D(colors::GREEN);
-    DiffuseMaterial* green_diffuse_material = new DiffuseMaterial(green_material_data);
-    manager->add_material(green_diffuse_material);
-
-    MaterialData gold_data;
-    gold_data.albedo_map = new ValueMap3D(colors::GOLD);
-    gold_data.roughness_map = new ValueMap1D(0.3);
-    gold_data.refractive_index = 0.277;
-    gold_data.extinction_coefficient = 2.92;
-    gold_data.is_dielectric = false;
-    MetallicMicrofacet* gold_material = new MetallicMicrofacet(gold_data);
-    manager->add_material(gold_material);
-
-    MaterialData light_material_data;
-    light_material_data.albedo_map = new ValueMap3D(colors::WHITE * 0.8);
-    light_material_data.emission_color_map = new ValueMap3D(colors::WARM_WHITE);
-    light_material_data.light_intensity_map = new ValueMap1D(200.0);
-    light_material_data.is_light_source = true;
-    DiffuseMaterial* light_source_material = new DiffuseMaterial(light_material_data);
-    manager->add_material(light_source_material);
-
-    MaterialData glass_data;
-    glass_data.refractive_index = 1.5;
-    BeersLawMedium* glass_medium = new BeersLawMedium(vec3(0), (vec3(1, 1, 1) - colors::BLUE) * 0.0, vec3(0));
-    glass_data.medium = glass_medium;
-    TransparentMaterial* glass_material = new TransparentMaterial(glass_data);
-    manager->add_material(glass_material);
-
-    MaterialData scattering_glass_data;
-    scattering_glass_data.refractive_index = 1.33;
-    ScatteringMediumHomogenous* scattering_glass_medium =
-        new ScatteringMediumHomogenous(vec3(0.2, 0.2, 0.3) * 0, vec3(2.7, 1., 1.1) * 0.5, vec3(0));
-    scattering_glass_data.medium = scattering_glass_medium;
-    TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
-    manager->add_material(scattering_glass_material);
-
-    MaterialData mirror_data;
-    ReflectiveMaterial* mirror_material = new ReflectiveMaterial(mirror_data);
-    manager->add_material(mirror_material);
-
-    Plane* this_floor = new Plane(vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 0, -1), white_diffuse_material);
-    Rectangle* front_wall =
-        new Rectangle(vec3(0, 1.55, -0.35), vec3(1, 0, 0), vec3(0, 1, 0), 2, 1.55 * 2, white_diffuse_material);
-    Rectangle* left_wall =
-        new Rectangle(vec3(-1, 1.55, 1.575), vec3(0, 0, -1), vec3(0, 1, 0), 3.85, 1.55 * 2, white_diffuse_material);
-    Rectangle* right_wall =
-        new Rectangle(vec3(1, 1.55, 1.575), vec3(0, 0, 1), vec3(0, 1, 0), 3.85, 1.55 * 2, white_diffuse_material);
-    Plane* roof = new Plane(vec3(0, 2.2, 0), vec3(1, 0, 0), vec3(0, 0, 1), white_diffuse_material);
-    Rectangle* back_wall =
-        new Rectangle(vec3(0, 1.55, 3.5), vec3(0, 1, 0), vec3(1, 0, 0), 3.85, 1.55 * 2, white_diffuse_material);
-
-    Sphere* ball1 = new Sphere(vec3(0, 0.8, 1), 0.35, glass_material);
-    Sphere* ball2 = new Sphere(vec3(-0.3, 0.3, 1.3), 0.2, gold_material);
-
-    Sphere* light_source = new Sphere(vec3(0, 2.199, 0), 0.2, light_source_material);
-
-    double desired_size = 0.6;
-    vec3 desired_center = vec3(-0.3, 0.1, 1.3);
-    bool smooth_shade = false;
-    bool transform_object = true;
-    // TODO: Actually, use struct called object_transform, can set it to nullptr if no transformation should be made.
-    ObjectUnion* loaded_model = load_object_model("./models/water_cube.obj", scattering_glass_material, smooth_shade,
-                                                  transform_object, desired_center, desired_size);
-
-    int number_of_objects = 8;
-    Object** objects = new Object* [number_of_objects] {
-        this_floor, front_wall, left_wall, right_wall, roof, back_wall, light_source, loaded_model
-    };
-
-    ScatteringMediumHomogenous* background_medium =
-        new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) *0.0, vec3(0));
-
-    vec3 camera_position = vec3(-1, 0.5, 2.2);
-    vec3 viewing_direction = vec3(0.8, -0.3, -1);
-    vec3 screen_y_vector = vec3(0, 1, 0);
-    Camera* camera = new Camera(camera_position, viewing_direction, screen_y_vector);
-
-    Scene scene;
-    scene.objects = objects;
-    scene.camera = camera;
-    scene.number_of_objects = number_of_objects;
-    scene.material_manager = manager;
-    scene.medium = background_medium;
-    return scene;
-}
-
 void clear_scene(Scene& scene) {
     for (int i = 0; i < scene.number_of_objects; i++) {
         delete scene.objects[i];
@@ -358,6 +247,7 @@ void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buf
 int main() {
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
 
+    load_settings();
     Scene scene = create_scene();
 
     std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
@@ -390,8 +280,6 @@ int main() {
     for (int i = 0; i < number_of_threads; i++) {
         thread_array[i].join();
     }
-
-    std::cout << constants::WIDTH << std::endl;
 
     print_progress(1);
     std::clog << std::endl;

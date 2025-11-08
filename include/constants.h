@@ -1,29 +1,30 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include <string>
+
 namespace constants {
-const int WIDTH = 100;
-const int HEIGHT = 100;
-const int samples_per_pixel = 10;
-const int max_recursion_depth = 100;
-const int force_tracing_limit = 3;
+extern int WIDTH;
+extern int HEIGHT;
+extern int samples_per_pixel;
+extern int max_recursion_depth;
+extern int force_tracing_limit;
+extern double air_refractive_index;
 
-const double EPSILON = 0.000001;
-const double max_ray_distance = 1.0 / 0.0;
-const double air_refractive_index = 1;
+extern bool enable_next_event_estimation;
+extern bool enable_anti_aliasing;
 
-const bool enable_next_event_estimation = true;
+extern bool enable_denoising;
+extern int denoising_iterations;
+extern double sigma_rt;
+extern double sigma_x;
+extern double sigma_n;
 
-const bool enable_anti_aliasing = true;
+extern const double EPSILON;
+extern const double max_ray_distance;
 
-const bool enable_denoising = false;
-const int denoising_iterations = 5;
-const double sigma_rt = 0.7;
-const double sigma_x = 0.5;
-const double sigma_n = 0.4;
-
-const char* const raw_file_name = "./temp/raw.dat";
-const char* const raw_denoised_file_name = "./temp/raw_denoised.dat";
+extern const std::string raw_file_name;
+extern const std::string raw_denoised_file_name;
 }
 
 #endif

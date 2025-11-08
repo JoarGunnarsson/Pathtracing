@@ -15,7 +15,7 @@ show_help() {
 
 clean(){
     if [ -d $BUILD_DIR ]; then
-        rm -r $BUILD_DIR/*
+        rm -rf $BUILD_DIR/*
     fi
 }
 
@@ -41,3 +41,5 @@ done
 
 cmake -S $SOURCE_DIR -B $BUILD_DIR
 make -C $BUILD_DIR
+
+echo "Build successful!"
