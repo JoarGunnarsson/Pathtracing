@@ -1,5 +1,7 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <string>
+#include <unordered_map>
 
 #include "scene.h"
 #include "objects.h"
@@ -7,65 +9,317 @@
 #include "materials.h"
 #include "camera.h"
 #include "medium.h"
+#include "valuemap.h"
 
 using json = nlohmann::json;
 
-void load_settings() {
-    std::ifstream settings_file("./scenes/settings.json");
+template<typename T> void load_one_setting(const json& data, const std::string& key, T& setting) {
+    if (data.contains(key)) {
+        setting = data[key];
+    }
+}
 
+void require_field(const json& data, const std::string& key) {
+    if (!data.contains(key)) {
+        throw std::runtime_error("JSON structure missing key '" + key + "'");
+    }
+}
+
+void load_settings(const std::string& file_path) {
+    std::ifstream settings_file(file_path);
     json data = json::parse(settings_file);
 
-    if (data.contains("WIDTH")) {
-        constants::WIDTH = data["WIDTH"];
+    load_one_setting(data, "WIDTH", constants::WIDTH);
+    load_one_setting(data, "HEIGHT", constants::HEIGHT);
+    load_one_setting(data, "samples_per_pixel", constants::samples_per_pixel);
+    load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
+    load_one_setting(data, "force_tracing_limit", constants::force_tracing_limit);
+    load_one_setting(data, "air_refractive_index", constants::air_refractive_index);
+    load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
+    load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
+    load_one_setting(data, "enable_denoising", constants::enable_denoising);
+    load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
+    load_one_setting(data, "sigma_rt", constants::sigma_rt);
+    load_one_setting(data, "sigma_x", constants::sigma_x);
+    load_one_setting(data, "sigma_n", constants::sigma_n);
+}
+
+vec3 get_vec3_param(const json& data, const std::string& key) {
+    // TODO: Add check to ensure data is long enough, and not too long. Same for 1D valuemaps.
+    json vector_data = data[key];
+    if (vector_data.size() != 3) {
+        throw std::runtime_error("Data array " + vector_data.dump() + " should contain 3 elements, but contains " +
+                                 std::to_string(vector_data.size()));
+    }
+    return vec3(vector_data[0], vector_data[1], vector_data[2]);
+}
+
+// TODO: Could template this.
+ValueMap1D* load_valuemap1d(const json& data) {
+    require_field(data, "parameters");
+    json parameters = data["parameters"];
+
+    if (parameters.contains("data")) {
+        double value = parameters["data"][0];
+        return new ValueMap1D(value);
+    }
+    else if (parameters.contains("file")) {
+        return create_value_map_1D(parameters["file"], 1, -1);
+    }
+    else {
+        throw std::runtime_error("ValueMap must contain either 'data' or 'file'");
+    }
+}
+
+ValueMap3D* load_valuemap3d(const json& data) {
+    require_field(data, "parameters");
+    json parameters = data["parameters"];
+
+    if (parameters.contains("data")) {
+        vec3 colour_data = get_vec3_param(parameters, "data");
+        return new ValueMap3D(colour_data);
+    }
+    else if (parameters.contains("file")) {
+        return create_value_map_3D(parameters["file"], 1, -1);
+    }
+    else {
+        throw std::runtime_error("ValueMap must contain either 'data' or 'file'");
+    }
+}
+
+Medium* load_medium(const json& data, const SceneStore& store) {
+    require_field(data, "parameters");
+    json parameters = data["parameters"];
+
+    require_field(parameters, "scattering_albedo");
+    require_field(parameters, "absorption_albedo");
+    require_field(parameters, "emission_coefficient");
+
+    vec3 scattering_albedo = get_vec3_param(parameters, "scattering_albedo");
+    vec3 absorption_albedo = get_vec3_param(parameters, "absorption_albedo");
+    vec3 emission_coefficient = get_vec3_param(parameters, "emission_coefficient");
+
+    require_field(data, "subtype");
+    std::string medium_type = data["subtype"];
+    if (medium_type == "BeersLawMedium") {
+        return new BeersLawMedium(scattering_albedo, absorption_albedo, emission_coefficient);
+    }
+    else if (medium_type == "ScatteringMediumHomogenous") {
+        return new ScatteringMediumHomogenous(scattering_albedo, absorption_albedo, emission_coefficient);
+    }
+    else {
+        throw std::runtime_error(medium_type + " is not a valid medium type");
+    }
+}
+
+Material* load_material(const json& data, const SceneStore& store) {
+    MaterialData material_data;
+
+    require_field(data, "parameters");
+    json parameters = data["parameters"];
+
+    // TODO: Code repitition
+    if (parameters.contains("albedo_map")) {
+        std::string albedo_map = parameters["albedo_map"];
+        material_data.albedo_map = store.valuemap3d_store.find(albedo_map)->second;
+    }
+    if (parameters.contains("refractive_index")) {
+        material_data.refractive_index = (double) parameters["refractive_index"];
+    }
+    if (parameters.contains("extinction_coefficient")) {
+        material_data.extinction_coefficient = (double) parameters["extinction_coefficient"];
+    }
+    if (parameters.contains("emission_color_map")) {
+        std::string emission_color_map = parameters["emission_color_map"];
+        material_data.emission_color_map = store.valuemap3d_store.find(emission_color_map)->second;
+    }
+    if (parameters.contains("light_intensity_map")) {
+        std::string light_intensity_map = parameters["light_intensity_map"];
+        material_data.light_intensity_map = store.valuemap1d_store.find(light_intensity_map)->second;
+    }
+    if (parameters.contains("is_dielectric")) {
+        material_data.is_dielectric = (double) parameters["is_dielectric"];
+    }
+    if (parameters.contains("roughness_map")) {
+        std::string roughness_map = parameters["roughness_map"];
+        material_data.roughness_map = store.valuemap1d_store.find(roughness_map)->second;
+    }
+    if (parameters.contains("is_light_source")) {
+        material_data.is_light_source = (bool) parameters["is_light_source"];
+    }
+    if (parameters.contains("medium")) {
+        std::string medium = parameters["medium"];
+        material_data.medium = store.medium_store.find(medium)->second;
     }
 
-    if (data.contains("HEIGHT")) {
-        constants::HEIGHT = data["HEIGHT"];
+    require_field(data, "subtype");
+    std::string material_type = data["subtype"];
+    if (material_type == "Diffuse") {
+        return new DiffuseMaterial(material_data);
+    }
+    else if (material_type == "Reflective") {
+        return new ReflectiveMaterial(material_data);
+    }
+    else if (material_type == "Transparent") {
+        return new TransparentMaterial(material_data);
+    }
+    else if (material_type == "Glossy") {
+        return new GlossyMaterial(material_data);
+    }
+    else if (material_type == "Metallic") {
+        return new MetallicMicrofacet(material_data);
+    }
+    else if (material_type == "TransparentMicrofacet") {
+        return new TransparentMicrofacetMaterial(material_data);
+    }
+    else {
+        throw std::runtime_error(material_type + " is not a valid material type");
+    }
+}
+
+Object* load_object(const json& data, const SceneStore& store) {
+    // TODO: Look for fields nicely.
+    require_field(data, "subtype");
+    std::string object_type = data["subtype"];
+
+    require_field(data, "parameters");
+    json parameters = data["parameters"];
+
+    require_field(parameters, "material");
+    Material* material = store.material_store.find(parameters["material"])->second;
+
+    if (object_type == "Sphere") {
+        require_field(parameters, "position");
+        require_field(parameters, "radius");
+
+        vec3 position = get_vec3_param(parameters, "position");
+        double radius = parameters["radius"];
+        return new Sphere(position, radius, material);
+    }
+    else if (object_type == "Plane") {
+        require_field(parameters, "position");
+        require_field(parameters, "v1");
+        require_field(parameters, "v2");
+
+        vec3 position = get_vec3_param(parameters, "position");
+        vec3 v1 = get_vec3_param(parameters, "v1");
+        vec3 v2 = get_vec3_param(parameters, "v2");
+        return new Plane(position, v1, v2, material);
+    }
+    else if (object_type == "Rectangle") {
+        require_field(parameters, "position");
+        require_field(parameters, "v1");
+        require_field(parameters, "v2");
+        require_field(parameters, "L1");
+        require_field(parameters, "L2");
+
+        vec3 position = get_vec3_param(parameters, "position");
+        vec3 v1 = get_vec3_param(parameters, "v1");
+        vec3 v2 = get_vec3_param(parameters, "v2");
+        double L1 = parameters["L1"];
+        double L2 = parameters["L2"];
+        return new Rectangle(position, v1, v2, L1, L2, material);
+    }
+    else if (object_type == "Triangle") {
+        require_field(parameters, "p1");
+        require_field(parameters, "p2");
+        require_field(parameters, "p3");
+
+        vec3 p1 = get_vec3_param(parameters, "p1");
+        vec3 p2 = get_vec3_param(parameters, "p2");
+        vec3 p3 = get_vec3_param(parameters, "p3");
+        return new Triangle(p1, p2, p3, material);
+    }
+    else if (object_type == "ObjectUnion") {
+        require_field(parameters, "file");
+        require_field(parameters, "enable_smooth_shading");
+        require_field(parameters, "move_object");
+        require_field(parameters, "center");
+        require_field(parameters, "size");
+
+        std::string file_name = parameters["file"];
+        bool enable_smooth_shading = parameters["enable_smooth_shading"];
+        bool move_object = parameters["move_object"];
+        vec3 center = get_vec3_param(parameters, "center");
+        double size = parameters["size"];
+        return load_object_model(file_name, material, enable_smooth_shading, move_object, center, size);
+    }
+    else {
+        throw std::runtime_error(object_type + " is not a valid object type");
+    }
+}
+
+Camera* load_camera(const json& data) {
+    require_field(data, "camera");
+    json camera_data = data["camera"];
+
+    require_field(camera_data, "camera_position");
+    require_field(camera_data, "viewing_direction");
+    require_field(camera_data, "screen_y_vector");
+
+    vec3 camera_position = get_vec3_param(camera_data, "camera_position");
+    vec3 viewing_direction = get_vec3_param(camera_data, "viewing_direction");
+    vec3 screen_y_vector = get_vec3_param(camera_data, "screen_y_vector");
+    return new Camera(camera_position, viewing_direction, screen_y_vector);
+}
+
+Scene load_scene(const std::string& file_path) {
+    // TODO: Check if maps, mediums, materials exist in the store. Otherwise, throw an error.
+    std::ifstream scene_file(file_path);
+    json scene_data = json::parse(scene_file);
+
+    SceneStore store;
+
+    require_field(scene_data, "units");
+    for (json& element : scene_data["units"]) {
+        require_field(element, "name");
+        require_field(element, "type");
+
+        std::string name = element["name"];
+        std::string type = element["type"];
+        // TODO: Check if name already exists. If so, throw an error to avoid memory leaks.
+        if (type == "ValueMap1D") {
+            store.valuemap1d_store[name] = load_valuemap1d(element);
+        }
+        else if (type == "ValueMap3D") {
+            store.valuemap3d_store[name] = load_valuemap3d(element);
+        }
+        else if (type == "Material") {
+            store.material_store[name] = load_material(element, store);
+        }
+        else if (type == "Medium") {
+            store.medium_store[name] = load_medium(element, store);
+        }
+        else if (type == "Object") {
+            store.object_store[name] = load_object(element, store);
+        }
+        else {
+            throw std::runtime_error("Found invalid unit type in scene file: " + type);
+        }
     }
 
-    if (data.contains("samples_per_pixel")) {
-        constants::samples_per_pixel = data["samples_per_pixel"];
+    MaterialManager* manager = new MaterialManager();
+
+    int number_of_objects = store.object_store.size();
+    Object** objects = new Object*[number_of_objects];
+    int i = 0;
+    for (auto& [key, value] : store.object_store) {
+        objects[i] = value;
+        i++;
     }
 
-    if (data.contains("max_recursion_depth")) {
-        constants::max_recursion_depth = data["max_recursion_depth"];
-    }
+    require_field(scene_data, "background_medium");
+    Medium* background_medium = store.medium_store.find(scene_data["background_medium"])->second;
 
-    if (data.contains("force_tracing_limit")) {
-        constants::force_tracing_limit = data["force_tracing_limit"];
-    }
+    Camera* camera = load_camera(scene_data);
 
-    if (data.contains("air_refractive_index")) {
-        constants::air_refractive_index = data["air_refractive_index"];
-    }
-
-    if (data.contains("enable_next_event_estimation")) {
-        constants::enable_next_event_estimation = data["enable_next_event_estimation"];
-    }
-
-    if (data.contains("enable_anti_aliasing")) {
-        constants::enable_anti_aliasing = data["enable_anti_aliasing"];
-    }
-
-    if (data.contains("enable_denoising")) {
-        constants::enable_denoising = data["enable_denoising"];
-    }
-
-    if (data.contains("denoising_iterations")) {
-        constants::denoising_iterations = data["denoising_iterations"];
-    }
-
-    if (data.contains("sigma_rt")) {
-        constants::denoising_iterations = data["denoising_iterations"];
-    }
-
-    if (data.contains("sigma_x")) {
-        constants::denoising_iterations = data["denoising_iterations"];
-    }
-
-    if (data.contains("sigma_n")) {
-        constants::denoising_iterations = data["denoising_iterations"];
-    }
+    Scene scene;
+    scene.objects = objects;
+    scene.camera = camera;
+    scene.number_of_objects = number_of_objects;
+    scene.material_manager = manager;
+    scene.medium = background_medium;
+    return scene;
 }
 
 Scene create_scene_old() {

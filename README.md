@@ -92,3 +92,8 @@ options:
 This project does not explicitly support transparent objects intersecting eachother, and their inclusion can result in inaccurate results.
 
 Furthermore, this project was tested and compiled on MacOS using the clang compiler, and is not guaranteed to work on other platforms or with other compilers.
+
+### References
+
+This repository uses the following JSON implementation for loading scenes and settings:
+Lohmann, N. (2025). JSON for Modern C++ (Version 3.12.0) [Computer software]. https://github.com/nlohmann

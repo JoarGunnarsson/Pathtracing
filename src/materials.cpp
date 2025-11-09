@@ -2,11 +2,11 @@
 
 Material::Material(MaterialData data) {
     if (!data.albedo_map) {
-        data.albedo_map = new ValueMap3D(colors::WHITE);
+        data.albedo_map = new ValueMap3D(colors::BLACK);
     }
 
     if (!data.emission_color_map) {
-        data.emission_color_map = new ValueMap3D(colors::WHITE);
+        data.emission_color_map = new ValueMap3D(colors::BLACK);
     }
 
     if (!data.light_intensity_map) {

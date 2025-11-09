@@ -14,6 +14,8 @@ class ValueMap {
              const double _v_max = 1);
     ValueMap(const double _data, const int _width = 1, const int _height = 1, const double _uMax = 1,
              const double _v_max = 1);
+    ValueMap(const vec3& _data, const int _width = 1, const int _height = 1, const double _uMax = 1,
+             const double _v_max = 1);
     ValueMap(double* _data, const int _width = 1, const int _height = 1, const double _u_max = 1,
              const double _v_max = 1);
     ~ValueMap();

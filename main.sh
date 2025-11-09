@@ -40,5 +40,7 @@ if [[ "$name" != *.png ]]; then
 fi
 
 echo "Running program. The result can be found in Images/$name"
-./main
-python ./python_utils/to_png.py --name $name --settings_file "scenes/settings.json"
+
+SETTINGS_FILE="scenes/settings.json"
+./main $SETTINGS_FILE
+python python_utils/to_png.py --name $name --settings_file $SETTINGS_FILE
