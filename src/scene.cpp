@@ -45,7 +45,6 @@ void load_settings(const std::string& file_path) {
 }
 
 vec3 get_vec3_param(const json& data, const std::string& key) {
-    // TODO: Add check to ensure data is long enough, and not too long. Same for 1D valuemaps.
     json vector_data = data[key];
     if (vector_data.size() != 3) {
         throw std::runtime_error("Data array " + vector_data.dump() + " should contain 3 elements, but contains " +
@@ -54,13 +53,34 @@ vec3 get_vec3_param(const json& data, const std::string& key) {
     return vec3(vector_data[0], vector_data[1], vector_data[2]);
 }
 
+template<typename T> bool key_in_map(const T& map, const std::string& key) {
+    return map.find(key) != map.end();
+}
+
+template<typename T> void require_unique_key(const T& map, const std::string& key) {
+    if (key_in_map(map, key)) {
+        throw std::runtime_error("Duplicate entry '" + key + "' found");
+    }
+}
+
+template<typename T> void require_key_exists(const T& map, const std::string& key) {
+    if (!key_in_map(map, key)) {
+        throw std::runtime_error("Entry '" + key + "' does not exist");
+    }
+}
+
 // TODO: Could template this.
 ValueMap1D* load_valuemap1d(const json& data) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
     if (parameters.contains("data")) {
-        double value = parameters["data"][0];
+        json map_data = parameters["data"];
+        if (map_data.size() != 1) {
+            throw std::runtime_error("Data array " + map_data.dump() + " should contain 1 element, but contains " +
+                                     std::to_string(map_data.size()));
+        }
+        double value = map_data[0];
         return new ValueMap1D(value);
     }
     else if (parameters.contains("file")) {
@@ -118,9 +138,9 @@ Material* load_material(const json& data, const SceneStore& store) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
-    // TODO: Code repitition
     if (parameters.contains("albedo_map")) {
         std::string albedo_map = parameters["albedo_map"];
+        require_key_exists(store.valuemap3d_store, albedo_map);
         material_data.albedo_map = store.valuemap3d_store.find(albedo_map)->second;
     }
     if (parameters.contains("refractive_index")) {
@@ -131,10 +151,12 @@ Material* load_material(const json& data, const SceneStore& store) {
     }
     if (parameters.contains("emission_color_map")) {
         std::string emission_color_map = parameters["emission_color_map"];
+        require_key_exists(store.valuemap3d_store, emission_color_map);
         material_data.emission_color_map = store.valuemap3d_store.find(emission_color_map)->second;
     }
     if (parameters.contains("light_intensity_map")) {
         std::string light_intensity_map = parameters["light_intensity_map"];
+        require_key_exists(store.valuemap1d_store, light_intensity_map);
         material_data.light_intensity_map = store.valuemap1d_store.find(light_intensity_map)->second;
     }
     if (parameters.contains("is_dielectric")) {
@@ -142,6 +164,7 @@ Material* load_material(const json& data, const SceneStore& store) {
     }
     if (parameters.contains("roughness_map")) {
         std::string roughness_map = parameters["roughness_map"];
+        require_key_exists(store.valuemap1d_store, roughness_map);
         material_data.roughness_map = store.valuemap1d_store.find(roughness_map)->second;
     }
     if (parameters.contains("is_light_source")) {
@@ -149,6 +172,7 @@ Material* load_material(const json& data, const SceneStore& store) {
     }
     if (parameters.contains("medium")) {
         std::string medium = parameters["medium"];
+        require_key_exists(store.medium_store, medium);
         material_data.medium = store.medium_store.find(medium)->second;
     }
 
@@ -178,7 +202,6 @@ Material* load_material(const json& data, const SceneStore& store) {
 }
 
 Object* load_object(const json& data, const SceneStore& store) {
-    // TODO: Look for fields nicely.
     require_field(data, "subtype");
     std::string object_type = data["subtype"];
 
@@ -186,6 +209,7 @@ Object* load_object(const json& data, const SceneStore& store) {
     json parameters = data["parameters"];
 
     require_field(parameters, "material");
+    require_key_exists(store.material_store, parameters["material"]);
     Material* material = store.material_store.find(parameters["material"])->second;
 
     if (object_type == "Sphere") {
@@ -264,7 +288,7 @@ Camera* load_camera(const json& data) {
 }
 
 Scene load_scene(const std::string& file_path) {
-    // TODO: Check if maps, mediums, materials exist in the store. Otherwise, throw an error.
+    // TODO: Add managers for all maps, so that memory cleanup works properly.
     std::ifstream scene_file(file_path);
     json scene_data = json::parse(scene_file);
 
@@ -277,20 +301,24 @@ Scene load_scene(const std::string& file_path) {
 
         std::string name = element["name"];
         std::string type = element["type"];
-        // TODO: Check if name already exists. If so, throw an error to avoid memory leaks.
         if (type == "ValueMap1D") {
+            require_unique_key(store.valuemap1d_store, name);
             store.valuemap1d_store[name] = load_valuemap1d(element);
         }
         else if (type == "ValueMap3D") {
+            require_unique_key(store.valuemap3d_store, name);
             store.valuemap3d_store[name] = load_valuemap3d(element);
         }
-        else if (type == "Material") {
-            store.material_store[name] = load_material(element, store);
-        }
         else if (type == "Medium") {
+            require_unique_key(store.medium_store, name);
             store.medium_store[name] = load_medium(element, store);
         }
+        else if (type == "Material") {
+            require_unique_key(store.material_store, name);
+            store.material_store[name] = load_material(element, store);
+        }
         else if (type == "Object") {
+            require_unique_key(store.object_store, name);
             store.object_store[name] = load_object(element, store);
         }
         else {
@@ -309,6 +337,7 @@ Scene load_scene(const std::string& file_path) {
     }
 
     require_field(scene_data, "background_medium");
+    require_key_exists(store.medium_store, scene_data["background_medium"]);
     Medium* background_medium = store.medium_store.find(scene_data["background_medium"])->second;
 
     Camera* camera = load_camera(scene_data);
