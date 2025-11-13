@@ -343,6 +343,18 @@ double MetallicMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const v
     return specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v);
 }
 
+vec3 ReflectiveMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
+                                        const double v) const {
+    vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+
+    double alpha = get_alpha(u, v);
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) *
+                                  dot_vectors(hit.normal_vector, outgoing_vector));
+    vec3 specular = albedo_map->get(u, v) * d_factor * g_factor * denom_factor;
+    return specular;
+}
 bool TransparentMicrofacetMaterial::compute_direct_light() const {
     return false;
 }

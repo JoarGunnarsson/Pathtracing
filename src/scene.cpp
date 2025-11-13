@@ -190,8 +190,11 @@ Material* load_material(const json& data, const SceneStore& store) {
     else if (material_type == "Glossy") {
         return new GlossyMaterial(material_data);
     }
-    else if (material_type == "Metallic") {
-        return new MetallicMicrofacet(material_data);
+    else if (material_type == "MetallicMicrofacet") {
+        return new MetallicMicrofacetMaterial(material_data);
+    }
+    else if (material_type == "ReflectiveMicrofacet") {
+        return new ReflectiveMicrofacetMaterial(material_data);
     }
     else if (material_type == "TransparentMicrofacet") {
         return new TransparentMicrofacetMaterial(material_data);

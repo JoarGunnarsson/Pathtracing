@@ -146,6 +146,12 @@ class MetallicMicrofacetMaterial : public MicrofacetMaterial {
                     const double v) const override;
 };
 
+class ReflectiveMicrofacetMaterial : public MetallicMicrofacetMaterial {
+  public:
+    using MetallicMicrofacetMaterial::MetallicMicrofacetMaterial;
+
+    vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
+};
 class TransparentMicrofacetMaterial : public MicrofacetMaterial {
   public:
     using MicrofacetMaterial::MicrofacetMaterial;
