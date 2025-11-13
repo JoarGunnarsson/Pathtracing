@@ -124,8 +124,8 @@ Medium* load_medium(const json& data, const SceneStore& store) {
     if (medium_type == "BeersLawMedium") {
         return new BeersLawMedium(scattering_albedo, absorption_albedo, emission_coefficient);
     }
-    else if (medium_type == "ScatteringMediumHomogenous") {
-        return new ScatteringMediumHomogenous(scattering_albedo, absorption_albedo, emission_coefficient);
+    else if (medium_type == "HomogenousScatteringMedium") {
+        return new HomogenousScatteringMedium(scattering_albedo, absorption_albedo, emission_coefficient);
     }
     else {
         throw std::runtime_error(medium_type + " is not a valid medium type");
@@ -160,7 +160,7 @@ Material* load_material(const json& data, const SceneStore& store) {
         material_data.light_intensity_map = store.valuemap1d_store.find(light_intensity_map)->second;
     }
     if (parameters.contains("is_dielectric")) {
-        material_data.is_dielectric = (double) parameters["is_dielectric"];
+        material_data.is_dielectric = (bool) parameters["is_dielectric"];
     }
     if (parameters.contains("roughness_map")) {
         std::string roughness_map = parameters["roughness_map"];
@@ -258,14 +258,20 @@ Object* load_object(const json& data, const SceneStore& store) {
         require_field(parameters, "file");
         require_field(parameters, "enable_smooth_shading");
         require_field(parameters, "move_object");
-        require_field(parameters, "center");
-        require_field(parameters, "size");
 
         std::string file_name = parameters["file"];
         bool enable_smooth_shading = parameters["enable_smooth_shading"];
         bool move_object = parameters["move_object"];
-        vec3 center = get_vec3_param(parameters, "center");
-        double size = parameters["size"];
+        vec3 center = vec3(0);
+        double size = 0;
+
+        if (move_object) {
+            require_field(parameters, "center");
+            require_field(parameters, "size");
+
+            vec3 center = get_vec3_param(parameters, "center");
+            double size = parameters["size"];
+        }
         return load_object_model(file_name, material, enable_smooth_shading, move_object, center, size);
     }
     else {
@@ -287,20 +293,16 @@ Camera* load_camera(const json& data) {
     return new Camera(camera_position, viewing_direction, screen_y_vector);
 }
 
-Scene load_scene(const std::string& file_path) {
-    // TODO: Add managers for all maps, so that memory cleanup works properly.
-    std::ifstream scene_file(file_path);
-    json scene_data = json::parse(scene_file);
-
-    SceneStore store;
-
-    require_field(scene_data, "units");
-    for (json& element : scene_data["units"]) {
+void populate_scene_store(json& scene_data, SceneStore& store) {
+    // TODO: Need to iterate in a specific order: First value maps, then media, then materials, then objects.
+    require_field(scene_data, "valuemaps");
+    for (json& element : scene_data["valuemaps"]) {
         require_field(element, "name");
-        require_field(element, "type");
-
         std::string name = element["name"];
+
+        require_field(element, "type");
         std::string type = element["type"];
+
         if (type == "ValueMap1D") {
             require_unique_key(store.valuemap1d_store, name);
             store.valuemap1d_store[name] = load_valuemap1d(element);
@@ -309,22 +311,64 @@ Scene load_scene(const std::string& file_path) {
             require_unique_key(store.valuemap3d_store, name);
             store.valuemap3d_store[name] = load_valuemap3d(element);
         }
-        else if (type == "Medium") {
+        else {
+            throw std::runtime_error("Found invalid type in ValueMap array: " + type);
+        }
+    }
+    require_field(scene_data, "media");
+    for (json& element : scene_data["media"]) {
+        require_field(element, "name");
+        std::string name = element["name"];
+
+        require_field(element, "type");
+        std::string type = element["type"];
+
+        if (type == "Medium") {
             require_unique_key(store.medium_store, name);
             store.medium_store[name] = load_medium(element, store);
         }
-        else if (type == "Material") {
+        else {
+            throw std::runtime_error("Found invalid type in medium array: " + type);
+        }
+    }
+    for (json& element : scene_data["materials"]) {
+        require_field(element, "name");
+        std::string name = element["name"];
+
+        require_field(element, "type");
+        std::string type = element["type"];
+
+        if (type == "Material") {
             require_unique_key(store.material_store, name);
             store.material_store[name] = load_material(element, store);
         }
-        else if (type == "Object") {
+        else {
+            throw std::runtime_error("Found invalid type in material array: " + type);
+        }
+    }
+    for (json& element : scene_data["objects"]) {
+        require_field(element, "name");
+        std::string name = element["name"];
+
+        require_field(element, "type");
+        std::string type = element["type"];
+
+        if (type == "Object") {
             require_unique_key(store.object_store, name);
             store.object_store[name] = load_object(element, store);
         }
         else {
-            throw std::runtime_error("Found invalid unit type in scene file: " + type);
+            throw std::runtime_error("Found invalid type in object array: " + type);
         }
     }
+}
+Scene load_scene(const std::string& file_path) {
+    // TODO: Add managers for all maps, so that memory cleanup works properly.
+    std::ifstream scene_file(file_path);
+    json scene_data = json::parse(scene_file);
+
+    SceneStore store;
+    populate_scene_store(scene_data, store);
 
     MaterialManager* manager = new MaterialManager();
 
@@ -379,7 +423,7 @@ Scene create_scene_old() {
     gold_data.refractive_index = 0.277;
     gold_data.extinction_coefficient = 2.92;
     gold_data.is_dielectric = false;
-    MetallicMicrofacet* gold_material = new MetallicMicrofacet(gold_data);
+    MetallicMicrofacetMaterial* gold_material = new MetallicMicrofacetMaterial(gold_data);
     manager->add_material(gold_material);
 
     MaterialData light_material_data;
@@ -399,8 +443,8 @@ Scene create_scene_old() {
 
     MaterialData scattering_glass_data;
     scattering_glass_data.refractive_index = 1.;
-    ScatteringMediumHomogenous* scattering_glass_medium =
-        new ScatteringMediumHomogenous(colors::WHITE, vec3(2.7, 1., 1.1) * 0.0, vec3(0));
+    HomogenousScatteringMedium* scattering_glass_medium =
+        new HomogenousScatteringMedium(colors::WHITE, vec3(2.7, 1., 1.1) * 0.0, vec3(0));
     scattering_glass_data.medium = scattering_glass_medium;
     TransparentMaterial* scattering_glass_material = new TransparentMaterial(scattering_glass_data);
     manager->add_material(scattering_glass_material);
@@ -618,8 +662,8 @@ Scene create_scene() {
             caraffe_contents_obj, mini_table_obj, light_source
     };
 
-    ScatteringMediumHomogenous* background_medium =
-        new ScatteringMediumHomogenous(vec3(0.), (colors::WHITE) *0.0, vec3(0));
+    HomogenousScatteringMedium* background_medium =
+        new HomogenousScatteringMedium(vec3(0.), (colors::WHITE) *0.0, vec3(0));
 
     vec3 camera_position = vec3(-0.7, 1.7, -0.16);
     vec3 viewing_direction = vec3(0.7, -0.3, -0.8);

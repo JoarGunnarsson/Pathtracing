@@ -135,7 +135,7 @@ class GlossyMaterial : public MicrofacetMaterial {
                     const double v) const override;
 };
 
-class MetallicMicrofacet : public MicrofacetMaterial {
+class MetallicMicrofacetMaterial : public MicrofacetMaterial {
   public:
     using MicrofacetMaterial::MicrofacetMaterial;
 

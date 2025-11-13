@@ -162,7 +162,7 @@ double MicrofacetMaterial::get_alpha(const double u, const double v) const {
 }
 
 double MicrofacetMaterial::D(const vec3& half_vector, const vec3& normal_vector, const double alpha) const {
-    double cos_theta = dot_vectors(half_vector, normal_vector);
+    double cos_theta = std::fmin(dot_vectors(half_vector, normal_vector), 1);
     double cos_theta_2 = cos_theta * cos_theta;
     double cos_theta_4 = cos_theta_2 * cos_theta_2;
     double tan_theta = sqrt((1.0 - cos_theta_2) / (cos_theta_2));
@@ -286,7 +286,8 @@ double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inciden
                   specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v));
 }
 
-vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
+                                      const double v) const {
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
@@ -318,13 +319,13 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
     return specular;
 }
 
-vec3 MetallicMicrofacet::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u,
-                                         const double v) const {
+vec3 MetallicMicrofacetMaterial::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u,
+                                                 const double v) const {
     vec3 half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
     return reflect_vector(incident_vector, half_vector);
 }
 
-BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double v) const {
+BrdfData MetallicMicrofacetMaterial::sample(const Hit& hit, const double u, const double v) const {
     BrdfData brdf_data;
     brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
     brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
@@ -337,8 +338,8 @@ BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double
     return brdf_data;
 }
 
-double MetallicMicrofacet::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
-                                    const double u, const double v) const {
+double MetallicMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector,
+                                            const vec3& normal_vector, const double u, const double v) const {
     return specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v);
 }
 
