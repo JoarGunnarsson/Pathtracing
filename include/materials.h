@@ -66,7 +66,6 @@ class Material {
 
     Material() {}
     Material(MaterialData data);
-    ~Material();
 
     virtual bool allow_direct_light() const;
     virtual bool compute_direct_light() const;
@@ -163,18 +162,6 @@ class TransparentMicrofacetMaterial : public MicrofacetMaterial {
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u,
                     const double v) const override;
-};
-
-class MaterialManager {
-    const int MAX_MATERIALS = 100;
-    Material** material_array = new Material*[MAX_MATERIALS];
-    int current_idx = 0;
-
-  public:
-    MaterialManager() {}
-    ~MaterialManager();
-
-    void add_material(Material* material);
 };
 
 #endif

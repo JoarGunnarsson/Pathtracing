@@ -94,15 +94,11 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
                 }
                 vec3 light_emittance = hit_object->get_light_emittance(ray_hit);
 
-                color +=
-                    weight * light_emittance *
-                    throughput; // TODO: What does this dot product do?  (dot_vectors(ray.direction_vector, ray_hit.normal_vector) < 0
+                color += weight * light_emittance * throughput;
             }
 
             if (constants::enable_next_event_estimation) {
-                color +=
-                    sample_light(ray_hit, objects, number_of_objects, medium_stack, false) *
-                    throughput; //hit_object -> sample_direct(ray_hit, objects, number_of_objects, medium_stack) * throughput;
+                color += sample_light(ray_hit, objects, number_of_objects, medium_stack, false) * throughput;
             }
 
             BrdfData brdf_result = hit_object->sample(ray_hit);
@@ -168,7 +164,7 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene) {
     vec3 pixel_color = vec3(0, 0, 0);
     for (int i = 0; i < constants::samples_per_pixel; i++) {
         Ray ray;
-        ray.starting_position = scene.camera->position;
+        ray.starting_position = scene.camera.position;
         ray.type = TRANSMITTED;
         double new_x = x;
         double new_y = y;
@@ -178,7 +174,7 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene) {
             new_y += random_normal() / 3.0;
         }
 
-        ray.direction_vector = scene.camera->get_starting_directions(new_x, new_y);
+        ray.direction_vector = scene.camera.get_starting_directions(new_x, new_y);
         PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
         data.pixel_position = sampled_data.pixel_position;
         data.pixel_normal = sampled_data.pixel_normal;
@@ -215,9 +211,7 @@ void clear_scene(Scene& scene) {
     }
 
     delete[] scene.objects;
-    delete scene.material_manager;
-    delete scene.camera;
-    delete scene.medium;
+    delete scene.pointer_manager;
 }
 
 void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, double* image,
@@ -256,7 +250,7 @@ int main(int argc, char* argv[]) {
             "   settings_file               settings file path, relative to main project directory.\n");
     }
     load_settings(std::string(argv[1]));
-    Scene scene = load_scene("scenes/example.json");
+    Scene scene = load_scene("scenes/sacco_scene.json");
 
     std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
     std::clog << "Time taken to build scene: "

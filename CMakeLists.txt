@@ -7,7 +7,7 @@ file(GLOB sources src/*.cpp)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ..)
 
 add_executable(main ${sources})
-target_compile_options(main PUBLIC -std=c++17 -Wall -Wconversion -O3)
+target_compile_options(main PUBLIC -std=c++17 -Wall -Wextra -Wconversion -O3)
 include_directories(include)
 
 FetchContent_Declare(

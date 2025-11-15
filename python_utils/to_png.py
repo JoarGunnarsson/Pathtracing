@@ -31,8 +31,13 @@ def load_image_data(file_name, width, height):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", type=str, help="name of the resulting image.")
-    parser.add_argument("--settings_file", type=str, help="the settings file path, relative to main project directory.")
+    parser.add_argument("--name", type=str, default="result.png", help="name of the resulting image.")
+    parser.add_argument(
+        "--settings_file",
+        type=str,
+        default="scenes/settings.json",
+        help="the settings file path, relative to main project directory.",
+    )
     return parser.parse_args()
 
 

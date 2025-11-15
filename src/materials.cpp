@@ -35,14 +35,6 @@ Material::Material(MaterialData data) {
     medium = data.medium;
 }
 
-Material::~Material() {
-    delete albedo_map;
-    delete emission_color_map;
-    delete light_intensity_map;
-    delete roughness_map;
-    delete medium;
-}
-
 bool Material::allow_direct_light() const {
     return false;
 }
@@ -411,13 +403,3 @@ double TransparentMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, cons
                                                const vec3& normal_vector, const double u, const double v) const {
     return 0.0;
 }
-
-MaterialManager::~MaterialManager() {
-    for (int i = 0; i < current_idx; i++) {
-        delete material_array[i];
-    }
-}
-
-void MaterialManager::add_material(Material* material) {
-    material_array[current_idx++] = material;
-};

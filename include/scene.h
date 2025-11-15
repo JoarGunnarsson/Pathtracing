@@ -8,11 +8,29 @@
 #include "medium.h"
 #include "camera.h"
 
+class PointerManager {
+    std::vector<ValueMap*> valuemaps;
+    std::vector<Medium*> media;
+    std::vector<Material*> materials;
+
+  public:
+    PointerManager() {}
+    ~PointerManager();
+
+    template<typename T>
+    void clear_pointer_array(T pointer_array);
+
+    // PointerManager takes owenership of pointers passed to the following methods.
+    void add_valuemap(ValueMap* map);
+    void add_medium(Medium* medium);
+    void add_material(Material* material);
+};
+
 struct Scene {
     Object** objects;
     int number_of_objects;
-    Camera* camera;
-    MaterialManager* material_manager;
+    Camera camera;
+    PointerManager* pointer_manager;
     Medium* medium;
 };
 
