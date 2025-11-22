@@ -241,16 +241,17 @@ void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buf
 int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
 
-    if (argc != 2) {
+    if (argc != 3) {
         throw std::runtime_error(
             "Invalid arguments provided.\n"
             "Usage: main settings_file\n\n"
 
             "positional arguments:\n"
+            "   scene_file                  scene file path, relative to main project directory.\n"
             "   settings_file               settings file path, relative to main project directory.\n");
     }
-    load_settings(std::string(argv[1]));
-    Scene scene = load_scene("scenes/sacco_scene.json");
+    load_settings(std::string(argv[2]));
+    Scene scene = load_scene(std::string(argv[1]));
 
     std::chrono::steady_clock::time_point end_build = std::chrono::steady_clock::now();
     std::clog << "Time taken to build scene: "
