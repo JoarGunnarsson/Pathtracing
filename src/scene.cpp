@@ -47,6 +47,9 @@ void load_one_setting(const json& data, const std::string& key, T& setting) {
 
 void load_settings(const std::string& file_path) {
     std::ifstream settings_file(file_path);
+    if (!settings_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_path + "'");
+    }
     json data = json::parse(settings_file);
 
     load_one_setting(data, "WIDTH", constants::WIDTH);
@@ -407,6 +410,9 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
 
 Scene load_scene(const std::string& file_path) {
     std::ifstream scene_file(file_path);
+    if (!scene_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_path + "'");
+    }
     json scene_data = json::parse(scene_file);
 
     PointerManager* manager = new PointerManager();

@@ -46,11 +46,13 @@ options:
 Before running the program, it needs to be built. This is done using CMake, and can be performed by simply executing the `build.sh` script:
 
 ```
-usage: main.sh [-h] [--clean]
+usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]
 
 options:
-  -h, --help              show this message (optional)
-  -c, --clean             cleans the build directory before building
+  -h, --help                            show this message (optional)
+  -n, --name <name>                     the name of the generated image, default 'result.png' (optional)
+  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json' (optional)
+  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json' (optional)
 ```
 
 #### Utilities

@@ -1,0 +1,92 @@
+{
+    "valuemaps": [
+        {
+            "name": "blue",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0, 0, 1]
+            }
+        },
+        {
+            "name": "white",
+            "type": "ValueMap3D", "parameters":{
+                "data": [1, 1, 1]
+            }
+        },
+        {
+            "name": "light_strength",
+            "type": "ValueMap1D", "parameters":{
+                "data": [200]
+            }
+        }
+    ],
+    "media": [
+        {
+            "name": "air_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [0, 0, 0],
+                "emission_coefficient": [0, 0, 0]
+            }
+        }
+    ],
+    "materials": [
+        {
+            "name": "blue_diffuse_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "blue"
+            }
+        },
+        {
+            "name": "white_diffuse_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "white"
+            }
+        },
+        {
+            "name": "light_source_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "white",
+                "emission_color_map": "white",
+                "light_intensity_map": "light_strength",
+                "is_light_source": true
+            }
+        }
+    ],
+    "objects": [
+        {
+            "name": "ball",
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "material": "blue_diffuse_material",
+                "position": [0, 0.5, 1.8],
+                "radius": 0.5
+
+            }
+        },
+        {
+            "name": "floor",
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "position":[0, -1000, 0],
+                "radius": 1000,
+                "material": "white_diffuse_material"
+            }
+        },
+        {
+            "name": "lightsource",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position": [0, 2.199, 1.8],
+                "v1": [1, 0, 0],
+                "v2": [0, 0, 1],
+                "L1": 0.4,
+                "L2": 0.4,
+                "material": "light_source_material"
+            }
+        }
+    ],
+    "background_medium": "air_medium",
+
+    "camera": {
+        "camera_position":[0, 0.8, 4.2],
+        "viewing_direction": [0, 0, -1],
+        "screen_y_vector": [0, 1, 0]
+    }
+}
