@@ -95,7 +95,7 @@ void require_key_exists(const T& map, const std::string& key, const std::string&
 vec3 get_vec3_param(const json& data, const std::string& key) {
     json vector_data = data[key];
     if (vector_data.size() != 3) {
-        throw std::runtime_error("Data array " + vector_data.dump() + " should contain 3 elements, but contains " +
+        throw std::runtime_error("Data array'" + vector_data.dump() + "' should contain 3 elements, but contains " +
                                  std::to_string(vector_data.size()));
     }
     return vec3(vector_data[0], vector_data[1], vector_data[2]);
@@ -419,7 +419,7 @@ Scene load_scene(const std::string& file_path) {
     SceneStore store;
     populate_scene_store(scene_data, store, manager);
 
-    int number_of_objects = store.object_store.size();
+    size_t number_of_objects = store.object_store.size();
     Object** objects = new Object*[number_of_objects];
     int i = 0;
     for (auto& [key, value] : store.object_store) {

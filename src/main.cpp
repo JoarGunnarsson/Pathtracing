@@ -176,8 +176,8 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene) {
 
         ray.direction_vector = scene.camera.get_starting_directions(new_x, new_y);
         PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
-        data.pixel_position = sampled_data.pixel_position;
-        data.pixel_normal = sampled_data.pixel_normal;
+        data.pixel_position += sampled_data.pixel_position;
+        data.pixel_normal += sampled_data.pixel_normal;
         pixel_color += sampled_data.pixel_color;
     }
 

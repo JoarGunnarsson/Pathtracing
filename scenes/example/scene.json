@@ -1,9 +1,33 @@
 {
     "valuemaps": [
         {
+            "name": "red",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0.8, 0, 0]
+            }
+        },
+        {
+            "name": "green",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0, 0.6, 0]
+            }
+        },
+        {
             "name": "blue",
             "type": "ValueMap3D", "parameters":{
-                "data": [0, 0, 1]
+                "data": [0, 0, 0.8]
+            }
+        },
+        {
+            "name": "cyan",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0, 0.6, 0.8]
+            }
+        },
+        {
+            "name": "gold",
+            "type": "ValueMap3D", "parameters":{
+                "data": [1.0, 0.84, 0.05]
             }
         },
         {
@@ -13,9 +37,21 @@
             }
         },
         {
+            "name": "gold_roughness",
+            "type": "ValueMap1D", "parameters":{
+                "data": [0.2]
+            }
+        },
+        {
+            "name": "glass_roughness",
+            "type": "ValueMap1D", "parameters":{
+                "data": [0.2]
+            }
+        },
+        {
             "name": "light_strength",
             "type": "ValueMap1D", "parameters":{
-                "data": [200]
+                "data": [100]
             }
         }
     ],
@@ -27,13 +63,66 @@
                 "absorption_albedo": [0, 0, 0],
                 "emission_coefficient": [0, 0, 0]
             }
+        },
+        {
+            "name": "cyan_glass_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [10, 2, 2],
+                "emission_coefficient": [0, 0, 0]
+            }
         }
     ],
     "materials": [
         {
+            "name": "red_diffuse_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "red"
+            }
+        },
+        {
+            "name": "green_diffuse_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "green"
+            }
+        },
+        {
             "name": "blue_diffuse_material",
             "type": "Material", "subtype": "Diffuse", "parameters": {
                 "albedo_map": "blue"
+            }
+        },
+        {
+            "name": "cyan_glass_material",
+            "type": "Material", "subtype": "Transparent", "parameters": {
+                "albedo_map": "cyan",
+                "refractive_index": 1.5,
+                "medium": "cyan_glass_medium"
+            }
+        },
+        {
+            "name": "gold_material",
+            "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
+                "albedo_map": "gold",
+                "refractive_index": 0.3,
+                "extinction_coefficient": 2.9,
+                "is_dielectric": false,
+                "roughness_map": "gold_roughness"
+            }
+        },
+        {
+            "name": "rough_glass_material",
+            "type": "Material", "subtype": "TransparentMicrofacet", "parameters": {
+                "roughness_map": "glass_roughness",
+                "refractive_index": 1.5
+            }
+        },
+        {
+            "name": "rough_mirror_material",
+            "type": "Material", "subtype": "ReflectiveMicrofacet", "parameters": {
+                "albedo_map": "white",
+                "roughness_map": "glass_roughness",
+                "refractive_index": 1.5
             }
         },
         {
@@ -54,26 +143,119 @@
     ],
     "objects": [
         {
-            "name": "ball",
+            "name": "floor",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[0, 0, 0],
+                "v1": [1, 0, 0],
+                "v2": [0, 0, -1],
+                "L1": 2.2,
+                "L2": 5,
+                "material": "white_diffuse_material"
+            }
+        },
+        {
+            "name": "front_wall",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[0, 1, -0.35],
+                "v1": [1, 0, 0],
+                "v2": [0, 1, 0],
+                "L1": 2.2,
+                "L2": 2,
+                "material": "white_diffuse_material"
+            }
+        },
+        {
+            "name": "left_wall",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[-1.1, 1, 1.575],
+                "v1": [0, 0, -1],
+                "v2": [0, 1, 0],
+                "L1": 3.85,
+                "L2": 2,
+                "material": "red_diffuse_material"
+            }
+        },
+        {
+            "name": "right_wall",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[1.1, 1, 1.575],
+                "v1": [0, 0, 1],
+                "v2": [0, 1, 0],
+                "L1": 3.85,
+                "L2": 2,
+                "material": "green_diffuse_material"
+            }
+        },
+        {
+            "name": "back_wall",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[0, 1, 4],
+                "v1": [1, 0, 0],
+                "v2": [0, -1, 0],
+                "L1": 2.2,
+                "L2": 2,
+                "material": "white_diffuse_material"
+            }
+        },
+        {
+            "name": "roof",
+            "type": "Object", "subtype": "Rectangle", "parameters": {
+                "position":[0, 2, 0],
+                "v1": [1, 0, 0],
+                "v2": [0, 0, 1],
+                "L1": 2.2,
+                "L2": 5,
+                "material": "white_diffuse_material"
+            }
+        },
+        {
+            "name": "blue_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
                 "material": "blue_diffuse_material",
-                "position": [0, 0.5, 1.8],
+                "position": [-0.35, 0.5, 0.2],
                 "radius": 0.5
 
             }
         },
         {
-            "name": "floor",
+            "name": "glass_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
-                "position":[0, -1000, 0],
-                "radius": 1000,
-                "material": "white_diffuse_material"
+                "material": "cyan_glass_material",
+                "position": [-0.5, 0.1, 1],
+                "radius": 0.1
             }
         },
         {
-            "name": "lightsource",
+            "name": "rough_glass_ball",
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "material": "rough_glass_material",
+                "position": [0, 0.25, 1],
+                "radius": 0.25
+
+            }
+        },
+        {
+            "name": "rough_mirror_ball",
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "material": "rough_mirror_material",
+                "position": [0.4, 0.15, 0.9],
+                "radius": 0.15
+
+            }
+        },
+        {
+            "name": "gold_ball",
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "material": "gold_material",
+                "position": [0.5, 0.25, 0.5],
+                "radius": 0.25
+
+            }
+        },
+        {
+            "name": "light_source",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position": [0, 2.199, 1.8],
+                "position": [0, 1.9999, 0.5],
                 "v1": [1, 0, 0],
                 "v2": [0, 0, 1],
                 "L1": 0.4,
@@ -85,7 +267,7 @@
     "background_medium": "air_medium",
 
     "camera": {
-        "camera_position":[0, 0.8, 4.2],
+        "camera_position":[0, 0.9, 3.2],
         "viewing_direction": [0, 0, -1],
         "screen_y_vector": [0, 1, 0]
     }
