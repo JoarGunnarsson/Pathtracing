@@ -52,7 +52,7 @@ class BeersLawMedium : public Medium {
                         const bool scatter) const override;
 };
 
-class ScatteringMediumHomogenous : public Medium {
+class HomogenousScatteringMedium : public Medium {
   public:
     using Medium::Medium;
     virtual double sample_distance() const override;

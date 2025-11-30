@@ -1,12 +1,18 @@
 #include "valuemap.h"
 
 ValueMap::ValueMap(const int _data, const int _width, const int _height, const double _u_max, const double _v_max) {
-    double* _data_ptr = new double[1]{double(_data)};
+    double* _data_ptr = new double[1]{(double) _data};
     initialise(_data_ptr, _width, _height, _u_max, _v_max);
 }
 
 ValueMap::ValueMap(const double _data, const int _width, const int _height, const double _uMax, const double _v_max) {
     double* _data_ptr = new double[1]{_data};
+    initialise(_data_ptr, _width, _height, _uMax, _v_max);
+}
+
+ValueMap::ValueMap(const vec3& _data, const int _width, const int _height, const double _uMax, const double _v_max) {
+    // TODO: I dont like using new here, maybe move to std::vector?
+    double* _data_ptr = new double[3]{_data[0], _data[1], _data[2]};
     initialise(_data_ptr, _width, _height, _uMax, _v_max);
 }
 
@@ -18,6 +24,7 @@ ValueMap::~ValueMap() {
     delete[] data;
 }
 
+// TODO: Is v_max and u_max even necessary? Could just offload that to blender etc.
 void ValueMap::initialise(double* _data, const int _width, const int _height, const double _u_max,
                           const double _v_max) {
     data = _data;
@@ -32,7 +39,7 @@ double ValueMap1D::get(const double u, const double v) const {
         return 0;
     }
     int u_idx = int((double) width * pos_fmod(u / u_max, 1.0));
-    int v_idx = int((double) height * (pos_fmod((v_max - v) / v_max, 1.0)));
+    int v_idx = int((double) height * pos_fmod(v / v_max, 1.0));
     int index = (v_idx * width + u_idx);
     return data[index];
 }

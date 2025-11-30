@@ -2,11 +2,11 @@
 
 Material::Material(MaterialData data) {
     if (!data.albedo_map) {
-        data.albedo_map = new ValueMap3D(colors::WHITE);
+        data.albedo_map = new ValueMap3D(colors::BLACK);
     }
 
     if (!data.emission_color_map) {
-        data.emission_color_map = new ValueMap3D(colors::WHITE);
+        data.emission_color_map = new ValueMap3D(colors::BLACK);
     }
 
     if (!data.light_intensity_map) {
@@ -33,14 +33,6 @@ Material::Material(MaterialData data) {
     roughness_map = data.roughness_map;
 
     medium = data.medium;
-}
-
-Material::~Material() {
-    delete albedo_map;
-    delete emission_color_map;
-    delete light_intensity_map;
-    delete roughness_map;
-    delete medium;
 }
 
 bool Material::allow_direct_light() const {
@@ -162,7 +154,7 @@ double MicrofacetMaterial::get_alpha(const double u, const double v) const {
 }
 
 double MicrofacetMaterial::D(const vec3& half_vector, const vec3& normal_vector, const double alpha) const {
-    double cos_theta = dot_vectors(half_vector, normal_vector);
+    double cos_theta = std::fmin(dot_vectors(half_vector, normal_vector), 1);
     double cos_theta_2 = cos_theta * cos_theta;
     double cos_theta_4 = cos_theta_2 * cos_theta_2;
     double tan_theta = sqrt((1.0 - cos_theta_2) / (cos_theta_2));
@@ -286,7 +278,8 @@ double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inciden
                   specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v));
 }
 
-vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
+                                      const double v) const {
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
@@ -318,13 +311,13 @@ vec3 MetallicMicrofacet::eval(const Hit& hit, const vec3& outgoing_vector, const
     return specular;
 }
 
-vec3 MetallicMicrofacet::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u,
-                                         const double v) const {
+vec3 MetallicMicrofacetMaterial::sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u,
+                                                 const double v) const {
     vec3 half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
     return reflect_vector(incident_vector, half_vector);
 }
 
-BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double v) const {
+BrdfData MetallicMicrofacetMaterial::sample(const Hit& hit, const double u, const double v) const {
     BrdfData brdf_data;
     brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
     brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
@@ -337,11 +330,23 @@ BrdfData MetallicMicrofacet::sample(const Hit& hit, const double u, const double
     return brdf_data;
 }
 
-double MetallicMicrofacet::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
-                                    const double u, const double v) const {
+double MetallicMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector,
+                                            const vec3& normal_vector, const double u, const double v) const {
     return specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v);
 }
 
+vec3 ReflectiveMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
+                                        const double v) const {
+    vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
+
+    double alpha = get_alpha(u, v);
+    double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
+    double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
+    double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) *
+                                  dot_vectors(hit.normal_vector, outgoing_vector));
+    vec3 specular = albedo_map->get(u, v) * d_factor * g_factor * denom_factor;
+    return specular;
+}
 bool TransparentMicrofacetMaterial::compute_direct_light() const {
     return false;
 }
@@ -398,13 +403,3 @@ double TransparentMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, cons
                                                const vec3& normal_vector, const double u, const double v) const {
     return 0.0;
 }
-
-MaterialManager::~MaterialManager() {
-    for (int i = 0; i < current_idx; i++) {
-        delete material_array[i];
-    }
-}
-
-void MaterialManager::add_material(Material* material) {
-    material_array[current_idx++] = material;
-};
