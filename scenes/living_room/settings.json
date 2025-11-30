@@ -1,6 +1,6 @@
 {
-    "WIDTH": 100,
-    "HEIGHT": 100,
+    "WIDTH": 960,
+    "HEIGHT": 540,
     "samples_per_pixel": 1,
     "max_recursion_depth": 100,
     "force_tracing_limit": 3,
