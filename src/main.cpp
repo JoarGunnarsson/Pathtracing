@@ -264,15 +264,14 @@ int main(int argc, char* argv[]) {
     vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
     vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
 
-    int number_of_threads = std::thread::hardware_concurrency() - 1;
-    std::clog << "Running program with number of threads: " << number_of_threads << ".\n";
-    std::thread thread_array[number_of_threads];
+    std::clog << "Running program with number of threads: " << constants::number_of_threads << ".\n";
+    std::thread thread_array[constants::number_of_threads];
 
     int image_fd;
     double* image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
-    int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) number_of_threads);
-    for (int i = 0; i < number_of_threads; i++) {
+    int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) constants::number_of_threads);
+    for (int i = 0; i < constants::number_of_threads; i++) {
         int start_idx = pixels_per_thread * i;
         int pixels_to_handle =
             std::min(pixels_per_thread, constants::WIDTH * constants::HEIGHT - i * pixels_per_thread);
@@ -280,7 +279,7 @@ int main(int argc, char* argv[]) {
             std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer, normal_buffer);
     }
 
-    for (int i = 0; i < number_of_threads; i++) {
+    for (int i = 0; i < constants::number_of_threads; i++) {
         thread_array[i].join();
     }
 

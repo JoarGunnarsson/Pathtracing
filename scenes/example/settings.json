@@ -5,6 +5,7 @@
     "max_recursion_depth": 100,
     "force_tracing_limit": 3,
     "air_refractive_index": 1,
+    "number_of_threads": 15,
 
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true,

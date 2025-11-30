@@ -58,8 +58,12 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
     load_one_setting(data, "force_tracing_limit", constants::force_tracing_limit);
     load_one_setting(data, "air_refractive_index", constants::air_refractive_index);
+    load_one_setting(data, "number_of_threads", constants::number_of_threads);
+    constants::number_of_threads = std::min(constants::number_of_threads, constants::max_number_of_threads);
+
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
+
     load_one_setting(data, "enable_denoising", constants::enable_denoising);
     load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
     load_one_setting(data, "sigma_rt", constants::sigma_rt);

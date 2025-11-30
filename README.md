@@ -21,7 +21,17 @@ In order to reduce the noise level of the resulting image, À-trous wavelet deno
 ### Example scenes
 Below are a few different example scenes, showcasing different objects and materials in a cornell box-like scene.
 
-| ![Example 1](Images/Example1.png) | ![Example 2](Images/Example2.png) |
+The directory `scenes/example/` defines a simple scene, showcasing some different material types and primitive objects. This scene includes diffuse surfaces, coloured glass, frosted glass, metallic gold, and a reflective surface. The resulting image was also denoised in order to reduce the variance, at the cost of introducting some bias.
+
+| ![Denoised](Images/example_denoised.png) | ![Raw output](Images/example.png) |
+|------------------------------------------|-----------------------------------|
+
+**Left:** Denoised image
+**Right:** Raw image
+
+
+#### Other example images
+| ![Example 1](Images/Example1.png) | ![Example 2](Images/Example2.png)   |
 |:----------------------------------:|:----------------------------------:|
 |             Example 1              |             Example 2              |
 | ![Example 3](Images/Example3.png) | ![Example 4](Images/Example4.png) |
@@ -37,8 +47,8 @@ To run the ray tracing simulation and generate an image, simply execute the shel
 usage: main.sh [-h] [--name NAME]
 
 options:
-  -h, --help              show this message (optional)
-  -n, --name <name>       the filename of the generated image, default 'result.png' (optional)
+  -h, --help              show this message
+  -n, --name <name>       the filename of the generated image, default 'result.png'
 ```
 
 ##### Building
@@ -49,10 +59,10 @@ Before running the program, it needs to be built. This is done using CMake, and 
 usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]
 
 options:
-  -h, --help                            show this message (optional)
-  -n, --name <name>                     the name of the generated image, default 'result.png' (optional)
-  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json' (optional)
-  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json' (optional)
+  -h, --help                            show this message
+  -n, --name <name>                     the name of the generated image, default 'result.png'
+  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json'
+  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json'
 ```
 
 #### Utilities

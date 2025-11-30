@@ -8,7 +8,7 @@ show_help() {
     echo "usage: build.sh [-h] [--clean]"
     echo ""
     echo "options:"
-    echo "  -h, --help              show this message (optional)"
+    echo "  -h, --help              show this message"
     echo "  -c, --clean             cleans the build directory before building"
 }
 

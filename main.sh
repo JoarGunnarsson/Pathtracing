@@ -7,10 +7,10 @@ show_help() {
     echo "usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]"
     echo ""
     echo "options:"
-    echo "  -h, --help                            show this message (optional)"
-    echo "  -n, --name <name>                     the name of the generated image, default 'result.png' (optional)"
-    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json' (optional)"
-    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json' (optional)"
+    echo "  -h, --help                            show this message"
+    echo "  -n, --name <name>                     the name of the generated image, default 'result.png'"
+    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json'"
+    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json'"
 }
 
 IMAGE_NAME="result.png"

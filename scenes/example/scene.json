@@ -45,7 +45,7 @@
         {
             "name": "glass_roughness",
             "type": "ValueMap1D", "parameters":{
-                "data": [0.2]
+                "data": [0.15]
             }
         },
         {
@@ -118,10 +118,9 @@
             }
         },
         {
-            "name": "rough_mirror_material",
+            "name": "mirror_material",
             "type": "Material", "subtype": "ReflectiveMicrofacet", "parameters": {
                 "albedo_map": "white",
-                "roughness_map": "glass_roughness",
                 "refractive_index": 1.5
             }
         },
@@ -149,14 +148,14 @@
                 "v1": [1, 0, 0],
                 "v2": [0, 0, -1],
                 "L1": 2.2,
-                "L2": 5,
+                "L2": 4,
                 "material": "white_diffuse_material"
             }
         },
         {
             "name": "front_wall",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position":[0, 1, -0.35],
+                "position":[0, 1, -2],
                 "v1": [1, 0, 0],
                 "v2": [0, 1, 0],
                 "L1": 2.2,
@@ -167,10 +166,10 @@
         {
             "name": "left_wall",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position":[-1.1, 1, 1.575],
+                "position":[-1.1, 1, 0],
                 "v1": [0, 0, -1],
                 "v2": [0, 1, 0],
-                "L1": 3.85,
+                "L1": 4,
                 "L2": 2,
                 "material": "red_diffuse_material"
             }
@@ -178,10 +177,10 @@
         {
             "name": "right_wall",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position":[1.1, 1, 1.575],
+                "position":[1.1, 1, 0],
                 "v1": [0, 0, 1],
                 "v2": [0, 1, 0],
-                "L1": 3.85,
+                "L1": 4,
                 "L2": 2,
                 "material": "green_diffuse_material"
             }
@@ -189,7 +188,7 @@
         {
             "name": "back_wall",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position":[0, 1, 4],
+                "position":[0, 1, 2],
                 "v1": [1, 0, 0],
                 "v2": [0, -1, 0],
                 "L1": 2.2,
@@ -204,7 +203,7 @@
                 "v1": [1, 0, 0],
                 "v2": [0, 0, 1],
                 "L1": 2.2,
-                "L2": 5,
+                "L2": 4,
                 "material": "white_diffuse_material"
             }
         },
@@ -212,7 +211,7 @@
             "name": "blue_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
                 "material": "blue_diffuse_material",
-                "position": [-0.35, 0.5, 0.2],
+                "position": [-0.35, 0.5, -1.3],
                 "radius": 0.5
 
             }
@@ -221,7 +220,7 @@
             "name": "glass_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
                 "material": "cyan_glass_material",
-                "position": [-0.5, 0.1, 1],
+                "position": [-0.5, 0.1, -0.5],
                 "radius": 0.1
             }
         },
@@ -229,16 +228,15 @@
             "name": "rough_glass_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
                 "material": "rough_glass_material",
-                "position": [0, 0.25, 1],
+                "position": [0, 0.25, -0.4],
                 "radius": 0.25
-
             }
         },
         {
-            "name": "rough_mirror_ball",
+            "name": "mirror_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
-                "material": "rough_mirror_material",
-                "position": [0.4, 0.15, 0.9],
+                "material": "mirror_material",
+                "position": [0.4, 0.15, -0.5],
                 "radius": 0.15
 
             }
@@ -247,7 +245,7 @@
             "name": "gold_ball",
             "type": "Object", "subtype": "Sphere", "parameters": {
                 "material": "gold_material",
-                "position": [0.5, 0.25, 0.5],
+                "position": [0.5, 0.25, -1],
                 "radius": 0.25
 
             }
@@ -255,7 +253,7 @@
         {
             "name": "light_source",
             "type": "Object", "subtype": "Rectangle", "parameters": {
-                "position": [0, 1.9999, 0.5],
+                "position": [0, 1.9999, -1],
                 "v1": [1, 0, 0],
                 "v2": [0, 0, 1],
                 "L1": 0.4,
@@ -267,7 +265,7 @@
     "background_medium": "air_medium",
 
     "camera": {
-        "camera_position":[0, 0.9, 3.2],
+        "camera_position":[0, 0.9, 1.9],
         "viewing_direction": [0, 0, -1],
         "screen_y_vector": [0, 1, 0]
     }
