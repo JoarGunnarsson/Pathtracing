@@ -38,7 +38,7 @@ double compute_weight(const int p, const int q, const KernelData& kernel_data, c
     double w_n =
         std::exp(-(normal_buffer[p] - normal_buffer[q]).length() / (kernel_data.sigma_n * kernel_data.sigma_n));
 
-    return w_rt * w_x * w_rt;
+    return w_rt * w_x * w_n;
 }
 
 int expand_kernel_idx(const int idx, const int hole_width) {
