@@ -1,0 +1,399 @@
+{
+    "valuemaps": [
+        {
+            "name": "floor_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/wooden_floor.map"
+            }
+        },
+        {
+            "name": "wall_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/plaster_wall.map"
+            }
+        },
+        {
+            "name": "white",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0.7, 0.7, 0.7]
+            }
+        },
+        {
+            "name": "wood_table_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/wooden_table.map"
+            }
+        },
+        {
+            "name": "wood_roughness_map",
+            "type": "ValueMap1D", "parameters":{
+                "data": [0.1]
+            }
+        },
+        {
+            "name": "leather_roughness_map",
+            "type": "ValueMap1D", "parameters":{
+                "data": [0.25]
+            }
+        },
+        {
+            "name": "brown_leather_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/brown_sacco.map"
+            }
+        },
+        {
+            "name": "rusted_copper_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/rusted_copper.map"
+            }
+        },
+        {
+            "name": "gold_map",
+            "type": "ValueMap3D", "parameters":{
+                "data": [1.0, 0.84, 0.0]
+            }
+        },
+        {
+            "name": "black",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0,0,0]
+            }
+        },
+        {
+            "name": "almost_black",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0.04, 0.04, 0.04]
+            }
+        },
+        {
+            "name": "warm_white",
+            "type": "ValueMap3D", "parameters":{
+                "data": [0.9922, 0.9569, 0.8627]
+            }
+        },
+        {
+            "name": "light_strength",
+            "type": "ValueMap1D", "parameters":{
+                "data": [100]
+            }
+        }
+    ],
+    "media": [
+        {
+            "name": "air_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [0, 0, 0],
+                "emission_coefficient": [0, 0, 0]
+            }
+        },
+        {
+            "name": "whiskey_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [9, 7, 6.6],
+                "emission_coefficient": [0, 0, 0]
+            }
+        }
+    ],
+    "materials": [
+        {
+            "name": "white_diffuse_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "white"
+            }
+        },
+        {
+            "name": "floor_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "floor_map"
+            }
+        },
+        {
+            "name": "wall_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "white"
+            }
+        },
+        {
+            "name": "wood_table_material",
+            "type": "Material", "subtype": "Glossy", "parameters": {
+                "albedo_map": "wood_table_map",
+                "refractive_index": 1.5,
+                "roughness_map": "wood_roughness_map"
+
+            }
+        },
+        {
+            "name": "glass_material",
+            "type": "Material", "subtype": "Transparent", "parameters": {
+                "refractive_index": 1.5
+            }
+        },
+        {
+            "name": "whiskey_material",
+            "type": "Material", "subtype": "Transparent", "parameters": {
+                "refractive_index": 1.356,
+                "medium": "whiskey_medium"
+            }
+        },
+        {
+            "name": "black_leather_material",
+            "type": "Material", "subtype": "Glossy", "parameters": {
+                "albedo_map": "almost_black",
+                "refractive_index": 1.47,
+                "roughness_map": "leather_roughness_map"
+            }
+        },
+        {
+            "name": "brown_leather_material",
+            "type": "Material", "subtype": "Glossy", "parameters": {
+                "albedo_map": "brown_leather_map",
+                "refractive_index": 1.47,
+                "roughness_map": "leather_roughness_map"
+            }
+        },
+        {
+            "name": "rusted_copper_material",
+            "type": "Material", "subtype": "Glossy", "parameters": {
+                "albedo_map": "rusted_copper_map",
+                "refractive_index": 1.5
+            }
+        },
+        {
+            "name": "gold_material",
+            "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
+                "albedo_map": "gold_map",
+                "refractive_index": 0.29,
+                "extinction_coefficient": 3,
+                "is_dielectric": false
+            }
+        },
+        {
+            "name": "light_source_material",
+            "type": "Material", "subtype": "Diffuse", "parameters": {
+                "albedo_map": "white",
+                "emission_color_map": "warm_white",
+                "light_intensity_map": "light_strength",
+                "is_light_source": true
+            }
+        }
+    ],
+    "objects": [
+        {
+            "name": "floor",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/floor.obj",
+                "material": "floor_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "roof",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/roof.obj",
+                "material": "wall_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "left_wall",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/left_wall.obj",
+                "material": "wall_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "right_wall",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/right_wall.obj",
+                "material": "wall_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "back_wall",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/back_wall.obj",
+                "material": "wall_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "left_moulding",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/left_moulding.obj",
+                "material": "white_diffuse_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "right_moulding",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/right_moulding.obj",
+                "material": "white_diffuse_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "back_moulding",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/back_moulding.obj",
+                "material": "white_diffuse_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "roof_lamp",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/roof_lamp.obj",
+                "material": "light_source_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "wood_table",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/mini_table.obj",
+                "material": "wood_table_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass1",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/glass4.obj",
+                "material": "glass_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass1_contents",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/glass_contents.obj",
+                "material": "whiskey_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass1_coaster",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass2",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/glass5.obj",
+                "material": "glass_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass2_contents",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/glass_contents1.obj",
+                "material": "whiskey_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "glass2_coaster",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster1.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "caraffe",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/water_caraffe.obj",
+                "material": "glass_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "caraffe_contents",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/caraffe_contents.obj",
+                "material": "whiskey_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster1",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster2.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster2",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster3.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster3",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster4.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "sacco",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/sacco.obj",
+                "material": "black_leather_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "sacco_1",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/sacco1.obj",
+                "material": "brown_leather_material",
+                "enable_smooth_shading": true,
+                "move_object": false
+            }
+        }
+    ],
+    "background_medium": "air_medium",
+
+    "camera": {
+        "camera_position":[0.3, 1.5, -0.4],
+        "viewing_direction": [0.4, -0.3, -0.8],
+        "screen_y_vector": [0, 1, 0]
+    }
+}

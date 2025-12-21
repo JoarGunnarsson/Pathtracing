@@ -98,6 +98,10 @@ class vec3 {
         return e[i];
     }
 
+    inline double operator[](int i) const {
+        return e[i];
+    }
+
     inline double length() const {
         return std::sqrt(length_squared());
     }
@@ -112,16 +116,6 @@ class vec3 {
 
     inline double mean() const {
         return (e[0] + e[1] + e[2]) / 3.0;
-    }
-
-    operator double*() const {
-        // Cast vec3 to double array, used for ValueMaps, which are responsible for deleting resource.
-        // TODO: Migrate to std::vector instead
-        double* result = new double[3];
-        result[0] = e[0];
-        result[1] = e[1];
-        result[2] = e[2];
-        return result;
     }
 };
 

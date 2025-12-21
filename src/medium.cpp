@@ -40,7 +40,7 @@ vec3 BeersLawMedium::sample(Object** object, const int number_of_objects, const 
     return transmittance_albedo(distance);
 }
 
-double ScatteringMediumHomogenous::sample_distance() const {
+double HomogenousScatteringMedium::sample_distance() const {
     int channel = random_int(0, 3);
     if (extinction_albedo[channel] == 0) {
         return constants::max_ray_distance;
@@ -48,7 +48,7 @@ double ScatteringMediumHomogenous::sample_distance() const {
     return -std::log(random_uniform(0, 1)) / extinction_albedo[channel];
 }
 
-vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_objects, const double distance,
+vec3 HomogenousScatteringMedium::sample(Object** objects, const int number_of_objects, const double distance,
                                         const bool scatter) const {
     vec3 tr = transmittance_albedo(distance);
     vec3 density = scatter ? extinction_albedo * tr : tr;
@@ -61,7 +61,7 @@ vec3 ScatteringMediumHomogenous::sample(Object** objects, const int number_of_ob
     return scatter ? tr * scattering_albedo / pdf : tr / pdf;
 }
 
-vec3 ScatteringMediumHomogenous::sample_emission() const {
+vec3 HomogenousScatteringMedium::sample_emission() const {
     double pdf = 0;
     for (int i = 0; i < 3; i++) {
         pdf += extinction_albedo[i];

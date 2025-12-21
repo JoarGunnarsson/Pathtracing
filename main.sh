@@ -4,22 +4,31 @@ SOURCE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $SOURCE_DIR
 
 show_help() {
-    echo "usage: main.sh [-h] [--name NAME] [--compile]"
+    echo "usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]"
     echo ""
     echo "options:"
-    echo "  -h, --help              show this message (optional)"
-    echo "  -n, --name <name>       the filename of the generated image, default 'result.png' (optional)"
+    echo "  -h, --help                            show this message"
+    echo "  -n, --name <name>                     the name of the generated image, default 'result.png'"
+    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'"
+    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'"
 }
 
+IMAGE_NAME="result.png"
+SCENE_FILE="scenes/example/scene.json"
+SETTINGS_FILE="scenes/example/settings.json"
 
-name="result.png"
-
-
-# Parse arguments. Compiles project if compile flag is set. Also sets resulting image name if provided.
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -n|--name)
-            name="$2"
+            IMAGE_NAME="$2"
+            shift
+            ;;
+        -c|--scene_file)
+            SCENE_FILE="$2"
+            shift
+            ;;
+        -s|--settings_file)
+            SETTINGS_FILE="$2"
             shift
             ;;
         -h|--help)
@@ -34,11 +43,13 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-if [[ "$name" != *.png ]]; then
-        echo "$name is not a valid image name. Image name must end in '.png'. "
+if [[ "$IMAGE_NAME" != *.png ]]; then
+        echo "$IMAGE_NAME is not a valid image name. Image name must end in '.png'. "
         exit 1
 fi
 
 echo "Running program. The result can be found in Images/$name"
-width=$(./main)
-python ./python_utils/to_png.py --name $name --width $width
+
+
+./main $SCENE_FILE $SETTINGS_FILE
+python python_utils/to_png.py --name $IMAGE_NAME --settings_file $SETTINGS_FILE
