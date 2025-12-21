@@ -41,14 +41,13 @@ bool Material::allow_direct_light() const {
 bool Material::compute_direct_light() const {
     return false;
 }
-vec3 Material::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 Material::eval(const Hit&, const vec3&, const double, const double) const {
     return vec3(0);
 }
-BrdfData Material::sample(const Hit& hit, const double u, const double v) const {
+BrdfData Material::sample(const Hit&, const double, const double) const {
     return BrdfData();
 }
-double Material::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
-                          const double u, const double v) const {
+double Material::brdf_pdf(const vec3&, const vec3&, const vec3&, const double, const double) const {
     return 0;
 }
 
@@ -60,7 +59,7 @@ bool DiffuseMaterial::compute_direct_light() const {
     return true;
 }
 
-vec3 DiffuseMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 DiffuseMaterial::eval(const Hit&, const vec3&, const double u, const double v) const {
     return albedo_map->get(u, v) / M_PI;
 }
 
@@ -74,12 +73,12 @@ BrdfData DiffuseMaterial::sample(const Hit& hit, const double u, const double v)
     return data;
 }
 
-double DiffuseMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
-                                 const double u, const double v) const {
+double DiffuseMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3&, const vec3& normal_vector, const double,
+                                 const double) const {
     return std::max(dot_vectors(outgoing_vector, normal_vector), 0.0) / M_PI;
 }
 
-vec3 ReflectiveMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 ReflectiveMaterial::eval(const Hit&, const vec3&, const double, const double) const {
     return colors::BLACK;
 }
 
@@ -92,19 +91,18 @@ BrdfData ReflectiveMaterial::sample(const Hit& hit, const double u, const double
     return data;
 }
 
-double ReflectiveMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
-                                    const double u, const double v) const {
+double ReflectiveMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const double, const double) const {
     return 0;
 }
 
 bool TransparentMaterial::allow_direct_light() const {
     return refractive_index == 1;
 }
-vec3 TransparentMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
+vec3 TransparentMaterial::eval(const Hit&, const vec3&, const double, const double) const {
     return colors::BLACK;
 }
 
-BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const double v) const {
+BrdfData TransparentMaterial::sample(const Hit& hit, const double, const double) const {
     // TODO: Look at the current medium, use that as refractive index! Update for extinction coefficient!
     double n1, n2;
     if (hit.outside) {
@@ -351,8 +349,7 @@ bool TransparentMicrofacetMaterial::compute_direct_light() const {
     return false;
 }
 
-vec3 TransparentMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
-                                         const double v) const {
+vec3 TransparentMicrofacetMaterial::eval(const Hit&, const vec3&, const double, const double) const {
     return vec3(0.0);
 };
 
@@ -399,7 +396,7 @@ BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, c
     return brdf_data;
 }
 
-double TransparentMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector,
-                                               const vec3& normal_vector, const double u, const double v) const {
+double TransparentMicrofacetMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const double,
+                                               const double) const {
     return 0.0;
 }

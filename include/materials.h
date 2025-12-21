@@ -66,6 +66,7 @@ class Material {
 
     Material() {}
     Material(MaterialData data);
+    virtual ~Material() {}
 
     virtual bool allow_direct_light() const;
     virtual bool compute_direct_light() const;

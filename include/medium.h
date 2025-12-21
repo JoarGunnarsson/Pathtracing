@@ -23,13 +23,14 @@ class MediumStack {
   private:
     const int MAX_STACK_SIZE = 50;
     int stack_size;
-    Medium** medium_array = new Medium*[MAX_STACK_SIZE];
+    Medium** medium_array = new Medium*[static_cast<size_t>(MAX_STACK_SIZE)];
 };
 
 class Medium {
   public:
     int id;
     Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient);
+    virtual ~Medium() {}
 
     virtual double sample_distance() const;
     virtual vec3 sample_direction(const vec3& incident_vector) const;

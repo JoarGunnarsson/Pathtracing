@@ -103,7 +103,7 @@ void sort_by_axis(Object** triangles, int number_of_triangles, int axis) {
     });
 }
 
-Node::Node(Object** _triangles, int _number_of_triangles, int _leaf_size, int depth) {
+Node::Node(Object** _triangles, int _number_of_triangles, int _leaf_size) {
     leaf_size = _leaf_size;
     bounding_box = BoundingBox(_triangles, _number_of_triangles);
     if (_number_of_triangles <= leaf_size) {
@@ -118,8 +118,10 @@ Node::Node(Object** _triangles, int _number_of_triangles, int _leaf_size, int de
     sort_by_axis(_triangles, _number_of_triangles, axis);
     int split_index = _number_of_triangles / 2;
 
-    Object** node1_triangles = new Object*[split_index];
-    Object** node2_triangles = new Object*[_number_of_triangles - split_index];
+    size_t left_split_size = static_cast<size_t>(split_index);
+    size_t right_split_size = static_cast<size_t>(_number_of_triangles - split_index);
+    Object** node1_triangles = new Object*[left_split_size];
+    Object** node2_triangles = new Object*[right_split_size];
 
     for (int i = 0; i < split_index; i++) {
         node1_triangles[i] = _triangles[i];
@@ -128,8 +130,8 @@ Node::Node(Object** _triangles, int _number_of_triangles, int _leaf_size, int de
         node2_triangles[i - split_index] = _triangles[i];
     }
 
-    node1 = new Node(node1_triangles, split_index, _leaf_size, depth + 1);
-    node2 = new Node(node2_triangles, _number_of_triangles - split_index, _leaf_size, depth + 1);
+    node1 = new Node(node1_triangles, split_index, _leaf_size);
+    node2 = new Node(node2_triangles, _number_of_triangles - split_index, _leaf_size);
 }
 
 int Node::get_split_axis() {
@@ -168,14 +170,14 @@ bool Node::intersect(Ray& ray, Hit& hit) {
     if (bvh1_hit && bvh2_hit) {
         if (d1 > d2) {
             bool node1_success = node1->intersect(ray, hit);
-            bool node2_success;
+            bool node2_success = false;
             if (d2 < hit.distance || hit.distance == -1) {
                 node2_success = node2->intersect(ray, hit);
             }
             return node1_success || node2_success;
         }
         else {
-            bool node1_success;
+            bool node1_success = false;
             bool node2_success = node2->intersect(ray, hit);
             if (d1 < hit.distance || hit.distance == -1) {
                 node1_success = node1->intersect(ray, hit);

@@ -3,8 +3,9 @@
 ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH) : Object() {
     objects = _objects;
     number_of_objects = _number_of_objects;
-
+    number_of_light_sources = 0;
     area = 0;
+
     for (int i = 0; i < number_of_objects; i++) {
         area += objects[i]->area;
         if (objects[i]->is_light_source()) {
@@ -12,7 +13,9 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
         }
     }
 
-    cumulative_area = new double[number_of_objects];
+    size_t area_array_size = static_cast<size_t>(number_of_objects);
+    cumulative_area = new double[area_array_size];
+
     light_source_conversion_indices = new int[number_of_light_sources];
     int j = 0;
     for (int i = 0; i < number_of_objects; i++) {
@@ -33,7 +36,7 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
     }
 
     for (int i = 0; i < number_of_objects; i++) {
-        objects[i]->primitive_ID = i;
+        objects[i]->primitive_ID = static_cast<int>(i);
         if (objects[i]->is_light_source()) {
             contains_light_source = true;
         }
@@ -90,7 +93,7 @@ vec3 ObjectUnion::get_normal_vector(const vec3& surface_point, const int primiti
 
 int ObjectUnion::sample_random_primitive_index() const {
     double random_area_split = random_uniform(0, area);
-    int max = number_of_light_sources - 1;
+    int max = static_cast<int>(number_of_light_sources) - 1;
     int min = 0;
     int index;
 
@@ -134,7 +137,7 @@ vec3 ObjectUnion::random_light_point(const vec3& intersection_point, double& pdf
 
 int number_of_char_occurances(const std::string& line, const char character) {
     int count = 0;
-    for (int i = 0; i < line.length(); i++) {
+    for (size_t i = 0; i < line.length(); i++) {
         if (line[i] == character) {
             count++;
         }
@@ -149,8 +152,8 @@ std::string get_nth_word(const std::string& line, const char delimiter, const in
         return "";
     }
 
-    int start = 0;
-    int end = 0;
+    size_t start = 0;
+    size_t end = 0;
     for (int i = 0; i < n + 1; i++) {
         start = end;
         end = line.find(delimiter, start) + 1;
@@ -186,7 +189,7 @@ DataSizes get_vertex_data_sizes(const std::string& file_name) {
         }
         else if (is_shape) {
             int number_of_spaces = 0;
-            for (int i = 0; i < line.size(); i++) {
+            for (size_t i = 0; i < line.size(); i++) {
                 if (line.substr(i, 1) == " ") {
                     number_of_spaces++;
                 }
@@ -243,17 +246,17 @@ void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, ve
     }
 }
 
-vec3 compute_average_position(const vec3* vertex_array, const int number_of_vertices) {
+vec3 compute_average_position(const vec3* vertex_array, const size_t number_of_vertices) {
     vec3 avg = vec3(0, 0, 0);
-    for (int i = 0; i < number_of_vertices; i++) {
+    for (size_t i = 0; i < number_of_vertices; i++) {
         avg += vertex_array[i];
     }
     return avg / number_of_vertices;
 }
 
-double maximum_distance(const vec3& center, const vec3* vertex_array, const int number_of_vertices) {
+double maximum_distance(const vec3& center, const vec3* vertex_array, const size_t number_of_vertices) {
     double max_distance = 0;
-    for (int i = 0; i < number_of_vertices; i++) {
+    for (size_t i = 0; i < number_of_vertices; i++) {
         double distance = (vertex_array[i] - center).length();
         if (distance > max_distance) {
             max_distance = distance;
@@ -263,11 +266,11 @@ double maximum_distance(const vec3& center, const vec3* vertex_array, const int 
 }
 
 void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
-                    const int number_of_vertices) {
+                    const size_t number_of_vertices) {
     vec3 average_position = compute_average_position(vertex_array, number_of_vertices);
     double max_distance = maximum_distance(average_position, vertex_array, number_of_vertices);
 
-    for (int i = 0; i < number_of_vertices; i++) {
+    for (size_t i = 0; i < number_of_vertices; i++) {
         vertex_array[i] = ((vertex_array[i] - average_position) / max_distance) * desired_size + desired_center;
     }
 }

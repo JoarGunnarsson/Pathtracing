@@ -33,17 +33,17 @@ class ObjectUnion : public Object {
     int number_of_objects;
     double* cumulative_area;
     int* light_source_conversion_indices;
-    int number_of_light_sources;
+    size_t number_of_light_sources;
     BVH::BoundingVolumeHierarchy bvh;
     bool use_BVH;
     bool contains_light_source = false;
 };
 
 struct DataSizes {
-    int num_vertices = 0;
-    int num_vertex_UVs = 0;
-    int num_vertex_normals = 0;
-    int num_triangles = 0;
+    size_t num_vertices = 0;
+    size_t num_vertex_UVs = 0;
+    size_t num_vertex_normals = 0;
+    size_t num_triangles = 0;
 };
 
 int number_of_char_occurances(const std::string& line, const char character);
@@ -51,10 +51,10 @@ std::string get_nth_word(const std::string& line, const char delimiter, const in
 DataSizes get_vertex_data_sizes(const std::string& file_name);
 void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, vec3* vertex_UV_array,
                             vec3* vertex_normal_array);
-vec3 compute_average_position(const vec3* vertex_array, const int number_of_vertices);
-double maximum_distance(const vec3& center, const vec3* vertex_array, const int number_of_vertices);
+vec3 compute_average_position(const vec3* vertex_array, const size_t number_of_vertices);
+double maximum_distance(const vec3& center, const vec3* vertex_array, const size_t number_of_vertices);
 void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
-                    const int number_of_vertices);
+                    const size_t number_of_vertices);
 
 struct PopulateVertexVectorData {
     const std::string vertex_data;

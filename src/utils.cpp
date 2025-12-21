@@ -164,7 +164,7 @@ double fresnel_conductor(double cos_theta_real, const double n1, const double k1
         std::complex<double> n_tilde(n1, k1);
         std::complex<double> sin_theta_T = n_tilde / n2 * sin_theta;
         std::complex<double> sin_theta_T2 = sin_theta_T * sin_theta_T;
-        std::complex<double> cos_theta = sqrt(one - sin_theta_T2);
+        cos_theta = sqrt(one - sin_theta_T2);
     }
 
     std::complex<double> cos_theta2 = cos_theta * cos_theta;
@@ -182,7 +182,7 @@ double fresnel_conductor(double cos_theta_real, const double n1, const double k1
     return 0.5 * real(R_p + R_s);
 }
 
-double schlick_fresnel(const double cos_incident, const double n1, const double k1, const double n2, const double k2) {
+double schlick_fresnel(const double cos_incident, const double n1, const double, const double n2, const double) {
     double R_0_sqrt = (n1 - n2) / (n1 + n2);
     double R_0 = R_0_sqrt * R_0_sqrt;
     double x = 1 - cos_incident;
@@ -215,7 +215,7 @@ double* create_mmap(const std::string& filepath, const size_t file_size, int& fd
         exit(EXIT_FAILURE);
     }
 
-    if (ftruncate(fd, file_size) == -1) {
+    if (ftruncate(fd, static_cast<off_t>(file_size)) == -1) {
         perror("Error setting file size");
         close(fd);
         exit(EXIT_FAILURE);

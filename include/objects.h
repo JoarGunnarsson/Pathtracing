@@ -20,6 +20,7 @@ class Object {
     int primitive_ID; // Used when object belongs to an ObjectUnion.
     Object() {}
     Object(Material* _material);
+    virtual ~Object() {}
 
     virtual vec3 max_axis_point() const;
     virtual vec3 min_axis_point() const;
@@ -137,8 +138,6 @@ class Triangle : public Object {
 bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects);
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
 
-vec3 direct_lighting(const vec3& point, Object** objects, const int number_of_objects, vec3& sampled_direction,
-                     const MediumStack& current_medium_stack);
 double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
 vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
                   const MediumStack& current_medium_stack, const bool is_scatter);

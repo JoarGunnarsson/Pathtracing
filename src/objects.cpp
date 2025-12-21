@@ -16,11 +16,11 @@ vec3 Object::compute_centroid() const {
     return vec3();
 }
 
-vec3 Object::get_UV(const vec3& point) const {
+vec3 Object::get_UV(const vec3&) const {
     return vec3();
 }
 
-Material* Object::get_material(const int primitive_ID) const {
+Material* Object::get_material(const int) const {
     return material;
 }
 
@@ -48,11 +48,11 @@ vec3 Object::get_light_emittance(const Hit& hit) const {
     return material->get_light_emittance(UV[0], UV[1]);
 }
 
-bool Object::find_closest_object_hit(Hit& hit, Ray& ray) const {
+bool Object::find_closest_object_hit(Hit&, Ray&) const {
     return false;
 }
 
-vec3 Object::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
+vec3 Object::get_normal_vector(const vec3&, const int) const {
     return vec3();
 }
 
@@ -113,7 +113,7 @@ bool Sphere::find_closest_object_hit(Hit& hit, Ray& ray) const {
     return true;
 }
 
-vec3 Sphere::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
+vec3 Sphere::get_normal_vector(const vec3& surface_point, const int) const {
     vec3 difference_vector = surface_point - position;
     return normalize_vector(difference_vector);
 }
@@ -122,7 +122,7 @@ vec3 Sphere::generate_random_surface_point() const {
     return sample_spherical() * radius + position;
 }
 
-double Sphere::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const {
+double Sphere::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int) const {
     double distance = (intersection_point - position).length();
     if (distance <= radius) {
         return 1.0 / (area * area_to_angle_PDF_factor(surface_point, intersection_point, 0));
@@ -205,11 +205,11 @@ bool Plane::find_closest_object_hit(Hit& hit, Ray& ray) const {
     return true;
 }
 
-vec3 Plane::get_normal_vector(const vec3& surface_point, const int primitive_ID) const {
+vec3 Plane::get_normal_vector(const vec3&, const int) const {
     return normal_vector;
 }
 
-double Plane::light_pdf(const vec3& surface_point, const vec3& intersection_point, const int primitive_id) const {
+double Plane::light_pdf(const vec3&, const vec3&, const int) const {
     return 0.0;
 }
 
@@ -326,7 +326,7 @@ void Triangle::set_vertex_normals(const vec3& _n1, const vec3& _n2, const vec3& 
     smooth_shaded = true;
 }
 
-vec3 Triangle::get_normal_vector_smoothed(const vec3& surface_point, const int primitive_ID) const {
+vec3 Triangle::get_normal_vector_smoothed(const vec3& surface_point, const int) const {
     vec3 barycentric_vector = compute_barycentric(surface_point);
     return normalize_vector(n1 * barycentric_vector[0] + n2 * barycentric_vector[1] + n3 * barycentric_vector[2]);
 }
@@ -451,7 +451,7 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
         return -1;
     }
 
-    int random_index = random_int(0, number_of_light_sources);
+    int random_index = random_int(0, static_cast<int>(number_of_light_sources));
     int light_index = light_source_idx_array[random_index];
     return light_index;
 }

@@ -57,8 +57,8 @@ int expand_kernel_idx(const int idx, const int hole_width) {
     return 0;
 }
 
-vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration, const double* pixel_buffer,
-                const vec3* position_buffer, const vec3* normal_buffer) {
+vec3 blur_pixel(const int p, const KernelData& kernel_data, const double* pixel_buffer, const vec3* position_buffer,
+                const vec3* normal_buffer) {
     vec3 new_pixel_value = vec3(0, 0, 0);
     double normalization = 0;
     int global_x;
@@ -92,11 +92,13 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration,
     return new_pixel_value / normalization;
 }
 
-void one_denoising_iteration(const int iteration, const KernelData& kernel_data, double* pixel_buffer,
-                             const vec3* position_buffer, const vec3* normal_buffer) {
-    double* tmp_pixel_buffer = new double[constants::WIDTH * constants::HEIGHT * 3];
+void one_denoising_iteration(const KernelData& kernel_data, double* pixel_buffer, const vec3* position_buffer,
+                             const vec3* normal_buffer) {
+    size_t buffer_size = static_cast<size_t>(constants::WIDTH * constants::HEIGHT * 3);
+    double* tmp_pixel_buffer = new double[buffer_size];
+
     for (int j = 0; j < constants::WIDTH * constants::HEIGHT; j++) {
-        vec3 blurred_pixel = blur_pixel(j, kernel_data, iteration, pixel_buffer, position_buffer, normal_buffer);
+        vec3 blurred_pixel = blur_pixel(j, kernel_data, pixel_buffer, position_buffer, normal_buffer);
 
         for (int i = 0; i < 3; i++) {
             tmp_pixel_buffer[3 * j + i] = blurred_pixel[i];
@@ -113,10 +115,10 @@ void one_denoising_iteration(const int iteration, const KernelData& kernel_data,
 void denoise(double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer) {
     KernelData kernel_data;
     for (int iteration = 0; iteration < constants::denoising_iterations; iteration++) {
-        one_denoising_iteration(iteration, kernel_data, pixel_buffer, position_buffer, normal_buffer);
+        one_denoising_iteration(kernel_data, pixel_buffer, position_buffer, normal_buffer);
         kernel_data.sigma_rt /= 2.0;
         kernel_data.sigma_x /= 2.0;
         kernel_data.sigma_n /= 2.0;
-        kernel_data.hole_width += pow(2, iteration);
+        kernel_data.hole_width += static_cast<int>(pow(2, iteration));
     }
 }
