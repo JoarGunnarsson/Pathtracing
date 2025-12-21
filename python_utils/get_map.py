@@ -23,7 +23,7 @@ def open_file(file_name):
 def create_albedo_map(input_file, output_file):
     img = open_file(input_file)
     height, width, dim = img.shape[0], img.shape[1], 3
-    print(f"Creating new albedo map based on file with width={width} and height={height}.")
+    print(f"Creating new albedo map based on file with width: {width} and height: {height}.")
 
     img = np.reshape(img[:, :, 0:dim], (width * height * dim,))
 
@@ -32,7 +32,7 @@ def create_albedo_map(input_file, output_file):
     else:
         norm_val = 1
     img = img / norm_val
-    img = np.hstack((np.array([height, width, dim]), img))
+    img = np.hstack((np.array([width, height, dim]), img))
 
     img.tofile(MAP_FILE_PATH / output_file, sep="")
 

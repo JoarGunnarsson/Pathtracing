@@ -9,8 +9,8 @@ show_help() {
     echo "options:"
     echo "  -h, --help                            show this message"
     echo "  -n, --name <name>                     the name of the generated image, default 'result.png'"
-    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json'"
-    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json'"
+    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'"
+    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'"
 }
 
 IMAGE_NAME="result.png"
