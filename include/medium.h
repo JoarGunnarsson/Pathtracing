@@ -30,6 +30,7 @@ class Medium {
   public:
     int id;
     Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient);
+    virtual ~Medium() {}
 
     virtual double sample_distance() const;
     virtual vec3 sample_direction(const vec3& incident_vector) const;
