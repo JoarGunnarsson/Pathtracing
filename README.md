@@ -61,8 +61,8 @@ usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE
 options:
   -h, --help                            show this message
   -n, --name <name>                     the name of the generated image, default 'result.png'
-  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example1.json'
-  -s, --settings_file <file name>       the path to the scene file, default 'scenes/settings.json'
+  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'
+  -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'
 ```
 
 #### Utilities

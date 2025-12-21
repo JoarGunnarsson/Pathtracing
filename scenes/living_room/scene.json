@@ -43,6 +43,18 @@
             }
         },
         {
+            "name": "rusted_copper_map",
+            "type": "ValueMap3D", "parameters":{
+                "file": "maps/rusted_copper.map"
+            }
+        },
+        {
+            "name": "gold_map",
+            "type": "ValueMap3D", "parameters":{
+                "data": [1.0, 0.84, 0.0]
+            }
+        },
+        {
             "name": "black",
             "type": "ValueMap3D", "parameters":{
                 "data": [0,0,0]
@@ -63,7 +75,7 @@
         {
             "name": "light_strength",
             "type": "ValueMap1D", "parameters":{
-                "data": [150]
+                "data": [100]
             }
         }
     ],
@@ -101,7 +113,7 @@
         {
             "name": "wall_material",
             "type": "Material", "subtype": "Diffuse", "parameters": {
-                "albedo_map": "wall_map"
+                "albedo_map": "white"
             }
         },
         {
@@ -140,6 +152,22 @@
                 "albedo_map": "brown_leather_map",
                 "refractive_index": 1.47,
                 "roughness_map": "leather_roughness_map"
+            }
+        },
+        {
+            "name": "rusted_copper_material",
+            "type": "Material", "subtype": "Glossy", "parameters": {
+                "albedo_map": "rusted_copper_map",
+                "refractive_index": 1.5
+            }
+        },
+        {
+            "name": "gold_material",
+            "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
+                "albedo_map": "gold_map",
+                "refractive_index": 0.29,
+                "extinction_coefficient": 3,
+                "is_dielectric": false
             }
         },
         {
@@ -262,6 +290,15 @@
             }
         },
         {
+            "name": "glass1_coaster",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
             "name": "glass2",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass5.obj",
@@ -279,7 +316,16 @@
                 "move_object": false
             }
         },
-                {
+        {
+            "name": "glass2_coaster",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster1.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
             "name": "caraffe",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/water_caraffe.obj",
@@ -294,6 +340,33 @@
                 "file": "models/realistic_room/caraffe_contents.obj",
                 "material": "whiskey_material",
                 "enable_smooth_shading": true,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster1",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster2.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster2",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster3.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
+                "move_object": false
+            }
+        },
+        {
+            "name": "stack_coaster3",
+            "type": "Object", "subtype": "ObjectUnion", "parameters": {
+                "file": "models/realistic_room/coaster4.obj",
+                "material": "rusted_copper_material",
+                "enable_smooth_shading": false,
                 "move_object": false
             }
         },
@@ -319,8 +392,8 @@
     "background_medium": "air_medium",
 
     "camera": {
-        "camera_position":[-0.7, 1.7, -0.16],
-        "viewing_direction": [0.7, -0.3, -0.8],
+        "camera_position":[0.3, 1.5, -0.4],
+        "viewing_direction": [0.4, -0.3, -0.8],
         "screen_y_vector": [0, 1, 0]
     }
 }
