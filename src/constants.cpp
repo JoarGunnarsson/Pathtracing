@@ -21,7 +21,7 @@ double sigma_rt = 0.7;
 double sigma_x = 0.5;
 double sigma_n = 0.4;
 
-const int max_number_of_threads = std::thread::hardware_concurrency() - 1;
+const int max_number_of_threads = static_cast<int>(std::thread::hardware_concurrency()) - 1;
 const double EPSILON = 0.000001;
 const double max_ray_distance = 1.0 / 0.0;
 

@@ -192,7 +192,7 @@ void print_progress(double progress) {
         int bar_width = 60;
 
         std::clog << "[";
-        int pos = bar_width * progress;
+        int pos = static_cast<int>(bar_width * progress);
         for (int i = 0; i < bar_width; ++i) {
             if (i < pos)
                 std::clog << "=";
@@ -260,9 +260,12 @@ int main(int argc, char* argv[]) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    size_t FILESIZE = constants::WIDTH * constants::HEIGHT * 3 * sizeof(double);
-    vec3* position_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
-    vec3* normal_buffer = new vec3[constants::WIDTH * constants::HEIGHT];
+    int pixel_count = constants::WIDTH * constants::HEIGHT;
+    size_t array_size = static_cast<size_t>(pixel_count);
+    vec3* position_buffer = new vec3[array_size];
+    vec3* normal_buffer = new vec3[array_size];
+
+    size_t FILESIZE = static_cast<size_t>(pixel_count * 3) * sizeof(double);
 
     std::clog << "Running program with number of threads: " << constants::number_of_threads << ".\n";
     std::thread thread_array[constants::number_of_threads];
@@ -270,11 +273,11 @@ int main(int argc, char* argv[]) {
     int image_fd;
     double* image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
-    int pixels_per_thread = std::ceil(constants::WIDTH * constants::HEIGHT / (double) constants::number_of_threads);
+    int pixels_per_thread =
+        static_cast<int>(std::ceil(pixel_count / static_cast<double>(constants::number_of_threads)));
     for (int i = 0; i < constants::number_of_threads; i++) {
         int start_idx = pixels_per_thread * i;
-        int pixels_to_handle =
-            std::min(pixels_per_thread, constants::WIDTH * constants::HEIGHT - i * pixels_per_thread);
+        int pixels_to_handle = std::min(pixels_per_thread, pixel_count - i * pixels_per_thread);
         thread_array[i] =
             std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer, normal_buffer);
     }

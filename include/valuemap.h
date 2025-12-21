@@ -23,8 +23,8 @@ class ValueMap {
   protected:
     double* data;
     int width;
-    double u_max;
     int height;
+    double u_max;
     double v_max;
     void initialise(double* _data, const int _width, const int _height, const double _u_max, const double _v_max);
 };

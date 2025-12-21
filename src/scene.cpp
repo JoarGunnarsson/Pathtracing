@@ -142,7 +142,7 @@ ValueMap3D* load_valuemap3d(const json& data) {
     }
 }
 
-Medium* load_medium(const json& data, const SceneStore& store) {
+Medium* load_medium(const json& data, const SceneStore&) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
@@ -307,8 +307,8 @@ Object* load_object(const json& data, const SceneStore& store) {
             require_field(parameters, "center");
             require_field(parameters, "size");
 
-            vec3 center = get_vec3_param(parameters, "center");
-            double size = parameters["size"];
+            center = get_vec3_param(parameters, "center");
+            size = parameters["size"];
         }
         return load_object_model(file_name, material, enable_smooth_shading, move_object, center, size);
     }
@@ -440,7 +440,7 @@ Scene load_scene(const std::string& file_path) {
     Scene scene;
     scene.objects = objects;
     scene.camera = camera;
-    scene.number_of_objects = number_of_objects;
+    scene.number_of_objects = static_cast<int>(number_of_objects);
     scene.pointer_manager = manager;
     scene.medium = background_medium;
     return scene;

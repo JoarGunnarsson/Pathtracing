@@ -65,17 +65,18 @@ ValueMapType* create_value_map(const std::string& file_name, double u_max, doubl
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    size_t N = size / sizeof(double);
+    size_t N = static_cast<size_t>(size) / sizeof(double);
 
     double* data = new double[N];
     if (!file.read(reinterpret_cast<char*>(data), size)) {
         throw std::runtime_error("Error reading file '" + file_name + "'");
     }
 
-    int width = data[0];
-    int height = data[1];
-    int dimension = data[2];
-    if (width * height * dimension != N - 3) {
+    int width = static_cast<int>(data[0]);
+    int height = static_cast<int>(data[1]);
+    int dimension = static_cast<int>(data[2]);
+    size_t num_values = static_cast<size_t>(width * height * dimension);
+    if (num_values != N - 3) {
         throw std::runtime_error("File '" + file_name + "' does not follow expected format and cannot be loaded");
     }
     double* data_array = new double[N - 3];

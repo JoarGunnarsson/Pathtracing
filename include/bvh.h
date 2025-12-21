@@ -48,7 +48,7 @@ class Node {
     BoundingBox bounding_box;
 
     Node() {}
-    Node(Object** _triangles, int _number_of_triangles, int _leaf_size = 12, int depth = 0);
+    Node(Object** _triangles, int _number_of_triangles, int _leaf_size = 12);
 
     int get_split_axis();
     bool intersect(Ray& ray, Hit& hit);
@@ -58,7 +58,6 @@ class Node {
     bool is_leaf_node;
     Node* node1;
     Node* node2;
-    int depth;
     Object** triangles;
     int number_of_triangles;
 };

@@ -28,7 +28,7 @@ class PointerManager {
 
 struct Scene {
     Object** objects;
-    size_t number_of_objects;
+    int number_of_objects;
     Camera camera;
     PointerManager* pointer_manager;
     Medium* medium;

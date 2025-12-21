@@ -23,7 +23,7 @@ class MediumStack {
   private:
     const int MAX_STACK_SIZE = 50;
     int stack_size;
-    Medium** medium_array = new Medium*[MAX_STACK_SIZE];
+    Medium** medium_array = new Medium*[static_cast<size_t>(MAX_STACK_SIZE)];
 };
 
 class Medium {

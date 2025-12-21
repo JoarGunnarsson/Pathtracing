@@ -27,9 +27,9 @@ double compute_weight(const int p, const int q, const KernelData& kernel_data, c
                       const vec3* position_buffer, const vec3* normal_buffer);
 int expand_kernel_idx(const int idx, const int hole_width);
 
-vec3 blur_pixel(const int p, const KernelData& kernel_data, const int iteration, const double* pixel_buffer,
-                const vec3* position_buffer, const vec3* normal_buffer);
-void one_denoising_iteration(const int iteration, const KernelData& kernel_data, double* pixel_buffer,
-                             const vec3* position_buffer, const vec3* normal_buffer);
+vec3 blur_pixel(const int p, const KernelData& kernel_data, const double* pixel_buffer, const vec3* position_buffer,
+                const vec3* normal_buffer);
+void one_denoising_iteration(const KernelData& kernel_data, double* pixel_buffer, const vec3* position_buffer,
+                             const vec3* normal_buffer);
 void denoise(double* pixel_buffer, const vec3* position_buffer, const vec3* normal_buffer);
 #endif
