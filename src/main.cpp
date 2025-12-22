@@ -13,6 +13,8 @@
 #include "objectunion.h"
 #include "scene.h"
 
+std::mutex progress_mutex;
+
 struct PixelData {
     vec3 pixel_color = vec3(0, 0, 0);
     vec3 pixel_position = vec3(0, 0, 0);
@@ -208,17 +210,19 @@ void print_progress(double progress) {
     }
 }
 
-void clear_scene(Scene& scene) {
-    for (int i = 0; i < scene.number_of_objects; i++) {
-        delete scene.objects[i];
+void update_and_report_progress(int* thread_progress) {
+    int progress = 0;
+    for (int i = 0; i < constants::number_of_threads; i++) {
+        progress += thread_progress[i];
     }
 
-    delete[] scene.objects;
-    delete scene.pointer_manager;
+    std::unique_lock<std::mutex> lock(progress_mutex);
+    print_progress((double) progress / ((double) constants::WIDTH * constants::HEIGHT));
 }
 
 void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, double* image,
-                      vec3* position_buffer, vec3* normal_buffer) {
+                      vec3* position_buffer, vec3* normal_buffer, int* thread_progress, const int thread_idx) {
+    int log_interval = number_of_pixels / 20;
     for (int i = 0; i < number_of_pixels; i++) {
         int idx = start_idx + i;
 
@@ -233,17 +237,24 @@ void raytrace_section(const int start_idx, const int number_of_pixels, const Sce
 
         position_buffer[idx] = data.pixel_position;
         normal_buffer[idx] = data.pixel_normal;
+        if (i % log_interval == 0 && i != 0) {
+            thread_progress[thread_idx] += log_interval;
+            update_and_report_progress(thread_progress);
+        }
     }
-    std::clog << "Thread complete.\n";
 }
 
-void run_denoising(double* pixel_buffer, vec3* position_buffer, vec3* normal_buffer) {
-    denoise(pixel_buffer, position_buffer, normal_buffer);
+void clear_scene(Scene& scene) {
+    for (int i = 0; i < scene.number_of_objects; i++) {
+        delete scene.objects[i];
+    }
+
+    delete[] scene.objects;
+    delete scene.pointer_manager;
 }
 
 int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
-
     if (argc != 3) {
         throw std::runtime_error(
             "Invalid arguments provided.\n"
@@ -276,13 +287,15 @@ int main(int argc, char* argv[]) {
     int image_fd;
     double* image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
-    int pixels_per_thread =
-        static_cast<int>(std::ceil(pixel_count / static_cast<double>(constants::number_of_threads)));
+    print_progress(0);
+    int pixels_per_thread = pixel_count / constants::number_of_threads + 1;
+    int* thread_progress = new int[static_cast<size_t>(constants::number_of_threads)];
     for (int i = 0; i < constants::number_of_threads; i++) {
         int start_idx = pixels_per_thread * i;
-        int pixels_to_handle = std::min(pixels_per_thread, pixel_count - i * pixels_per_thread);
-        thread_array[i] =
-            std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer, normal_buffer);
+        int pixels_remaining = pixel_count - i * pixels_per_thread;
+        int pixels_to_handle = std::min(pixels_per_thread, pixels_remaining);
+        thread_array[i] = std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer,
+                                      normal_buffer, thread_progress, i);
     }
 
     for (int i = 0; i < constants::number_of_threads; i++) {
@@ -299,7 +312,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < constants::WIDTH * constants::HEIGHT * 3; i++) {
             denoised_image[i] = image[i];
         }
-        run_denoising(denoised_image, position_buffer, normal_buffer);
+        denoise(denoised_image, position_buffer, normal_buffer);
         close_mmap(denoised_image, FILESIZE, denoised_image_fd);
     }
 
