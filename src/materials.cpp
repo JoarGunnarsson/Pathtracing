@@ -18,7 +18,7 @@ Material::Material(MaterialData data) {
     }
 
     albedo_map = data.albedo_map;
-    refractive_index = data.refractive_index;
+    surface_refractive_index = data.surface_refractive_index;
     emission_color_map = data.emission_color_map;
     light_intensity_map = data.light_intensity_map;
     is_dielectric = data.is_dielectric;
@@ -96,7 +96,7 @@ double ReflectiveMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const
 }
 
 bool TransparentMaterial::allow_direct_light() const {
-    return refractive_index == 1;
+    return surface_refractive_index == 1;
 }
 vec3 TransparentMaterial::eval(const Hit&, const vec3&, const double, const double) const {
     return colors::BLACK;
@@ -107,10 +107,10 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double, const double)
     double n1, n2;
     if (hit.outside) {
         n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n2 = surface_refractive_index;
     }
     else {
-        n1 = refractive_index;
+        n1 = surface_refractive_index;
         n2 = constants::air_refractive_index;
     }
 
@@ -217,10 +217,10 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
     double n1, n2;
     if (hit.outside) {
         n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n2 = surface_refractive_index;
     }
     else {
-        n1 = refractive_index;
+        n1 = surface_refractive_index;
         n2 = constants::air_refractive_index;
     }
 
@@ -285,11 +285,11 @@ vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vecto
     if (hit.outside) {
         n1 = constants::air_refractive_index;
         k1 = 0;
-        n2 = refractive_index;
+        n2 = surface_refractive_index;
         k2 = extinction_coefficient;
     }
     else {
-        n1 = refractive_index;
+        n1 = surface_refractive_index;
         k1 = extinction_coefficient;
         n2 = constants::air_refractive_index;
         k2 = 0;
@@ -359,10 +359,10 @@ vec3 TransparentMicrofacetMaterial::sample_outgoing(vec3& half_vector, const vec
     double n1, n2;
     if (outside) {
         n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n2 = surface_refractive_index;
     }
     else {
-        n1 = refractive_index;
+        n1 = surface_refractive_index;
         n2 = constants::air_refractive_index;
     }
 

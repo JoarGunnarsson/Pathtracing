@@ -120,7 +120,7 @@
             "name": "wood_table_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "wood_table_map",
-                "refractive_index": 1.5,
+                "surface_refractive_index": 1.5,
                 "roughness_map": "wood_roughness_map"
 
             }
@@ -128,13 +128,13 @@
         {
             "name": "glass_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
-                "refractive_index": 1.5
+                "surface_refractive_index": 1.5
             }
         },
         {
             "name": "whiskey_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
-                "refractive_index": 1.356,
+                "surface_refractive_index": 1.356,
                 "medium": "whiskey_medium"
             }
         },
@@ -142,7 +142,7 @@
             "name": "black_leather_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "almost_black",
-                "refractive_index": 1.47,
+                "surface_refractive_index": 1.47,
                 "roughness_map": "leather_roughness_map"
             }
         },
@@ -150,7 +150,7 @@
             "name": "brown_leather_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "brown_leather_map",
-                "refractive_index": 1.47,
+                "surface_refractive_index": 1.47,
                 "roughness_map": "leather_roughness_map"
             }
         },
@@ -158,14 +158,14 @@
             "name": "rusted_copper_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "rusted_copper_map",
-                "refractive_index": 1.5
+                "surface_refractive_index": 1.5
             }
         },
         {
             "name": "gold_material",
             "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
                 "albedo_map": "gold_map",
-                "refractive_index": 0.29,
+                "surface_refractive_index": 0.29,
                 "extinction_coefficient": 3,
                 "is_dielectric": false
             }

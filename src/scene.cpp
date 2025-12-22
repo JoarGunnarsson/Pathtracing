@@ -178,8 +178,8 @@ Material* load_material(const json& data, const SceneStore& store) {
         require_key_exists(store.valuemap3d_store, albedo_map, "ValueMap3D");
         material_data.albedo_map = store.valuemap3d_store.find(albedo_map)->second;
     }
-    if (parameters.contains("refractive_index")) {
-        material_data.refractive_index = (double) parameters["refractive_index"];
+    if (parameters.contains("surface_refractive_index")) {
+        material_data.surface_refractive_index = (double) parameters["surface_refractive_index"];
     }
     if (parameters.contains("extinction_coefficient")) {
         material_data.extinction_coefficient = (double) parameters["extinction_coefficient"];
