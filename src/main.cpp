@@ -61,7 +61,8 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             if (constants::enable_next_event_estimation) {
                 ray_hit.intersection_point = scatter_point;
 
-                color += sample_light(ray_hit, objects, number_of_objects, medium, true) * throughput;
+                color +=
+                    sample_light(ray_hit, objects, number_of_objects, background_medium, medium, true) * throughput;
 
                 ray.type = DIFFUSE;
                 scatter_pdf = medium->phase_function(ray.direction_vector, scattered_direction);
@@ -99,7 +100,8 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
 
             if (constants::enable_next_event_estimation) {
-                color += sample_light(ray_hit, objects, number_of_objects, medium, false) * throughput;
+                color +=
+                    sample_light(ray_hit, objects, number_of_objects, background_medium, medium, false) * throughput;
             }
 
             BrdfData brdf_result = hit_object->sample(ray_hit);

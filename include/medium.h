@@ -9,7 +9,6 @@ class Object;
 
 class Medium {
   public:
-    int id;
     double refractive_index;
     Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient,
            const double _refractive_index);

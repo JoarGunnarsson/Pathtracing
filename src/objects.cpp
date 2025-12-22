@@ -462,9 +462,9 @@ double mis_weight(const int n_a, const double pdf_a, const int n_b, const double
     return f / (f + g);
 }
 
-vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects, Medium* const current_medium,
-                        const int light_index, vec3& sampled_direction, vec3& transmittance, double& distance) {
-    // TODO: Rename this function. This is the function used for the part that uses MIS?
+vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects,
+                        Medium* const background_medium, Medium* const current_medium, const int light_index,
+                        const vec3& sampled_direction, vec3& transmittance, double& distance) {
     Ray ray;
     ray.starting_position = point;
     ray.direction_vector = sampled_direction;
@@ -480,10 +480,12 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
             return vec3(0);
         }
         distance += light_hit.distance;
-        // TODO: If medium is null, it should be set to background medium.
-        if (medium) {
-            transmittance *= medium->transmittance_albedo(light_hit.distance);
+
+        if (!medium) {
+            medium = background_medium;
         }
+        transmittance *= medium->transmittance_albedo(light_hit.distance);
+
         if (light_hit.intersected_object_index == light_index) {
             light_emittance = objects[light_index]->get_light_emittance(light_hit);
             break;
@@ -506,8 +508,8 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
     return light_emittance;
 }
 
-vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium* const current_medium,
-                  const bool is_scatter) {
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium* const background_medium,
+                  Medium* const current_medium, const bool is_scatter) {
     vec3 L = vec3(0);
     // TODO: rename is_scatter
 
@@ -546,8 +548,8 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
 
     double distance;
     vec3 transmittance;
-    vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium, light_index,
-                                        sampled_direction, transmittance, distance);
+    vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, background_medium,
+                                        current_medium, light_index, sampled_direction, transmittance, distance);
 
     if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance.length_squared() == 0) {
         return L;

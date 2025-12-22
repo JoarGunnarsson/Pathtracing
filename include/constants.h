@@ -4,6 +4,7 @@
 #include <string>
 
 namespace constants {
+// Configurable constants
 extern int WIDTH;
 extern int HEIGHT;
 extern int samples_per_pixel;
@@ -20,6 +21,7 @@ extern double sigma_rt;
 extern double sigma_x;
 extern double sigma_n;
 
+// Fixed constants
 extern const int max_number_of_threads;
 extern const double EPSILON;
 extern const double max_ray_distance;
