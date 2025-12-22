@@ -85,7 +85,8 @@
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
                 "absorption_albedo": [0, 0, 0],
-                "emission_coefficient": [0, 0, 0]
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.0
             }
         },
         {
@@ -93,7 +94,8 @@
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
                 "absorption_albedo": [9, 7, 6.6],
-                "emission_coefficient": [0, 0, 0]
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.3
             }
         }
     ],
@@ -135,7 +137,7 @@
             "name": "whiskey_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
                 "surface_refractive_index": 1.356,
-                "medium": "whiskey_medium"
+                "internal_medium": "whiskey_medium"
             }
         },
         {
@@ -166,8 +168,7 @@
             "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
                 "albedo_map": "gold_map",
                 "surface_refractive_index": 0.29,
-                "extinction_coefficient": 3,
-                "is_dielectric": false
+                "extinction_coefficient": 3
             }
         },
         {

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 PROJECT_PATH = pathlib.Path(__file__).parent.parent
-IMAGES_FILE_PATH = PROJECT_PATH / "Images"
+IMAGES_FILE_PATH = PROJECT_PATH / "images"
 TMP_FILES_PATH = PROJECT_PATH / "temp"
 
 

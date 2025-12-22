@@ -15,5 +15,6 @@ __pycache__
 *.dSYM
 *.dat
 *.yaml
+venv/*
 .clang-format
 build

@@ -1,7 +1,20 @@
 #!/bin/bash
 
+
 SOURCE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $SOURCE_DIR
+
+if [ ! -d "venv" ]; then
+    echo "Virtual environment could not be found. Run 'setup.sh' to set up the project environment first.";
+    exit;
+fi
+
+if [ ! -f "main" ]; then
+    echo "Main executable could not be found. Run 'setup.sh' to set up the project environment first.";
+    exit;
+fi
+
+source venv/bin/activate
 
 show_help() {
     echo "usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]"
@@ -48,8 +61,7 @@ if [[ "$IMAGE_NAME" != *.png ]]; then
         exit 1
 fi
 
-echo "Running program. The result can be found in Images/$name"
-
+echo "Rendering scene '$SCENE_FILE', using settings file '$SETTINGS_FILE'. The result can be found in images/$IMAGE_NAME"
 
 ./main $SCENE_FILE $SETTINGS_FILE
 python python_utils/to_png.py --name $IMAGE_NAME --settings_file $SETTINGS_FILE
