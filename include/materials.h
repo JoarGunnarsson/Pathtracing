@@ -47,7 +47,8 @@ struct MaterialData {
     bool is_dielectric = true;
     ValueMap1D* roughness_map = nullptr;
     bool is_light_source = false;
-    Medium* medium = nullptr;
+    Medium* internal_medium = nullptr;
+    Medium* external_medium = nullptr;
 };
 
 class Material {
@@ -62,7 +63,8 @@ class Material {
     double extinction_coefficient;
     bool is_light_source;
     ValueMap1D* roughness_map;
-    Medium* medium;
+    Medium* internal_medium;
+    Medium* external_medium;
 
     Material() {}
     Material(MaterialData data);

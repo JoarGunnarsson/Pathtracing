@@ -20,8 +20,6 @@ struct PixelData {
 };
 
 PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium) {
-    MediumStack medium_stack = MediumStack();
-    medium_stack.add_medium(background_medium, -1);
     PixelData data;
     vec3 color = vec3(0, 0, 0);
     vec3 throughput = vec3(1, 1, 1);
@@ -32,8 +30,12 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     vec3 saved_point;
     double scatter_pdf;
 
+    Medium* medium = background_medium;
+
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++) {
-        Medium* medium = medium_stack.get_medium();
+        if (!medium) {
+            medium = background_medium;
+        }
         double scatter_distance = medium->sample_distance();
 
         ray.t_max = scatter_distance;
@@ -44,7 +46,6 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
             ray_hit.distance = constants::max_ray_distance;
         }
-        // save refractive indices here? Take from hit object + current/next medium?
 
         bool scatter = scatter_distance < ray_hit.distance;
         scatter_distance = std::min(scatter_distance, ray_hit.distance);
@@ -60,7 +61,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             if (constants::enable_next_event_estimation) {
                 ray_hit.intersection_point = scatter_point;
 
-                color += sample_light(ray_hit, objects, number_of_objects, medium_stack, true) * throughput;
+                color += sample_light(ray_hit, objects, number_of_objects, medium, true) * throughput;
 
                 ray.type = DIFFUSE;
                 scatter_pdf = medium->phase_function(ray.direction_vector, scattered_direction);
@@ -98,7 +99,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
 
             if (constants::enable_next_event_estimation) {
-                color += sample_light(ray_hit, objects, number_of_objects, medium_stack, false) * throughput;
+                color += sample_light(ray_hit, objects, number_of_objects, medium, false) * throughput;
             }
 
             BrdfData brdf_result = hit_object->sample(ray_hit);
@@ -124,13 +125,13 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
             // TODO: Can save current_medium and next_medium, and pass that into sample and compute_direct_light.
             // TODO: Each material should have inside and outside media
-            Medium* new_medium = hit_object->get_material(ray_hit.primitive_ID)->medium;
-            if (penetrating_boundary && new_medium) {
+
+            if (penetrating_boundary) {
                 if (ray_hit.outside) {
-                    medium_stack.add_medium(new_medium, ray_hit.intersected_object_index);
+                    medium = hit_object->get_material(ray_hit.primitive_ID)->internal_medium;
                 }
                 else {
-                    medium_stack.pop_medium(ray_hit.intersected_object_index);
+                    medium = hit_object->get_material(ray_hit.primitive_ID)->external_medium;
                 }
             }
             ray.starting_position = ray_hit.intersection_point;

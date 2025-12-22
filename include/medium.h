@@ -6,30 +6,13 @@
 #include "objects.h"
 
 class Object;
-class Medium;
-
-class MediumStack {
-  public:
-    MediumStack();
-    MediumStack(Medium** initial_array, const int stack_size);
-    ~MediumStack();
-
-    Medium** get_array() const;
-    int get_stack_size() const;
-    Medium* get_medium() const;
-    void add_medium(Medium* medium, const int id);
-    void pop_medium(const int id);
-
-  private:
-    const int MAX_STACK_SIZE = 50;
-    int stack_size;
-    Medium** medium_array = new Medium*[static_cast<size_t>(MAX_STACK_SIZE)];
-};
 
 class Medium {
   public:
     int id;
-    Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient);
+    double refractive_index;
+    Medium(const vec3& _scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient,
+           const double _refractive_index);
     virtual ~Medium() {}
 
     virtual double sample_distance() const;
@@ -48,7 +31,8 @@ class Medium {
 
 class BeersLawMedium : public Medium {
   public:
-    BeersLawMedium(const vec3& scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient);
+    BeersLawMedium(const vec3& scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient,
+                   const double _refractive_index);
     virtual vec3 sample(Object** objects, const int number_of_objects, const double distance,
                         const bool scatter) const override;
 };

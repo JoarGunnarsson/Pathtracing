@@ -9,7 +9,6 @@ extern int HEIGHT;
 extern int samples_per_pixel;
 extern int max_recursion_depth;
 extern int force_tracing_limit;
-extern double air_refractive_index;
 extern int number_of_threads;
 
 extern bool enable_next_event_estimation;

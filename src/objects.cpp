@@ -462,16 +462,15 @@ double mis_weight(const int n_a, const double pdf_a, const int n_b, const double
     return f / (f + g);
 }
 
-vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects,
-                        const MediumStack& current_medium_stack, const int light_index, vec3& sampled_direction,
-                        vec3& transmittance, double& distance) {
+vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects, Medium* const current_medium,
+                        const int light_index, vec3& sampled_direction, vec3& transmittance, double& distance) {
     // TODO: Rename this function. This is the function used for the part that uses MIS?
-    MediumStack new_medium_stack = MediumStack(current_medium_stack.get_array(), current_medium_stack.get_stack_size());
     Ray ray;
     ray.starting_position = point;
     ray.direction_vector = sampled_direction;
     transmittance = vec3(1);
     vec3 light_emittance = vec3(0);
+    Medium* medium = current_medium;
 
     distance = 0;
     while (true) {
@@ -481,7 +480,7 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
             return vec3(0);
         }
         distance += light_hit.distance;
-        Medium* medium = new_medium_stack.get_medium();
+        // TODO: If medium is null, it should be set to background medium.
         if (medium) {
             transmittance *= medium->transmittance_albedo(light_hit.distance);
         }
@@ -497,19 +496,18 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
         ray.starting_position = light_hit.intersection_point;
 
         bool leaving_object = !light_hit.outside;
-        Medium* new_medium = objects[light_hit.intersected_object_index]->get_material(light_hit.primitive_ID)->medium;
         if (leaving_object) {
-            new_medium_stack.pop_medium(light_hit.intersected_object_index);
+            medium = objects[light_hit.intersected_object_index]->get_material(light_hit.primitive_ID)->external_medium;
         }
-        else if (new_medium) {
-            new_medium_stack.add_medium(new_medium, light_hit.intersected_object_index);
+        else {
+            medium = objects[light_hit.intersected_object_index]->get_material(light_hit.primitive_ID)->internal_medium;
         }
     }
     return light_emittance;
 }
 
-vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
-                  const MediumStack& current_medium_stack, const bool is_scatter) {
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium* const current_medium,
+                  const bool is_scatter) {
     vec3 L = vec3(0);
     // TODO: rename is_scatter
 
@@ -528,8 +526,6 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
     vec3 sampled_direction = random_point - hit.intersection_point;
     double distance_to_light = sampled_direction.length();
     sampled_direction = normalize_vector(sampled_direction);
-
-    Medium* current_medium = current_medium_stack.get_medium();
 
     vec3 brdf;
     if (!is_scatter) {
@@ -550,8 +546,8 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
 
     double distance;
     vec3 transmittance;
-    vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium_stack,
-                                        light_index, sampled_direction, transmittance, distance);
+    vec3 emittance = compute_visibility(hit.intersection_point, objects, number_of_objects, current_medium, light_index,
+                                        sampled_direction, transmittance, distance);
 
     if (std::abs(distance_to_light - distance) > constants::EPSILON || emittance.length_squared() == 0) {
         return L;

@@ -5,13 +5,14 @@
 #include "utils.h"
 #include "constants.h"
 #include "colors.h"
+#include "medium.h"
 #include "materials.h"
+
+class Medium;
 
 class Material;
 
 struct BrdfData;
-
-class MediumStack;
 
 class Object {
   public:
@@ -139,7 +140,7 @@ bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int nu
 int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources);
 
 double mis_weight(const int n_a, const double pdf_a, const int n_b, const double pdf_b);
-vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
-                  const MediumStack& current_medium_stack, const bool is_scatter);
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium* const current_medium,
+                  const bool is_scatter);
 
 #endif
