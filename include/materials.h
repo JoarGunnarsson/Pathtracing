@@ -40,8 +40,8 @@ struct MicrofacetData {
 
 struct MaterialData {
     ValueMap3D* albedo_map = nullptr;
-    double surface_refractive_index = 1;
-    double extinction_coefficient = 0;
+    double surface_refractive_index = 1.0;
+    double extinction_coefficient = 2.0;
     ValueMap3D* emission_color_map = nullptr;
     ValueMap1D* light_intensity_map = nullptr;
     bool is_dielectric = true;
@@ -139,7 +139,7 @@ class GlossyMaterial : public MicrofacetMaterial {
 
 class MetallicMicrofacetMaterial : public MicrofacetMaterial {
   public:
-    using MicrofacetMaterial::MicrofacetMaterial;
+    MetallicMicrofacetMaterial(MaterialData data);
 
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     vec3 sample_outgoing(const vec3& incident_vector, const vec3& normal_vector, const double u, const double v) const;
