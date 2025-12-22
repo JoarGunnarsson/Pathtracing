@@ -57,7 +57,6 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "samples_per_pixel", constants::samples_per_pixel);
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
     load_one_setting(data, "force_tracing_limit", constants::force_tracing_limit);
-    load_one_setting(data, "air_refractive_index", constants::air_refractive_index);
     load_one_setting(data, "number_of_threads", constants::number_of_threads);
     constants::number_of_threads = std::min(constants::number_of_threads, constants::max_number_of_threads);
 
@@ -149,18 +148,21 @@ Medium* load_medium(const json& data, const SceneStore&) {
     require_field(parameters, "scattering_albedo");
     require_field(parameters, "absorption_albedo");
     require_field(parameters, "emission_coefficient");
+    require_field(parameters, "refractive_index");
 
     vec3 scattering_albedo = get_vec3_param(parameters, "scattering_albedo");
     vec3 absorption_albedo = get_vec3_param(parameters, "absorption_albedo");
     vec3 emission_coefficient = get_vec3_param(parameters, "emission_coefficient");
+    double refractive_index = parameters["refractive_index"];
 
     require_field(data, "subtype");
     std::string medium_type = data["subtype"];
     if (medium_type == "BeersLawMedium") {
-        return new BeersLawMedium(scattering_albedo, absorption_albedo, emission_coefficient);
+        return new BeersLawMedium(scattering_albedo, absorption_albedo, emission_coefficient, refractive_index);
     }
     else if (medium_type == "HomogenousScatteringMedium") {
-        return new HomogenousScatteringMedium(scattering_albedo, absorption_albedo, emission_coefficient);
+        return new HomogenousScatteringMedium(scattering_albedo, absorption_albedo, emission_coefficient,
+                                              refractive_index);
     }
     else {
         throw std::runtime_error(medium_type + " is not a valid medium type");
@@ -178,8 +180,8 @@ Material* load_material(const json& data, const SceneStore& store) {
         require_key_exists(store.valuemap3d_store, albedo_map, "ValueMap3D");
         material_data.albedo_map = store.valuemap3d_store.find(albedo_map)->second;
     }
-    if (parameters.contains("refractive_index")) {
-        material_data.refractive_index = (double) parameters["refractive_index"];
+    if (parameters.contains("surface_refractive_index")) {
+        material_data.surface_refractive_index = (double) parameters["surface_refractive_index"];
     }
     if (parameters.contains("extinction_coefficient")) {
         material_data.extinction_coefficient = (double) parameters["extinction_coefficient"];
@@ -205,10 +207,15 @@ Material* load_material(const json& data, const SceneStore& store) {
     if (parameters.contains("is_light_source")) {
         material_data.is_light_source = (bool) parameters["is_light_source"];
     }
-    if (parameters.contains("medium")) {
-        std::string medium = parameters["medium"];
-        require_key_exists(store.medium_store, medium, "Medium");
-        material_data.medium = store.medium_store.find(medium)->second;
+    if (parameters.contains("internal_medium")) {
+        std::string internal_medium = parameters["internal_medium"];
+        require_key_exists(store.medium_store, internal_medium, "internal_medium");
+        material_data.internal_medium = store.medium_store.find(internal_medium)->second;
+    }
+    if (parameters.contains("external_medium")) {
+        std::string external_medium = parameters["external_medium"];
+        require_key_exists(store.medium_store, external_medium, "external_medium");
+        material_data.external_medium = store.medium_store.find(external_medium)->second;
     }
 
     require_field(data, "subtype");

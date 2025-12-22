@@ -61,7 +61,17 @@
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
                 "absorption_albedo": [0, 0, 0],
-                "emission_coefficient": [0, 0, 0]
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.0
+            }
+        },
+        {
+            "name": "glass_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [0, 0, 0],
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.5
             }
         },
         {
@@ -69,7 +79,8 @@
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
                 "absorption_albedo": [10, 2, 2],
-                "emission_coefficient": [0, 0, 0]
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.5
             }
         }
     ],
@@ -89,22 +100,24 @@
         {
             "name": "blue_diffuse_material",
             "type": "Material", "subtype": "Diffuse", "parameters": {
-                "albedo_map": "blue"
+                "albedo_map": "blue",
+                "surface_refractive_index": 1.5
             }
         },
         {
             "name": "cyan_glass_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
                 "albedo_map": "cyan",
-                "refractive_index": 1.5,
-                "medium": "cyan_glass_medium"
+                "surface_refractive_index": 1.5,
+                "internal_medium": "cyan_glass_medium",
+                "external_medium": "air_medium"
             }
         },
         {
             "name": "gold_material",
             "type": "Material", "subtype": "MetallicMicrofacet", "parameters": {
                 "albedo_map": "gold",
-                "refractive_index": 0.3,
+                "surface_refractive_index": 0.3,
                 "extinction_coefficient": 2.9,
                 "is_dielectric": false,
                 "roughness_map": "gold_roughness"
@@ -114,14 +127,16 @@
             "name": "rough_glass_material",
             "type": "Material", "subtype": "TransparentMicrofacet", "parameters": {
                 "roughness_map": "glass_roughness",
-                "refractive_index": 1.5
+                "internal_medium": "glass_medium",
+                "external_medium": "air_medium",
+                "surface_refractive_index": 1.5
             }
         },
         {
             "name": "mirror_material",
             "type": "Material", "subtype": "ReflectiveMicrofacet", "parameters": {
                 "albedo_map": "white",
-                "refractive_index": 1.5
+                "surface_refractive_index": 1.5
             }
         },
         {

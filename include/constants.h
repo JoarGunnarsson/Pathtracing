@@ -4,12 +4,12 @@
 #include <string>
 
 namespace constants {
+// Configurable constants
 extern int WIDTH;
 extern int HEIGHT;
 extern int samples_per_pixel;
 extern int max_recursion_depth;
 extern int force_tracing_limit;
-extern double air_refractive_index;
 extern int number_of_threads;
 
 extern bool enable_next_event_estimation;
@@ -21,6 +21,7 @@ extern double sigma_rt;
 extern double sigma_x;
 extern double sigma_n;
 
+// Fixed constants
 extern const int max_number_of_threads;
 extern const double EPSILON;
 extern const double max_ray_distance;

@@ -1,16 +1,15 @@
 {
     "WIDTH": 1000,
     "HEIGHT": 1000,
-    "samples_per_pixel": 100,
+    "samples_per_pixel": 1,
     "max_recursion_depth": 100,
     "force_tracing_limit": 3,
-    "air_refractive_index": 1,
-    "number_of_threads": 15,
+    "number_of_threads": 1,
 
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true,
 
-    "enable_denoising": true,
+    "enable_denoising": false,
     "denoising_iterations": 5,
     "sigma_rt": 2,
     "sigma_x": 2,

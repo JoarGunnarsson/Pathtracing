@@ -9,7 +9,6 @@ int HEIGHT = 1000;
 int samples_per_pixel = 10;
 int max_recursion_depth = 100;
 int force_tracing_limit = 3;
-double air_refractive_index = 1;
 int number_of_threads = 1;
 
 bool enable_next_event_estimation = true;

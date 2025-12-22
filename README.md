@@ -10,7 +10,7 @@ Multiple kinds of primitives such as spheres, planes, rectangles, and triangles 
 
 ### Materials
 
-This project includes multiple different material models, including but not limited to diffuse materials, reflective materials, transparent materials, and microfacet materials. Some simple media are also implemented, allowing the modelling of homogenous scattering media such as clouds, as well as clear media like coloured glass. UV mapping is also supported, allowing the use of complex textures for albedo, roughness, as well as light emission colour & strength.
+This project includes multiple different material models, including but not limited to diffuse materials, reflective materials, transparent materials, and microfacet materials. Some media are also implemented, allowing the modelling of homogenous scattering media such as clouds, as well as clear media like coloured glass. UV mapping is also supported, allowing the use of complex textures for albedo, roughness, as well as light emission colour & strength.
 
 
 ### Denoising

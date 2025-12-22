@@ -18,7 +18,7 @@ Material::Material(MaterialData data) {
     }
 
     albedo_map = data.albedo_map;
-    refractive_index = data.refractive_index;
+    surface_refractive_index = data.surface_refractive_index;
     emission_color_map = data.emission_color_map;
     light_intensity_map = data.light_intensity_map;
     is_dielectric = data.is_dielectric;
@@ -32,12 +32,15 @@ Material::Material(MaterialData data) {
 
     roughness_map = data.roughness_map;
 
-    medium = data.medium;
+    internal_medium = data.internal_medium;
+    external_medium = data.external_medium;
 }
 
+// TODO: This is a bad name.
 bool Material::allow_direct_light() const {
     return false;
 }
+// TODO: This function is never used and can be removed.
 bool Material::compute_direct_light() const {
     return false;
 }
@@ -96,22 +99,24 @@ double ReflectiveMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const
 }
 
 bool TransparentMaterial::allow_direct_light() const {
-    return refractive_index == 1;
+    double n1 = internal_medium ? internal_medium->refractive_index : 1.0;
+    double n2 = external_medium ? external_medium->refractive_index : 1.0;
+    return n1 == n2;
 }
+
 vec3 TransparentMaterial::eval(const Hit&, const vec3&, const double, const double) const {
     return colors::BLACK;
 }
 
 BrdfData TransparentMaterial::sample(const Hit& hit, const double, const double) const {
-    // TODO: Look at the current medium, use that as refractive index! Update for extinction coefficient!
     double n1, n2;
     if (hit.outside) {
-        n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n1 = external_medium ? external_medium->refractive_index : 1.0;
+        n2 = internal_medium ? internal_medium->refractive_index : 1.0;
     }
     else {
-        n1 = refractive_index;
-        n2 = constants::air_refractive_index;
+        n1 = internal_medium ? internal_medium->refractive_index : 1.0;
+        n2 = external_medium ? external_medium->refractive_index : 1.0;
     }
 
     vec3 transmitted_vector = refract_vector(hit.incident_vector, -hit.normal_vector, n1 / n2);
@@ -216,12 +221,12 @@ vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const dou
 
     double n1, n2;
     if (hit.outside) {
-        n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n1 = external_medium ? external_medium->refractive_index : 1.0;
+        n2 = surface_refractive_index;
     }
     else {
-        n1 = refractive_index;
-        n2 = constants::air_refractive_index;
+        n1 = surface_refractive_index;
+        n2 = internal_medium ? internal_medium->refractive_index : 1.0;
     }
 
     double i_dot_h = -dot_vectors(hit.incident_vector, half_vector);
@@ -281,17 +286,18 @@ vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vecto
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
+    // All transparent materials have to be dielectric.
     double n1, k1, n2, k2;
     if (hit.outside) {
-        n1 = constants::air_refractive_index;
+        n1 = external_medium ? external_medium->refractive_index : 1.0;
         k1 = 0;
-        n2 = refractive_index;
+        n2 = surface_refractive_index;
         k2 = extinction_coefficient;
     }
     else {
-        n1 = refractive_index;
+        n1 = surface_refractive_index;
         k1 = extinction_coefficient;
-        n2 = constants::air_refractive_index;
+        n2 = external_medium ? external_medium->refractive_index : 1.0;
         k2 = 0;
     }
 
@@ -358,12 +364,12 @@ vec3 TransparentMicrofacetMaterial::sample_outgoing(vec3& half_vector, const vec
                                                     const double v) const {
     double n1, n2;
     if (outside) {
-        n1 = constants::air_refractive_index;
-        n2 = refractive_index;
+        n1 = external_medium ? external_medium->refractive_index : 1.0;
+        n2 = internal_medium ? internal_medium->refractive_index : 1.0;
     }
     else {
-        n1 = refractive_index;
-        n2 = constants::air_refractive_index;
+        n1 = internal_medium ? internal_medium->refractive_index : 1.0;
+        n2 = external_medium ? external_medium->refractive_index : 1.0;
     }
 
     half_vector = sample_half_vector(normal_vector, get_alpha(u, v));
