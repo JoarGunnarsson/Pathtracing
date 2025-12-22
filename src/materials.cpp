@@ -281,6 +281,13 @@ double GlossyMaterial::brdf_pdf(const vec3& outgoing_vector, const vec3& inciden
                   specular_pdf(outgoing_vector, incident_vector, normal_vector, u, v));
 }
 
+static MaterialData ensure_metallic(MaterialData data) {
+    data.is_dielectric = false;
+    return data;
+}
+
+MetallicMicrofacetMaterial::MetallicMicrofacetMaterial(MaterialData data) : MicrofacetMaterial(ensure_metallic(data)) {}
+
 vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
                                       const double v) const {
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
@@ -306,7 +313,7 @@ vec3 MetallicMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vecto
     double F_r = fresnel_multiplier(i_dot_h, n1, k1, n2, k2, false);
 
     double alpha = get_alpha(u, v);
-    vec3 reflection_color = is_dielectric ? colors::WHITE : albedo_map->get(u, v);
+    vec3 reflection_color = albedo_map->get(u, v);
     double d_factor = D(half_vector, hit.normal_vector, alpha) * dot_vectors(half_vector, hit.normal_vector);
     double g_factor = G(half_vector, hit.normal_vector, hit.incident_vector, outgoing_vector, alpha);
     double denom_factor = -1.0 / (4.0 * dot_vectors(hit.incident_vector, hit.normal_vector) *
