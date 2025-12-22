@@ -23,7 +23,7 @@ Below are a few different example scenes, showcasing different objects and mater
 
 The directory `scenes/example/` defines a simple scene, showcasing some different material types and primitive objects. This scene includes diffuse surfaces, coloured glass, frosted glass, metallic gold, and a reflective surface. The resulting image was also denoised in order to reduce the variance, at the cost of introducting some bias.
 
-| ![Denoised](Images/example_denoised.png) | ![Raw output](Images/example.png) |
+| ![Denoised](images/example_denoised.png) | ![Raw output](images/example.png) |
 |------------------------------------------|-----------------------------------|
 
 **Left:** Denoised image
@@ -31,10 +31,10 @@ The directory `scenes/example/` defines a simple scene, showcasing some differen
 
 
 #### Other example images
-| ![Example 1](Images/Example1.png) | ![Example 2](Images/Example2.png)   |
+| ![Example 1](images/Example1.png) | ![Example 2](images/Example2.png)   |
 |:----------------------------------:|:----------------------------------:|
 |             Example 1              |             Example 2              |
-| ![Example 3](Images/Example3.png) | ![Example 4](Images/Example4.png) |
+| ![Example 3](images/Example3.png) | ![Example 4](images/Example4.png) |
 |             Example 3              |             Example 4              |
 
 
@@ -97,6 +97,16 @@ options:
   --settings_file SETTINGS_FILE
                         the settings file path, relative to main project directory.
 ```
+
+### Dependencies
+
+This project was tested using the following packages. It might work with other version, but this is not guaranteed.
+
+`cmake version 4.1.2`
+`GNU Make 3.81`
+`python 3.11.5`
+`numpy 2.4.0`
+`matplotlib 3.10.8`
 
 
 ### Limitations
