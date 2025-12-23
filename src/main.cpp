@@ -14,11 +14,25 @@
 #include "scene.h"
 
 std::mutex progress_mutex;
+std::mutex job_mutex;
 
 struct PixelData {
     vec3 pixel_color = vec3(0, 0, 0);
     vec3 pixel_position = vec3(0, 0, 0);
     vec3 pixel_normal = vec3(0, 0, 0);
+};
+
+struct Job {
+    int start_idx;
+    int number_of_pixels;
+    int number_of_samples;
+};
+
+struct ThreadContext {
+    int* thread_progress;
+    int thread_idx;
+    std::mutex* pixel_mutexes;
+    int* pixel_counters;
 };
 
 PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium) {
@@ -143,7 +157,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             ray.type = brdf_result.type;
         }
 
-        if (depth < constants::force_tracing_limit) {
+        if (depth < constants::min_recursion_steps) {
             random_threshold = 1;
             allow_recursion = true;
         }
@@ -164,10 +178,10 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
     return data;
 }
 
-PixelData compute_pixel_color(const int x, const int y, const Scene& scene) {
+PixelData compute_pixel_color(const int x, const int y, const Scene& scene, const int number_of_samples) {
     PixelData data;
     vec3 pixel_color = vec3(0, 0, 0);
-    for (int i = 0; i < constants::samples_per_pixel; i++) {
+    for (int i = 0; i < number_of_samples; i++) {
         Ray ray;
         ray.starting_position = scene.camera.position;
         ray.type = TRANSMITTED;
@@ -186,9 +200,9 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene) {
         pixel_color += sampled_data.pixel_color;
     }
 
-    data.pixel_color = pixel_color / (double) constants::samples_per_pixel;
-    data.pixel_position = data.pixel_position / (double) constants::samples_per_pixel;
-    data.pixel_normal = data.pixel_normal / (double) constants::samples_per_pixel;
+    data.pixel_color = pixel_color / static_cast<double>(number_of_samples);
+    data.pixel_position = data.pixel_position / static_cast<double>(number_of_samples);
+    data.pixel_normal = data.pixel_normal / static_cast<double>(number_of_samples);
     return data;
 }
 
@@ -217,30 +231,58 @@ void update_and_report_progress(int* thread_progress) {
     }
 
     std::unique_lock<std::mutex> lock(progress_mutex);
-    print_progress((double) progress / ((double) constants::WIDTH * constants::HEIGHT));
+    double total_pixel_count = static_cast<double>(constants::WIDTH * constants::HEIGHT * constants::samples_per_pixel);
+    print_progress(static_cast<double>(progress) / static_cast<double>(total_pixel_count));
 }
 
-void raytrace_section(const int start_idx, const int number_of_pixels, const Scene& scene, double* image,
-                      vec3* position_buffer, vec3* normal_buffer, int* thread_progress, const int thread_idx) {
-    int log_interval = number_of_pixels / 20;
-    for (int i = 0; i < number_of_pixels; i++) {
-        int idx = start_idx + i;
+template<typename T>
+T increment_average(const T previous, const T addition, const double samples_prev, const double samples_add) {
+    return (previous * samples_prev + addition * samples_add) / (samples_prev + samples_add);
+}
+
+void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers, ThreadContext& thread_context) {
+    int log_interval = job.number_of_pixels / 20;
+    for (int i = 0; i < job.number_of_pixels; i++) {
+        int idx = job.start_idx + i;
 
         int x = idx % constants::WIDTH;
         int y = constants::HEIGHT - idx / constants::WIDTH;
-        PixelData data = compute_pixel_color(x, y, scene);
 
-        vec3 pixel_color = tone_map(data.pixel_color);
+        PixelData data = compute_pixel_color(x, y, scene, job.number_of_samples);
+
+        thread_context.pixel_mutexes[static_cast<size_t>(idx)].lock();
+        double prev_samples = static_cast<double>(thread_context.pixel_counters[idx]);
+
         for (int j = 0; j < 3; j++) {
-            image[3 * idx + j] = pixel_color[j];
+            buffers.image[3 * idx + j] =
+                increment_average(buffers.image[3 * idx + j], data.pixel_color[j], prev_samples, job.number_of_samples);
         }
+        buffers.position_buffer[idx] =
+            increment_average(buffers.position_buffer[idx], data.pixel_position, prev_samples, job.number_of_samples);
+        buffers.normal_buffer[idx] =
+            increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, job.number_of_samples);
+        thread_context.pixel_counters[idx] += job.number_of_samples;
 
-        position_buffer[idx] = data.pixel_position;
-        normal_buffer[idx] = data.pixel_normal;
+        thread_context.pixel_mutexes[static_cast<size_t>(idx)].unlock();
+
         if (i % log_interval == 0 && i != 0) {
-            thread_progress[thread_idx] += log_interval;
-            update_and_report_progress(thread_progress);
+            thread_context.thread_progress[thread_context.thread_idx] += log_interval * job.number_of_samples;
+            update_and_report_progress(thread_context.thread_progress);
         }
+    }
+}
+
+Job get_job(std::vector<Job>* job_queue) {
+    std::unique_lock<std::mutex> lock(job_mutex);
+    Job job = job_queue->back();
+    job_queue->pop_back();
+    return job;
+}
+
+void thread_job(std::vector<Job>* job_queue, const Scene& scene, PixelBuffers buffers, ThreadContext thread_context) {
+    while (!job_queue->empty()) {
+        Job job = get_job(job_queue);
+        raytrace_section(job, scene, buffers, thread_context);
     }
 }
 
@@ -274,10 +316,11 @@ int main(int argc, char* argv[]) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+    PixelBuffers pixel_buffers;
     int pixel_count = constants::WIDTH * constants::HEIGHT;
     size_t array_size = static_cast<size_t>(pixel_count);
-    vec3* position_buffer = new vec3[array_size];
-    vec3* normal_buffer = new vec3[array_size];
+    pixel_buffers.position_buffer = new vec3[array_size];
+    pixel_buffers.normal_buffer = new vec3[array_size];
 
     size_t FILESIZE = static_cast<size_t>(pixel_count * 3) * sizeof(double);
 
@@ -285,17 +328,40 @@ int main(int argc, char* argv[]) {
     std::thread thread_array[constants::number_of_threads];
 
     int image_fd;
-    double* image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
+    pixel_buffers.image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
     print_progress(0);
-    int pixels_per_thread = pixel_count / constants::number_of_threads + 1;
+    int pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
     int* thread_progress = new int[static_cast<size_t>(constants::number_of_threads)];
+
+    std::vector<Job> job_queue;
+
+    int number_of_iterations = ceil_division(constants::samples_per_pixel, constants::samples_per_iteration);
+    for (int j = 0; j < number_of_iterations; j++) {
+        for (int i = 0; i < constants::number_of_threads; i++) {
+            int start_idx = pixels_per_thread * i;
+            int pixels_remaining = pixel_count - i * pixels_per_thread;
+            int pixels_to_handle = std::min(pixels_per_thread, pixels_remaining);
+            Job job;
+            job.start_idx = start_idx;
+            job.number_of_pixels = pixels_to_handle;
+            job.number_of_samples = std::min(constants::samples_per_iteration,
+                                             constants::samples_per_pixel - j * constants::samples_per_iteration);
+            job_queue.push_back(job);
+        }
+    }
+
+    std::mutex* pixel_mutexes = new std::mutex[static_cast<size_t>(pixel_count)];
+    int* pixel_counters = new int[static_cast<size_t>(pixel_count)];
     for (int i = 0; i < constants::number_of_threads; i++) {
-        int start_idx = pixels_per_thread * i;
-        int pixels_remaining = pixel_count - i * pixels_per_thread;
-        int pixels_to_handle = std::min(pixels_per_thread, pixels_remaining);
-        thread_array[i] = std::thread(raytrace_section, start_idx, pixels_to_handle, scene, image, position_buffer,
-                                      normal_buffer, thread_progress, i);
+        ThreadContext thread_context{thread_progress, i, pixel_mutexes, pixel_counters};
+        /*
+        thread_context.thread_progress = thread_progress;
+        thread_context.thread_idx = i;
+        thread_context.pixel_mutexes = pixel_mutexes;
+        thread_context.pixel_counters = pixel_counters;
+        */
+        thread_array[i] = std::thread(thread_job, &job_queue, scene, pixel_buffers, thread_context);
     }
 
     for (int i = 0; i < constants::number_of_threads; i++) {
@@ -306,25 +372,29 @@ int main(int argc, char* argv[]) {
     std::clog << std::endl;
 
     if (constants::enable_denoising) {
+        PixelBuffers denoising_buffers;
         int denoised_image_fd;
-        double* denoised_image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
+        denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
 
         for (int i = 0; i < constants::WIDTH * constants::HEIGHT * 3; i++) {
-            denoised_image[i] = image[i];
+            denoising_buffers.image[i] = pixel_buffers.image[i];
         }
-        denoise(denoised_image, position_buffer, normal_buffer);
-        close_mmap(denoised_image, FILESIZE, denoised_image_fd);
+        denoising_buffers.position_buffer = pixel_buffers.position_buffer;
+        denoising_buffers.normal_buffer = pixel_buffers.normal_buffer;
+
+        denoise(denoising_buffers);
+        close_mmap(denoising_buffers.image, FILESIZE, denoised_image_fd);
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"
               << std::endl;
 
-    close_mmap(image, FILESIZE, image_fd);
+    close_mmap(pixel_buffers.image, FILESIZE, image_fd);
 
     clear_scene(scene);
 
-    delete[] position_buffer;
-    delete[] normal_buffer;
+    delete[] pixel_buffers.position_buffer;
+    delete[] pixel_buffers.normal_buffer;
     return 0;
 }

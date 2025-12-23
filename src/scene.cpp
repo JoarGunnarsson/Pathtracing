@@ -55,10 +55,16 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "WIDTH", constants::WIDTH);
     load_one_setting(data, "HEIGHT", constants::HEIGHT);
     load_one_setting(data, "samples_per_pixel", constants::samples_per_pixel);
+    load_one_setting(data, "samples_per_iteration", constants::samples_per_iteration);
+    if (constants::samples_per_iteration <= 0) {
+        throw std::runtime_error("Setting 'samples_per_iteration' must be a positive number!");
+    }
+
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
-    load_one_setting(data, "force_tracing_limit", constants::force_tracing_limit);
+    load_one_setting(data, "min_recursion_steps", constants::min_recursion_steps);
     load_one_setting(data, "number_of_threads", constants::number_of_threads);
-    constants::number_of_threads = std::min(constants::number_of_threads, constants::max_number_of_threads);
+    constants::number_of_threads =
+        std::max(std::min(constants::number_of_threads, constants::max_number_of_threads), 1);
 
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);

@@ -463,14 +463,14 @@ double mis_weight(const int n_a, const double pdf_a, const int n_b, const double
 }
 
 vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects,
-                        Medium* const background_medium, Medium* const current_medium, const int light_index,
+                        Medium const* const background_medium, Medium const* current_medium, const int light_index,
                         const vec3& sampled_direction, vec3& transmittance, double& distance) {
     Ray ray;
     ray.starting_position = point;
     ray.direction_vector = sampled_direction;
     transmittance = vec3(1);
     vec3 light_emittance = vec3(0);
-    Medium* medium = current_medium;
+    Medium const* medium = current_medium;
 
     distance = 0;
     while (true) {
@@ -508,8 +508,8 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
     return light_emittance;
 }
 
-vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium* const background_medium,
-                  Medium* const current_medium, const bool is_scatter) {
+vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium const* const background_medium,
+                  Medium const* current_medium, const bool is_scatter) {
     vec3 L = vec3(0);
     // TODO: rename is_scatter
 

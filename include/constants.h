@@ -8,8 +8,9 @@ namespace constants {
 extern int WIDTH;
 extern int HEIGHT;
 extern int samples_per_pixel;
+extern int samples_per_iteration;
 extern int max_recursion_depth;
-extern int force_tracing_limit;
+extern int min_recursion_steps;
 extern int number_of_threads;
 
 extern bool enable_next_event_estimation;

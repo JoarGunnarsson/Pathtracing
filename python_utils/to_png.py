@@ -15,9 +15,14 @@ def load_settings_file(file_name):
         return json.load(f)
 
 
+def tone_map(image):
+    return image / (np.max(image, axis=-1) + 1)[:, :, None]
+
+
 def load_image_data(file_name, width, height):
     image = np.fromfile(file_name, dtype=np.float64, sep="")
     image = np.reshape(image, (height, width, 3))
+    image = tone_map(image)
 
     image_min = np.min(image)
     image_max = np.max(image)
