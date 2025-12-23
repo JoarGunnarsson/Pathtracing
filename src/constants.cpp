@@ -7,8 +7,9 @@ namespace constants {
 int WIDTH = 1000;
 int HEIGHT = 1000;
 int samples_per_pixel = 10;
+int samples_per_iteration = 16;
 int max_recursion_depth = 100;
-int force_tracing_limit = 3;
+int min_recursion_steps = 3;
 int number_of_threads = 1;
 
 bool enable_next_event_estimation = true;

@@ -12,6 +12,12 @@ double random_normal();
 
 enum reflection_type { DIFFUSE = 0, REFLECTED = 1, TRANSMITTED = 2 };
 
+struct PixelBuffers {
+    double* image;
+    vec3* position_buffer;
+    vec3* normal_buffer;
+};
+
 struct Hit {
     int intersected_object_index = -1;
     int primitive_ID = -1;
@@ -58,6 +64,7 @@ struct Ray {
 double pos_fmod(const double a, const double b);
 double clamp(const double value, const double min, const double max);
 double sign(const double x);
+int ceil_division(const int a, const int b);
 bool solve_quadratic(const double b, const double c, double& distance);
 
 vec3 sample_spherical();
