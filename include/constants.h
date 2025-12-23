@@ -16,11 +16,13 @@ extern int number_of_threads;
 extern bool enable_next_event_estimation;
 extern bool enable_anti_aliasing;
 
-extern bool enable_denoising;
+extern bool enable_atrous_filtering;
 extern int denoising_iterations;
 extern double sigma_rt;
 extern double sigma_x;
 extern double sigma_n;
+extern bool enable_median_filtering;
+extern int median_kernel_size;
 
 // Fixed constants
 extern const int max_number_of_threads;

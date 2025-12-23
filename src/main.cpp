@@ -355,12 +355,6 @@ int main(int argc, char* argv[]) {
     int* pixel_counters = new int[static_cast<size_t>(pixel_count)];
     for (int i = 0; i < constants::number_of_threads; i++) {
         ThreadContext thread_context{thread_progress, i, pixel_mutexes, pixel_counters};
-        /*
-        thread_context.thread_progress = thread_progress;
-        thread_context.thread_idx = i;
-        thread_context.pixel_mutexes = pixel_mutexes;
-        thread_context.pixel_counters = pixel_counters;
-        */
         thread_array[i] = std::thread(thread_job, &job_queue, scene, pixel_buffers, thread_context);
     }
 
@@ -371,14 +365,12 @@ int main(int argc, char* argv[]) {
     print_progress(1);
     std::clog << std::endl;
 
-    if (constants::enable_denoising) {
+    if (constants::enable_atrous_filtering || constants::enable_median_filtering) {
         PixelBuffers denoising_buffers;
         int denoised_image_fd;
         denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
 
-        for (int i = 0; i < constants::WIDTH * constants::HEIGHT * 3; i++) {
-            denoising_buffers.image[i] = pixel_buffers.image[i];
-        }
+        std::memcpy(denoising_buffers.image, pixel_buffers.image, FILESIZE);
         denoising_buffers.position_buffer = pixel_buffers.position_buffer;
         denoising_buffers.normal_buffer = pixel_buffers.normal_buffer;
 

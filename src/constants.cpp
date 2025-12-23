@@ -15,11 +15,14 @@ int number_of_threads = 1;
 bool enable_next_event_estimation = true;
 bool enable_anti_aliasing = true;
 
-bool enable_denoising = false;
+bool enable_atrous_filtering = false;
 int denoising_iterations = 5;
 double sigma_rt = 0.7;
 double sigma_x = 0.5;
 double sigma_n = 0.4;
+
+bool enable_median_filtering = false;
+int median_kernel_size = 3;
 
 const int max_number_of_threads = static_cast<int>(std::thread::hardware_concurrency()) - 1;
 const double EPSILON = 0.000001;

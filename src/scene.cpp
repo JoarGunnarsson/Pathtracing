@@ -69,11 +69,16 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
 
-    load_one_setting(data, "enable_denoising", constants::enable_denoising);
+    load_one_setting(data, "enable_atrous_filtering", constants::enable_atrous_filtering);
     load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
+    if (pow(2, constants::denoising_iterations) >= std::min(constants::WIDTH, constants::HEIGHT)) {
+        throw std::runtime_error("Too many denoising iterations for this image size.");
+    }
     load_one_setting(data, "sigma_rt", constants::sigma_rt);
     load_one_setting(data, "sigma_x", constants::sigma_x);
     load_one_setting(data, "sigma_n", constants::sigma_n);
+    load_one_setting(data, "enable_median_filtering", constants::enable_median_filtering);
+    load_one_setting(data, "median_kernel_size", constants::median_kernel_size);
 }
 
 void require_field(const json& data, const std::string& key) {

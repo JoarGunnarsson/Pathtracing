@@ -10,9 +10,12 @@
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true,
 
-    "enable_denoising": false,
+    "enable_atrous_filtering": false,
     "denoising_iterations": 5,
     "sigma_rt": 0.7,
     "sigma_x": 0.5,
-    "sigma_n": 0.4
+    "sigma_n": 0.4,
+
+    "enable_median_filtering": true,
+    "median_kernel_size": 3
 }
