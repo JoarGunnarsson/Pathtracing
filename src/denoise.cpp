@@ -156,10 +156,9 @@ void median_filter(PixelBuffers& buffers) {
         std::nth_element(g, g + size / 2, g + size);
         std::nth_element(b, b + size / 2, b + size);
 
-        vec3 median = vec3(r[size / 2], g[size / 2], b[size / 2]);
-        tmp_image[3 * idx] = median[0];
-        tmp_image[3 * idx + 1] = median[1];
-        tmp_image[3 * idx + 2] = median[2];
+        tmp_image[3 * idx] = r[size / 2];
+        tmp_image[3 * idx + 1] = g[size / 2];
+        tmp_image[3 * idx + 2] = b[size / 2];
     }
     std::memcpy(buffers.image, tmp_image, buffer_size * sizeof(double));
     delete[] r;
