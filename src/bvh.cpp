@@ -89,10 +89,6 @@ bool BoundingBox::intersect(Ray& ray, double& distance) const {
         }
     }
 
-    if (ray_interval.max < 0 || ray_interval.min == constants::max_ray_distance) {
-        return false;
-    }
-
     distance = std::fmax(ray_interval.min, constants::EPSILON);
     return true;
 }

@@ -99,7 +99,7 @@
             }
         },
         {
-            "name": "whiskey_medium",
+            "name": "water_medium",
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
                 "absorption_albedo": [9, 7, 6.6],
@@ -143,10 +143,10 @@
             }
         },
         {
-            "name": "whiskey_material",
+            "name": "water_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
                 "surface_refractive_index": 1.356,
-                "internal_medium": "whiskey_medium"
+                "internal_medium": "water_medium"
             }
         },
         {
@@ -294,7 +294,7 @@
             "name": "glass1_contents",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass_contents.obj",
-                "material": "whiskey_material",
+                "material": "water_material",
                 "enable_smooth_shading": true,
                 "move_object": false
             }
@@ -321,7 +321,7 @@
             "name": "glass2_contents",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass_contents1.obj",
-                "material": "whiskey_material",
+                "material": "water_material",
                 "enable_smooth_shading": true,
                 "move_object": false
             }
@@ -348,7 +348,7 @@
             "name": "caraffe_contents",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/caraffe_contents.obj",
-                "material": "whiskey_material",
+                "material": "water_material",
                 "enable_smooth_shading": true,
                 "move_object": false
             }
