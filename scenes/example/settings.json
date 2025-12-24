@@ -17,5 +17,5 @@
     "sigma_n": 2,
 
     "enable_median_filtering": true,
-    "median_kernel_size": 10
+    "median_kernel_size": 3
 }

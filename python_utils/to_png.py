@@ -54,7 +54,7 @@ def main():
     default_image = load_image_data(TMP_FILES_PATH / "raw.dat", WIDTH, HEIGHT)
     plt.imsave(IMAGES_FILE_PATH / args.name, default_image)
 
-    if settings.get("enable_atrous_denoising", False) or settings.get("enable_median_filtering", False):
+    if settings.get("enable_atrous_filtering", False) or settings.get("enable_median_filtering", False):
         denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", WIDTH, HEIGHT)
         plt.imsave(IMAGES_FILE_PATH / "denoised" / args.name, denoised_image)
 
