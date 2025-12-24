@@ -1,18 +1,21 @@
 {
-    "WIDTH": 1000,
-    "HEIGHT": 1000,
+    "WIDTH": 400,
+    "HEIGHT": 400,
     "samples_per_pixel": 1,
     "samples_per_iteration": 16,
     "max_recursion_depth": 100,
     "min_recursion_steps": 3,
-    "number_of_threads": 1,
+    "number_of_threads": 10,
 
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true,
 
-    "enable_denoising": false,
-    "denoising_iterations": 5,
-    "sigma_rt": 5,
+    "enable_atrous_filtering": false,
+    "denoising_iterations": 4,
+    "sigma_rt": 2,
     "sigma_x": 2,
-    "sigma_n": 2
+    "sigma_n": 2,
+
+    "enable_median_filtering": true,
+    "median_kernel_size": 3
 }

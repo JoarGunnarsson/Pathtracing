@@ -21,13 +21,15 @@ struct KernelData {
 
 void get_image_coordinates(int& x, int& y, const int idx);
 int idx_from_coordinates(const int x, const int y, const int width);
-void clamp_x_coordinate(int& x);
-void clamp_y_coordinate(int& y);
+bool is_out_of_bounds(const int x, const int y);
+int clamp_x_coordinate(const int x);
+int clamp_y_coordinate(const int y);
 
 double compute_weight(const int p, const int q, const KernelData& kernel_data, const PixelBuffers& buffers);
 int expand_kernel_idx(const int idx, const int hole_width);
 
 vec3 blur_pixel(const int p, const KernelData& kernel_data, PixelBuffers& buffers);
 void one_denoising_iteration(const KernelData& kernel_data, PixelBuffers& buffers);
+void median_filter(PixelBuffers& buffers);
 void denoise(PixelBuffers& buffers);
 #endif

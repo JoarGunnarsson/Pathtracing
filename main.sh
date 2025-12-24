@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 
 SOURCE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $SOURCE_DIR

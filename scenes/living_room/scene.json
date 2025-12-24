@@ -90,6 +90,15 @@
             }
         },
         {
+            "name": "glass_medium",
+            "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
+                "scattering_albedo": [0, 0, 0],
+                "absorption_albedo": [0, 0, 0],
+                "emission_coefficient": [0, 0, 0],
+                "refractive_index": 1.5
+            }
+        },
+        {
             "name": "whiskey_medium",
             "type": "Medium", "subtype": "BeersLawMedium", "parameters":{
                 "scattering_albedo": [0, 0, 0],
@@ -130,7 +139,7 @@
         {
             "name": "glass_material",
             "type": "Material", "subtype": "Transparent", "parameters": {
-                "surface_refractive_index": 1.5
+                "internal_medium": "glass_medium"
             }
         },
         {
