@@ -328,7 +328,8 @@ Object* load_object(const json& data, const SceneStore& store) {
             center = get_vec3_param(parameters, "center");
             size = parameters["size"];
         }
-        return load_object_model(file_name, material, enable_smooth_shading, move_object, center, size);
+        ObjectTransform transform{move_object, center, size};
+        return load_object_model(file_name, material, enable_smooth_shading, transform);
     }
     else {
         throw std::runtime_error(object_type + " is not a valid object type");

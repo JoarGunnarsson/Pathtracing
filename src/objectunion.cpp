@@ -246,15 +246,32 @@ void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, ve
     }
 }
 
-vec3 compute_average_position(const vec3* vertex_array, const size_t number_of_vertices) {
-    vec3 avg = vec3(0, 0, 0);
+double maximum_vector_component(vec3 const* vertex_array, size_t const number_of_vertices, int const dimension) {
+    double current_max = vertex_array[0][dimension];
     for (size_t i = 0; i < number_of_vertices; i++) {
-        avg += vertex_array[i];
+        current_max = std::max(vertex_array[i][dimension], current_max);
     }
-    return avg / number_of_vertices;
+    return current_max;
 }
 
-double maximum_distance(const vec3& center, const vec3* vertex_array, const size_t number_of_vertices) {
+double minimum_vector_component(vec3 const* vertex_array, size_t const number_of_vertices, int const dimension) {
+    double current_min = vertex_array[0][dimension];
+    for (size_t i = 0; i < number_of_vertices; i++) {
+        current_min = std::min(vertex_array[i][dimension], current_min);
+    }
+    return current_min;
+}
+
+vec3 compute_AABB_midpoint(vec3 const* vertex_array, size_t const number_of_vertices) {
+    vec3 max_point, min_point;
+    for (int i = 0; i < 3; i++) {
+        max_point[i] = maximum_vector_component(vertex_array, number_of_vertices, i);
+        min_point[i] = minimum_vector_component(vertex_array, number_of_vertices, i);
+    }
+    return (max_point + min_point) / 2.0;
+}
+
+double maximum_distance(vec3 const& center, vec3 const* vertex_array, size_t const number_of_vertices) {
     double max_distance = 0;
     for (size_t i = 0; i < number_of_vertices; i++) {
         double distance = (vertex_array[i] - center).length();
@@ -267,11 +284,11 @@ double maximum_distance(const vec3& center, const vec3* vertex_array, const size
 
 void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
                     const size_t number_of_vertices) {
-    vec3 average_position = compute_average_position(vertex_array, number_of_vertices);
-    double max_distance = maximum_distance(average_position, vertex_array, number_of_vertices);
+    vec3 current_center = compute_AABB_midpoint(vertex_array, number_of_vertices);
+    double max_distance = maximum_distance(current_center, vertex_array, number_of_vertices);
 
     for (size_t i = 0; i < number_of_vertices; i++) {
-        vertex_array[i] = ((vertex_array[i] - average_position) / max_distance) * desired_size + desired_center;
+        vertex_array[i] = ((vertex_array[i] - current_center) / max_distance) * desired_size + desired_center;
     }
 }
 
@@ -384,16 +401,16 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
 }
 
 ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
-                               const bool move_object, const vec3& center, const double size) {
+                               const ObjectTransform& transform) {
     DataSizes nums = get_vertex_data_sizes(file_name);
 
-    vec3 vertex_array[nums.num_vertices];
-    vec3 vertex_UV_array[nums.num_vertex_UVs];
-    vec3 vertex_normal_array[nums.num_vertex_normals];
-    populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
+    vec3* vertex_array = new vec3[nums.num_vertices];
+    vec3* vertex_UV_array = new vec3[nums.num_vertex_UVs];
+    vec3* vertex_normal_array = new vec3[nums.num_vertex_normals];
 
-    if (move_object) {
-        change_vectors(center, size, vertex_array, nums.num_vertices);
+    populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
+    if (transform.move_object) {
+        change_vectors(transform.center, transform.size, vertex_array, nums.num_vertices);
     }
 
     Object** triangles = new Object*[nums.num_triangles];
