@@ -384,7 +384,7 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
 }
 
 ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
-                               const bool move_object, const vec3& center, const double size) {
+                               const ObjectTransform& transform) {
     DataSizes nums = get_vertex_data_sizes(file_name);
 
     vec3 vertex_array[nums.num_vertices];
@@ -392,8 +392,8 @@ ObjectUnion* load_object_model(std::string file_name, Material* material, const 
     vec3 vertex_normal_array[nums.num_vertex_normals];
     populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
 
-    if (move_object) {
-        change_vectors(center, size, vertex_array, nums.num_vertices);
+    if (transform.move_object) {
+        change_vectors(transform.center, transform.size, vertex_array, nums.num_vertices);
     }
 
     Object** triangles = new Object*[nums.num_triangles];

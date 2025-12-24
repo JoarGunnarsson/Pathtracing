@@ -9,6 +9,12 @@
 #include "objects.h"
 #include "bvh.h"
 
+struct ObjectTransform {
+    bool move_object = false;
+    vec3 center;
+    double size;
+};
+
 class ObjectUnion : public Object {
   public:
     ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH = false);
@@ -112,6 +118,6 @@ TriangleCreationResult construct_triangle(TriangleConstructionArgs& args);
 int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array,
                             Object** triangle_array, Material* material, const bool enable_smooth_shading);
 ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
-                               const bool move_object, const vec3& center, const double size);
+                               const ObjectTransform& transform);
 
 #endif
