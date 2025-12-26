@@ -16,18 +16,18 @@ struct BrdfData;
 
 class Object {
   public:
-    Material* material;
+    Material const* material;
     double area;
     int primitive_ID; // Used when object belongs to an ObjectUnion.
     Object() {}
-    Object(Material* _material);
+    Object(Material const* _material);
     virtual ~Object() {}
 
     virtual vec3 max_axis_point() const;
     virtual vec3 min_axis_point() const;
     virtual vec3 compute_centroid() const;
     virtual vec3 get_UV(const vec3& point) const;
-    virtual Material* get_material(const int primitive_ID) const;
+    virtual Material const* get_material(const int primitive_ID) const;
     virtual bool is_light_source() const;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const;
     virtual BrdfData sample(const Hit& hit) const;
@@ -45,7 +45,7 @@ class Object {
 class Sphere : public Object {
   public:
     Sphere() {}
-    Sphere(const vec3& _position, const double _radius, Material* _material);
+    Sphere(const vec3& _position, const double _radius, Material const* _material);
 
     vec3 get_UV(const vec3& point) const override;
     bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
@@ -62,7 +62,7 @@ class Sphere : public Object {
 class Plane : public Object {
   public:
     Plane() {}
-    Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material* _material);
+    Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material const* _material);
 
     vec3 get_UV(const vec3& point) const override;
     bool compute_distance_in_centered_system(const vec3& starting_point, const Ray& ray, double& distance) const;
@@ -81,7 +81,7 @@ class Rectangle : public Plane {
   public:
     Rectangle() {}
     Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2,
-              Material* _material);
+              Material const* _material);
 
     vec3 get_UV(const vec3& point) const override;
     bool find_closest_object_hit(Hit& hit, Ray& ray) const override;
@@ -96,7 +96,7 @@ class Rectangle : public Plane {
 class Triangle : public Object {
   public:
     Triangle() {}
-    Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material* _material);
+    Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material const* _material);
 
     vec3 max_axis_point() const override;
     vec3 min_axis_point() const override;

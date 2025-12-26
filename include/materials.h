@@ -39,32 +39,32 @@ struct MicrofacetData {
 };
 
 struct MaterialData {
-    ValueMap3D* albedo_map = nullptr;
+    ValueMap3D const* albedo_map = nullptr;
     double surface_refractive_index = 1.0;
     double extinction_coefficient = 2.0;
-    ValueMap3D* emission_color_map = nullptr;
-    ValueMap1D* light_intensity_map = nullptr;
+    ValueMap3D const* emission_color_map = nullptr;
+    ValueMap1D const* light_intensity_map = nullptr;
     bool is_dielectric = true;
-    ValueMap1D* roughness_map = nullptr;
+    ValueMap1D const* roughness_map = nullptr;
     bool is_light_source = false;
-    Medium* internal_medium = nullptr;
-    Medium* external_medium = nullptr;
+    Medium const* internal_medium = nullptr;
+    Medium const* external_medium = nullptr;
 };
 
 class Material {
   public:
-    ValueMap3D* albedo_map;
+    ValueMap3D const* albedo_map;
     double surface_refractive_index;
     double attenuation_coefficient;
     vec3 absorption_albedo;
-    ValueMap3D* emission_color_map;
-    ValueMap1D* light_intensity_map;
+    ValueMap3D const* emission_color_map;
+    ValueMap1D const* light_intensity_map;
     bool is_dielectric;
     double extinction_coefficient;
     bool is_light_source;
-    ValueMap1D* roughness_map;
-    Medium* internal_medium;
-    Medium* external_medium;
+    ValueMap1D const* roughness_map;
+    Medium const* internal_medium;
+    Medium const* external_medium;
 
     Material() {}
     Material(MaterialData data);

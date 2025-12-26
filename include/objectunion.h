@@ -20,7 +20,7 @@ class ObjectUnion : public Object {
     ObjectUnion(Object** _objects, const int _number_of_objects, const bool construct_BVH = false);
     ~ObjectUnion();
 
-    virtual Material* get_material(const int primitive_ID) const override;
+    virtual Material const* get_material(const int primitive_ID) const override;
     virtual bool is_light_source() const override;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const override;
     virtual BrdfData sample(const Hit& hit) const override;
@@ -89,14 +89,14 @@ struct TriangleConstructionArgs {
     const int idx1;
     const int idx2;
     const int idx3;
-    Material* material;
-    const vec3* vertex_array;
-    const vec3* vertex_UV_array;
-    const vec3* vertex_normal_array;
+    Material const* material;
+    vec3 const* vertex_array;
+    vec3 const* vertex_UV_array;
+    vec3 const* vertex_normal_array;
     const bool enable_smooth_shading;
 
     TriangleConstructionArgs(const std::string& data, const int idx1, const int idx2, const int idx3,
-                             Material* material, const vec3* vertex_array, const vec3* vertex_UV_array,
+                             Material const* material, const vec3* vertex_array, const vec3* vertex_UV_array,
                              const vec3* vertex_normal_array, const bool enable_smooth_shading) :
         triangle_data(data),
         idx1(idx1),
@@ -116,8 +116,8 @@ struct TriangleCreationResult {
 
 TriangleCreationResult construct_triangle(TriangleConstructionArgs& args);
 int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array,
-                            Object** triangle_array, Material* material, const bool enable_smooth_shading);
-ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
+                            Object** triangle_array, Material const* material, const bool enable_smooth_shading);
+ObjectUnion* load_object_model(std::string file_name, Material const* material, const bool enable_smooth_shading,
                                const ObjectTransform& transform);
 
 #endif

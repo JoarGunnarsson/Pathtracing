@@ -35,7 +35,8 @@ struct ThreadContext {
     int* pixel_counters;
 };
 
-PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects, Medium* background_medium) {
+PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects,
+                   Medium const* const background_medium) {
     PixelData data;
     vec3 color = vec3(0, 0, 0);
     vec3 throughput = vec3(1, 1, 1);
@@ -46,7 +47,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
     vec3 saved_point;
     double scatter_pdf;
 
-    Medium* medium = background_medium;
+    Medium const* medium = background_medium;
 
     for (int depth = 0; depth <= constants::max_recursion_depth; depth++) {
         if (!medium) {

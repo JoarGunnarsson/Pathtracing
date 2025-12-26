@@ -2,7 +2,7 @@
 
 // ****** Object base class implementation ******
 
-Object::Object(Material* _material) : material(_material), area(0.0), primitive_ID(0) {}
+Object::Object(Material const* _material) : material(_material), area(0.0), primitive_ID(0) {}
 
 vec3 Object::max_axis_point() const {
     return vec3();
@@ -20,7 +20,7 @@ vec3 Object::get_UV(const vec3&) const {
     return vec3();
 }
 
-Material* Object::get_material(const int) const {
+Material const* Object::get_material(const int) const {
     return material;
 }
 
@@ -82,7 +82,7 @@ vec3 Object::random_light_point(const vec3& intersection_point, double& pdf) con
 
 // ****** Sphere class implementation ******
 
-Sphere::Sphere(const vec3& _position, const double _radius, Material* _material) : Object(_material) {
+Sphere::Sphere(const vec3& _position, const double _radius, Material const* _material) : Object(_material) {
     position = _position;
     radius = _radius;
     area = 4 * M_PI * radius * radius;
@@ -162,7 +162,7 @@ vec3 Sphere::random_light_point(const vec3& intersection_point, double& pdf) con
 
 // ****** Plane class implementation ******
 
-Plane::Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material* _material) : Object(_material) {
+Plane::Plane(const vec3& _position, const vec3& _v1, const vec3& _v2, Material const* _material) : Object(_material) {
     position = _position;
     v1 = normalize_vector(_v1);
     v2 = normalize_vector(_v2);
@@ -216,7 +216,7 @@ double Plane::light_pdf(const vec3&, const vec3&, const int) const {
 // ****** Rectangle class implementation ******
 
 Rectangle::Rectangle(const vec3& _position, const vec3& _v1, const vec3& _v2, const double _L1, const double _L2,
-                     Material* _material) :
+                     Material const* _material) :
     Plane(_position, _v1, _v2, _material) {
     L1 = _L1;
     L2 = _L2;
@@ -261,7 +261,7 @@ double Rectangle::light_pdf(const vec3& surface_point, const vec3& intersection_
 
 // ****** Triangle class implementation ******
 
-Triangle::Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material* _material) : Object(_material) {
+Triangle::Triangle(const vec3& _p1, const vec3& _p2, const vec3& _p3, Material const* _material) : Object(_material) {
     p1 = _p1;
     p2 = _p2;
     p3 = _p3;
