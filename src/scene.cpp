@@ -115,7 +115,7 @@ vec3 get_vec3_param(const json& data, const std::string& key) {
     return vec3(vector_data[0], vector_data[1], vector_data[2]);
 }
 
-ValueMap1D* load_valuemap1d(const json& data) {
+ValueMap1D const* load_valuemap1d(const json& data) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
@@ -136,7 +136,7 @@ ValueMap1D* load_valuemap1d(const json& data) {
     }
 }
 
-ValueMap3D* load_valuemap3d(const json& data) {
+ValueMap3D const* load_valuemap3d(const json& data) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
@@ -180,7 +180,7 @@ Medium const* load_medium(const json& data, const SceneStore&) {
     }
 }
 
-Material* load_material(const json& data, const SceneStore& store) {
+Material const* load_material(const json& data, const SceneStore& store) {
     MaterialData material_data;
 
     require_field(data, "parameters");
@@ -257,7 +257,7 @@ Material* load_material(const json& data, const SceneStore& store) {
     }
 }
 
-Object* load_object(const json& data, const SceneStore& store) {
+Object const* load_object(const json& data, const SceneStore& store) {
     require_field(data, "subtype");
     std::string object_type = data["subtype"];
 
@@ -361,13 +361,13 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
 
         if (type == "ValueMap1D") {
             require_unique_key(store.valuemap1d_store, name, "valuemap");
-            ValueMap1D* map = load_valuemap1d(element);
+            ValueMap1D const* map = load_valuemap1d(element);
             store.valuemap1d_store[name] = map;
             manager->add_valuemap(map);
         }
         else if (type == "ValueMap3D") {
             require_unique_key(store.valuemap3d_store, name, "valuemap");
-            ValueMap3D* map = load_valuemap3d(element);
+            ValueMap3D const* map = load_valuemap3d(element);
             store.valuemap3d_store[name] = map;
             manager->add_valuemap(map);
         }
@@ -404,7 +404,7 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
 
         if (type == "Material") {
             require_unique_key(store.material_store, name, "material");
-            Material* material = load_material(element, store);
+            Material const* material = load_material(element, store);
             store.material_store[name] = material;
             manager->add_material(material);
         }
@@ -422,7 +422,7 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
 
         if (type == "Object") {
             require_unique_key(store.object_store, name, "object");
-            Object* object = load_object(element, store);
+            Object const* object = load_object(element, store);
             store.object_store[name] = object;
         }
         else {

@@ -88,10 +88,10 @@ ValueMapType* create_value_map(const std::string& file_name, double u_max, doubl
     return new ValueMapType(data_array, width, height, u_max, v_max);
 }
 
-ValueMap1D* create_value_map_1D(const std::string& file_name, double u_max, double v_max) {
+ValueMap1D const* create_value_map_1D(const std::string& file_name, double u_max, double v_max) {
     return create_value_map<ValueMap1D>(file_name, u_max, v_max);
 }
 
-ValueMap3D* create_value_map_3D(const std::string& file_name, double u_max, double v_max) {
+ValueMap3D const* create_value_map_3D(const std::string& file_name, double u_max, double v_max) {
     return create_value_map<ValueMap3D>(file_name, u_max, v_max);
 }
