@@ -406,7 +406,7 @@ vec3 Triangle::generate_random_surface_point() const {
     return p1 * (1.0 - sqrt(r1)) + p2 * (sqrt(r1) * (1.0 - r2)) + p3 * (sqrt(r1) * r2);
 }
 
-bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int number_of_objects) {
+bool find_closest_hit(Hit& closest_hit, Ray& ray, Object const* const* objects, const int number_of_objects) {
     closest_hit.distance = constants::max_ray_distance;
     bool found_a_hit = false;
 
@@ -436,7 +436,7 @@ bool find_closest_hit(Hit& closest_hit, Ray& ray, Object** objects, const int nu
     return true;
 }
 
-int sample_random_light(Object** objects, const int number_of_objects, int& number_of_light_sources) {
+int sample_random_light(Object const* const* objects, const int number_of_objects, int& number_of_light_sources) {
     int light_source_idx_array[number_of_objects];
 
     number_of_light_sources = 0;
@@ -451,7 +451,7 @@ int sample_random_light(Object** objects, const int number_of_objects, int& numb
         return -1;
     }
 
-    int random_index = random_int(0, static_cast<int>(number_of_light_sources));
+    int random_index = random_int(0, number_of_light_sources);
     int light_index = light_source_idx_array[random_index];
     return light_index;
 }
@@ -462,9 +462,9 @@ double mis_weight(const int n_a, const double pdf_a, const int n_b, const double
     return f / (f + g);
 }
 
-vec3 compute_visibility(const vec3& point, Object** objects, const int number_of_objects,
-                        Medium const* const background_medium, Medium const* current_medium, const int light_index,
-                        const vec3& sampled_direction, vec3& transmittance, double& distance) {
+vec3 compute_visibility(const vec3& point, Object const* const* objects, const int number_of_objects,
+                        Medium const* const background_medium, Medium const* const current_medium,
+                        const int light_index, const vec3& sampled_direction, vec3& transmittance, double& distance) {
     Ray ray;
     ray.starting_position = point;
     ray.direction_vector = sampled_direction;
@@ -508,8 +508,8 @@ vec3 compute_visibility(const vec3& point, Object** objects, const int number_of
     return light_emittance;
 }
 
-vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects, Medium const* const background_medium,
-                  Medium const* current_medium, const bool is_scatter) {
+vec3 sample_light(const Hit& hit, Object const* const* objects, const int number_of_objects,
+                  Medium const* const background_medium, Medium const* const current_medium, const bool is_scatter) {
     vec3 L = vec3(0);
     // TODO: rename is_scatter
 
@@ -571,6 +571,6 @@ vec3 sample_light(const Hit& hit, Object** objects, const int number_of_objects,
         L = weight * brdf * cosine * emittance * transmittance / light_pdf;
     }
 
-    L *= (double) number_of_light_sources;
+    L *= static_cast<double>(number_of_light_sources);
     return L;
 }

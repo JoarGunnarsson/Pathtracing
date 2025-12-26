@@ -26,7 +26,7 @@ vec3 Medium::transmittance_albedo(const double distance) const {
     return exp_vector(-extinction_albedo * distance);
 }
 
-vec3 Medium::sample(Object**, const int, const double, const bool) const {
+vec3 Medium::sample(Object const* const*, const int, const double, const bool) const {
     return colors::WHITE;
 }
 
@@ -38,7 +38,7 @@ BeersLawMedium::BeersLawMedium(const vec3&, const vec3& _absorption_albedo, cons
                                const double _refractive_index) :
     Medium(0, _absorption_albedo, _emission_coefficient, _refractive_index) {}
 
-vec3 BeersLawMedium::sample(Object**, const int, const double distance, const bool) const {
+vec3 BeersLawMedium::sample(Object const* const*, const int, const double distance, const bool) const {
     return transmittance_albedo(distance);
 }
 
@@ -50,7 +50,8 @@ double HomogenousScatteringMedium::sample_distance() const {
     return -std::log(random_uniform(0, 1)) / extinction_albedo[channel];
 }
 
-vec3 HomogenousScatteringMedium::sample(Object**, const int, const double distance, const bool scatter) const {
+vec3 HomogenousScatteringMedium::sample(Object const* const*, const int, const double distance,
+                                        const bool scatter) const {
     vec3 tr = transmittance_albedo(distance);
     vec3 density = scatter ? extinction_albedo * tr : tr;
     double pdf = 0;

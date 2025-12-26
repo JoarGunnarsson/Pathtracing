@@ -5,8 +5,8 @@
 #include <chrono>
 
 namespace BVH {
-vec3 get_max_point(Object** triangles, int number_of_triangles);
-vec3 get_min_point(Object** triangles, int number_of_triangles);
+vec3 get_max_point(Object const* const* triangles, int number_of_triangles);
+vec3 get_min_point(Object const* const* triangles, int number_of_triangles);
 
 struct Interval {
     double min;
@@ -21,7 +21,7 @@ class BoundingBox {
     double axis_length[3];
 
     BoundingBox() {}
-    BoundingBox(Object** _triangles, int number_of_triangles);
+    BoundingBox(Object const* const* _triangles, int number_of_triangles);
 
     inline bool is_within_bounds(const double x, const double lower, const double higher) const {
         return lower <= x && x <= higher;
@@ -41,7 +41,7 @@ class BoundingBox {
     double length;
 };
 
-void sort_by_axis(Object** triangles, int number_of_triangles, int axis);
+void sort_by_axis(Object const** triangles, int number_of_triangles, int axis);
 
 class Node {
   public:

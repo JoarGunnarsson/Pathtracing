@@ -1,7 +1,7 @@
 #include "bvh.h"
 
 namespace BVH {
-vec3 get_max_point(Object** triangles, int number_of_triangles) {
+vec3 get_max_point(Object const* const* triangles, int number_of_triangles) {
     if (number_of_triangles == 0) {
         return vec3(0, 0, 0);
     }
@@ -15,7 +15,7 @@ vec3 get_max_point(Object** triangles, int number_of_triangles) {
     return max_point + vec3(constants::EPSILON);
 }
 
-vec3 get_min_point(Object** triangles, int number_of_triangles) {
+vec3 get_min_point(Object const* const* triangles, int number_of_triangles) {
     if (number_of_triangles == 0) {
         return vec3(0, 0, 0);
     }
@@ -29,7 +29,7 @@ vec3 get_min_point(Object** triangles, int number_of_triangles) {
     return min_point - vec3(constants::EPSILON);
 }
 
-BoundingBox::BoundingBox(Object** _triangles, int number_of_triangles) {
+BoundingBox::BoundingBox(Object const* const* _triangles, int number_of_triangles) {
     p1 = get_min_point(_triangles, number_of_triangles);
     p2 = get_max_point(_triangles, number_of_triangles);
     x_interval = Interval(p1[0], p2[0]);
@@ -94,7 +94,7 @@ bool BoundingBox::intersect(Ray& ray, double& distance) const {
 }
 
 void sort_by_axis(Object** triangles, int number_of_triangles, int axis) {
-    std::sort(triangles, triangles + number_of_triangles, [axis](Object* obj1, Object* obj2) {
+    std::sort(triangles, triangles + number_of_triangles, [axis](Object const* obj1, Object const* obj2) {
         return (obj1->compute_centroid())[axis] < (obj2->compute_centroid())[axis];
     });
 }

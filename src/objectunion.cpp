@@ -36,7 +36,7 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
     }
 
     for (int i = 0; i < number_of_objects; i++) {
-        objects[i]->primitive_ID = static_cast<int>(i);
+        objects[i]->primitive_ID = i;
         if (objects[i]->is_light_source()) {
             contains_light_source = true;
         }

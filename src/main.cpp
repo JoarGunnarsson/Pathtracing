@@ -35,7 +35,7 @@ struct ThreadContext {
     int* pixel_counters;
 };
 
-PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Medium* background_medium) {
+PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects, Medium* background_medium) {
     PixelData data;
     vec3 color = vec3(0, 0, 0);
     vec3 throughput = vec3(1, 1, 1);
@@ -96,7 +96,7 @@ PixelData raytrace(Ray ray, Object** objects, const int number_of_objects, Mediu
             }
 
             bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
-            Object* hit_object = objects[ray_hit.intersected_object_index];
+            Object const* hit_object = objects[ray_hit.intersected_object_index];
 
             // If a light source is hit, compute the light_pdf based on the saved_point (previous hitpoint) and use MIS to add the light.
             // Could move this to a separate function, make it clearer what it is doing.
