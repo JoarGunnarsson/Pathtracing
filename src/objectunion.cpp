@@ -36,7 +36,7 @@ ObjectUnion::ObjectUnion(Object** _objects, const int _number_of_objects, const 
     }
 
     for (int i = 0; i < number_of_objects; i++) {
-        objects[i]->primitive_ID = static_cast<int>(i);
+        objects[i]->primitive_ID = i;
         if (objects[i]->is_light_source()) {
             contains_light_source = true;
         }
@@ -52,7 +52,7 @@ ObjectUnion::~ObjectUnion() {
     delete[] light_source_conversion_indices;
 }
 
-Material* ObjectUnion::get_material(const int primitive_ID) const {
+Material const* ObjectUnion::get_material(const int primitive_ID) const {
     return objects[primitive_ID]->material;
 }
 
@@ -354,7 +354,7 @@ TriangleCreationResult construct_triangle(TriangleConstructionArgs& args) {
 }
 
 int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* vertex_UV_array, vec3* vertex_normal_array,
-                            Object** triangle_array, Material* material, const bool enable_smooth_shading) {
+                            Object** triangle_array, Material const* material, const bool enable_smooth_shading) {
     std::ifstream model_file(file_name);
     std::string line;
     int shape_idx = 0;
@@ -400,7 +400,7 @@ int populate_triangle_array(std::string file_name, vec3* vertex_array, vec3* ver
     return shape_idx;
 }
 
-ObjectUnion* load_object_model(std::string file_name, Material* material, const bool enable_smooth_shading,
+ObjectUnion* load_object_model(std::string file_name, Material const* material, const bool enable_smooth_shading,
                                const ObjectTransform& transform) {
     DataSizes nums = get_vertex_data_sizes(file_name);
 

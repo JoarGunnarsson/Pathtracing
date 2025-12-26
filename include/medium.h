@@ -18,7 +18,8 @@ class Medium {
     virtual vec3 sample_direction(const vec3& incident_vector) const;
     virtual double phase_function(const vec3& incident_vector, const vec3& outgoing_vector) const;
     virtual vec3 transmittance_albedo(const double distance) const;
-    virtual vec3 sample(Object** objects, const int number_of_objects, const double distance, const bool scatter) const;
+    virtual vec3 sample(Object const* const* objects, const int number_of_objects, const double distance,
+                        const bool scatter) const;
     virtual vec3 sample_emission() const;
 
   protected:
@@ -32,7 +33,7 @@ class BeersLawMedium : public Medium {
   public:
     BeersLawMedium(const vec3& scattering_albedo, const vec3& _absorption_albedo, const vec3& _emission_coefficient,
                    const double _refractive_index);
-    virtual vec3 sample(Object** objects, const int number_of_objects, const double distance,
+    virtual vec3 sample(Object const* const* objects, const int number_of_objects, const double distance,
                         const bool scatter) const override;
 };
 
@@ -40,7 +41,7 @@ class HomogenousScatteringMedium : public Medium {
   public:
     using Medium::Medium;
     virtual double sample_distance() const override;
-    virtual vec3 sample(Object** objects, const int number_of_objects, const double distance,
+    virtual vec3 sample(Object const* const* objects, const int number_of_objects, const double distance,
                         const bool scatter) const override;
     virtual vec3 sample_emission() const override;
 };
