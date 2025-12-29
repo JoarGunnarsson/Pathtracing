@@ -1,13 +1,43 @@
 #include "camera.h"
 
-Camera::Camera(vec3 _position, vec3 _viewing_direction, vec3 _y_vector) {
+vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma) {
+    // Rotates the given vector using YZX Tait–Bryan angles
+
+    alpha = alpha * M_PI / 180;
+    beta = beta * M_PI / 180;
+    gamma = gamma * M_PI / 180;
+    double x = p1[0];
+    double y = p1[1];
+    double z = p1[2];
+
+    double cos_beta, sin_beta, cos_alpha, sin_alpha, cos_gamma, sin_gamma;
+    double e1, e2, e3;
+
+    cos_alpha = cos(alpha);
+    sin_alpha = sin(alpha);
+
+    cos_beta = cos(beta);
+    sin_beta = sin(beta);
+
+    cos_gamma = cos(gamma);
+    sin_gamma = sin(gamma);
+
+    e1 = x * (cos_alpha * cos_beta) + y * (sin_alpha * sin_gamma - cos_alpha * cos_gamma * sin_beta) +
+         z * (cos_gamma * sin_alpha + cos_alpha * sin_beta * sin_gamma);
+    e2 = x * (sin_beta) + y * (cos_beta * cos_gamma) + z * (-cos_beta * sin_gamma);
+    e3 = x * (-cos_beta * sin_alpha) + y * (cos_alpha * sin_gamma + cos_gamma * sin_alpha * sin_beta) +
+         z * (cos_alpha * cos_gamma - sin_alpha * sin_beta * sin_gamma);
+
+    return vec3(e1, e2, e3);
+}
+
+Camera::Camera(vec3 const& _position, double X, double Y, double Z) {
     position = _position;
-    viewing_direction = normalize_vector(_viewing_direction);
-    if (dot_vectors(viewing_direction, _y_vector) != 0) {
-        vec3 perpendicular_vector = cross_vectors(viewing_direction, _y_vector);
-        _y_vector = cross_vectors(perpendicular_vector, viewing_direction);
-    }
-    screen_y_vector = normalize_vector(_y_vector);
+    vec3 forward = vec3(0, -1, 0);
+    vec3 up = vec3(0, 0, -1);
+    viewing_direction = rotate(forward, Y, Z, X);
+    screen_y_vector = rotate(up, Y, Z, X);
+
     screen_width = 1.0;
     screen_height = screen_width * (double) constants::HEIGHT / (double) constants::WIDTH;
     screen_x_vector = cross_vectors(viewing_direction, screen_y_vector);

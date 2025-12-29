@@ -279,8 +279,11 @@
     "background_medium": "air_medium",
 
     "camera": {
-        "camera_position":[0, 0.9, 1.9],
-        "viewing_direction": [0, 0, -1],
-        "screen_y_vector": [0, 1, 0]
+        "camera_position": [0, 0.9, 1.9],
+        "orientation": {
+            "X": 90,
+            "Y": 0,
+            "Z": 0
+        }
     }
 }
