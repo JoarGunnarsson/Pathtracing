@@ -8,7 +8,7 @@ class Camera {
     vec3 position;
 
     Camera() {}
-    Camera(vec3 _position, vec3 _viewing_direction, vec3 _y_vector);
+    Camera(vec3 const& _position, double X, double Y, double Z);
 
     vec3 index_to_position(double x, double y) const;
     vec3 get_starting_directions(double x, double y) const;

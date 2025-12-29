@@ -71,14 +71,21 @@ void load_settings(const std::string& file_path) {
 
     load_one_setting(data, "enable_atrous_filtering", constants::enable_atrous_filtering);
     load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
-    if (pow(2, constants::denoising_iterations) >= std::min(constants::WIDTH, constants::HEIGHT)) {
+    if (constants::enable_atrous_filtering &&
+        pow(2, constants::denoising_iterations) >= std::min(constants::WIDTH, constants::HEIGHT)) {
         throw std::runtime_error("Too many denoising iterations for this image size.");
     }
+
     load_one_setting(data, "sigma_rt", constants::sigma_rt);
     load_one_setting(data, "sigma_x", constants::sigma_x);
     load_one_setting(data, "sigma_n", constants::sigma_n);
+
     load_one_setting(data, "enable_median_filtering", constants::enable_median_filtering);
     load_one_setting(data, "median_kernel_size", constants::median_kernel_size);
+    if (constants::enable_median_filtering &&
+        constants::median_kernel_size >= std::min(constants::WIDTH, constants::HEIGHT)) {
+        throw std::runtime_error("Too many denoising iterations for this image size.");
+    }
 }
 
 void require_field(const json& data, const std::string& key) {
@@ -341,13 +348,20 @@ Camera load_camera(const json& data) {
     json camera_data = data["camera"];
 
     require_field(camera_data, "camera_position");
-    require_field(camera_data, "viewing_direction");
-    require_field(camera_data, "screen_y_vector");
-
     vec3 camera_position = get_vec3_param(camera_data, "camera_position");
-    vec3 viewing_direction = get_vec3_param(camera_data, "viewing_direction");
-    vec3 screen_y_vector = get_vec3_param(camera_data, "screen_y_vector");
-    return Camera(camera_position, viewing_direction, screen_y_vector);
+
+    require_field(camera_data, "orientation");
+    json orientation_data = camera_data["orientation"];
+
+    require_field(orientation_data, "X");
+    require_field(orientation_data, "Y");
+    require_field(orientation_data, "Z");
+
+    double X = orientation_data["X"];
+    double Y = orientation_data["Y"];
+    double Z = orientation_data["Z"];
+
+    return Camera(camera_position, X, Y, Z);
 }
 
 void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* manager) {
