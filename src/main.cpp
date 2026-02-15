@@ -124,9 +124,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
             BrdfData brdf_result = hit_object->sample(ray_hit);
             // TODO: Rename allow_direct_light!
             // TODO: Rename is_virtual_surface variable...
-            bool is_virtual_surface =
-                hit_object->get_material(ray_hit.primitive_ID)
-                    ->allow_direct_light(); //This deviates from usual pattern of object method calling material method, but is better?
+            bool is_virtual_surface = hit_object->allow_direct_light(ray_hit.intersection_point, ray_hit.primitive_ID);
             if (is_virtual_surface) {
                 brdf_result.type = ray.type;
             }
@@ -140,10 +138,6 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
             double outgoing_dot_normal = dot_vectors(brdf_result.outgoing_vector, ray_hit.normal_vector);
 
             bool penetrating_boundary = incoming_dot_normal * outgoing_dot_normal > 0;
-
-            // TODO: Do the below part before sampling, so we can get the correct medium for refractive index etc?
-            // TODO: Can save current_medium and next_medium, and pass that into sample and compute_direct_light.
-            // TODO: Each material should have inside and outside media
 
             if (penetrating_boundary) {
                 if (ray_hit.outside) {

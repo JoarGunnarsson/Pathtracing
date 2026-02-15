@@ -49,6 +49,7 @@ struct MaterialData {
     bool is_light_source = false;
     Medium const* internal_medium = nullptr;
     Medium const* external_medium = nullptr;
+    ValueMap1D const* transparency_map = nullptr;
 };
 
 class Material {
@@ -65,25 +66,25 @@ class Material {
     ValueMap1D const* roughness_map;
     Medium const* internal_medium;
     Medium const* external_medium;
+    ValueMap1D const* transparency_map;
 
     Material() {}
     Material(MaterialData data);
     virtual ~Material() {}
 
-    virtual bool allow_direct_light() const;
-    virtual bool compute_direct_light() const;
+    virtual bool allow_direct_light(const double u, const double v) const;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const;
     virtual BrdfData sample(const Hit& hit, const double u, const double v) const;
     virtual double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector,
                             const double u, const double v) const;
     vec3 get_light_emittance(const double u, const double v) const;
+    bool sample_transparency_map(const double u, const double v) const;
 };
 
 class DiffuseMaterial : public Material {
   public:
     using Material::Material;
 
-    bool compute_direct_light() const override;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
     double brdf_pdf(const vec3& outgoing_vector, const vec3& incident_vector, const vec3& normal_vector, const double u,
@@ -104,7 +105,7 @@ class TransparentMaterial : public Material {
   public:
     using Material::Material;
 
-    bool allow_direct_light() const override;
+    bool allow_direct_light(const double u, const double v) const override;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     BrdfData sample(const Hit& hit, const double u, const double v) const override;
 };
@@ -113,7 +114,6 @@ class MicrofacetMaterial : public Material {
   public:
     using Material::Material;
 
-    bool compute_direct_light() const override;
     double chi(const double x) const;
     double get_alpha(const double u, const double v) const;
     double D(const vec3& half_vector, const vec3& normal_vector, const double alpha) const;
@@ -154,11 +154,11 @@ class ReflectiveMicrofacetMaterial : public MetallicMicrofacetMaterial {
 
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
 };
+
 class TransparentMicrofacetMaterial : public MicrofacetMaterial {
   public:
     using MicrofacetMaterial::MicrofacetMaterial;
 
-    bool compute_direct_light() const override;
     vec3 eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const override;
     vec3 sample_outgoing(vec3& half_vector, const vec3& incident_vector, const vec3& normal_vector, const bool outside,
                          const double u, const double v) const;

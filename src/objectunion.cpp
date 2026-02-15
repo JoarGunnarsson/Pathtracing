@@ -60,6 +60,10 @@ bool ObjectUnion::is_light_source() const {
     return contains_light_source;
 }
 
+bool ObjectUnion::allow_direct_light(const vec3& intersection_point, const int primitive_ID) const {
+    return objects[primitive_ID]->allow_direct_light(intersection_point, primitive_ID);
+}
+
 vec3 ObjectUnion::eval(const Hit& hit, const vec3& outgoing_vector) const {
     return objects[hit.primitive_ID]->eval(hit, outgoing_vector);
 }

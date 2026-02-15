@@ -17,7 +17,7 @@ vec3 Object::compute_centroid() const {
 }
 
 vec3 Object::get_UV(const vec3&) const {
-    return vec3();
+    throw std::runtime_error("Virtual method, should not be called");
 }
 
 Material const* Object::get_material(const int) const {
@@ -26,6 +26,11 @@ Material const* Object::get_material(const int) const {
 
 bool Object::is_light_source() const {
     return material->is_light_source;
+}
+
+bool Object::allow_direct_light(const vec3& intersection_point, const int) const {
+    const vec3 UV = get_UV(intersection_point); // TODO: Need point too!
+    return material->allow_direct_light(UV[0], UV[1]);
 }
 
 vec3 Object::eval(const Hit& hit, const vec3& outgoing_vector) const {
@@ -490,9 +495,8 @@ vec3 compute_visibility(const vec3& point, Object const* const* objects, const i
             light_emittance = objects[light_index]->get_light_emittance(light_hit);
             break;
         }
-        else if (!objects[light_hit.intersected_object_index]
-                      ->get_material(light_hit.primitive_ID)
-                      ->allow_direct_light()) {
+        else if (!objects[light_hit.intersected_object_index]->allow_direct_light(light_hit.intersection_point,
+                                                                                  light_hit.primitive_ID)) {
             return vec3(0);
         }
         ray.starting_position = light_hit.intersection_point;

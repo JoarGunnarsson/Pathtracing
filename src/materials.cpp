@@ -17,6 +17,10 @@ Material::Material(MaterialData data) {
         data.roughness_map = new ValueMap1D(0);
     }
 
+    if (!data.transparency_map) {
+        data.transparency_map = new ValueMap1D(0);
+    }
+
     albedo_map = data.albedo_map;
     surface_refractive_index = data.surface_refractive_index;
     emission_color_map = data.emission_color_map;
@@ -34,16 +38,27 @@ Material::Material(MaterialData data) {
 
     internal_medium = data.internal_medium;
     external_medium = data.external_medium;
+
+    transparency_map = data.transparency_map;
+}
+
+BrdfData sample_transparent_ray(const Hit& hit, const double, const double) {
+    BrdfData data;
+    data.type = TRANSMITTED;
+    data.outgoing_vector = hit.incident_vector;
+    data.brdf_over_pdf = colors::WHITE;
+    data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
+    return data;
 }
 
 // TODO: This is a bad name.
-bool Material::allow_direct_light() const {
+bool Material::allow_direct_light(const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return true;
+    }
     return false;
 }
-// TODO: This function is never used and can be removed.
-bool Material::compute_direct_light() const {
-    return false;
-}
+
 vec3 Material::eval(const Hit&, const vec3&, const double, const double) const {
     return vec3(0);
 }
@@ -58,15 +73,24 @@ vec3 Material::get_light_emittance(const double u, const double v) const {
     return emission_color_map->get(u, v) * light_intensity_map->get(u, v);
 }
 
-bool DiffuseMaterial::compute_direct_light() const {
-    return true;
+bool Material::sample_transparency_map(const double u, const double v) const {
+    // Samples the transparency map, returning 'true' if the material should be interpreted as transparent.
+    double transparency = transparency_map->get(u, v);
+    double rand = random_uniform(0, 1);
+    return rand <= transparency;
 }
 
 vec3 DiffuseMaterial::eval(const Hit&, const vec3&, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return colors::BLACK;
+    }
     return albedo_map->get(u, v) / M_PI;
 }
 
 BrdfData DiffuseMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     vec3 outgoing_vector = sample_cosine_hemisphere(hit.normal_vector);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
@@ -86,10 +110,14 @@ vec3 ReflectiveMaterial::eval(const Hit&, const vec3&, const double, const doubl
 }
 
 BrdfData ReflectiveMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     vec3 outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector);
     BrdfData data;
     data.outgoing_vector = outgoing_vector;
     data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map->get(u, v);
+    data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
     data.type = REFLECTED;
     return data;
 }
@@ -98,7 +126,10 @@ double ReflectiveMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const
     return 0;
 }
 
-bool TransparentMaterial::allow_direct_light() const {
+bool TransparentMaterial::allow_direct_light(const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return true;
+    }
     double n1 = internal_medium ? internal_medium->refractive_index : 1.0;
     double n2 = external_medium ? external_medium->refractive_index : 1.0;
     return n1 == n2;
@@ -108,7 +139,10 @@ vec3 TransparentMaterial::eval(const Hit&, const vec3&, const double, const doub
     return colors::BLACK;
 }
 
-BrdfData TransparentMaterial::sample(const Hit& hit, const double, const double) const {
+BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     double n1, n2;
     if (hit.outside) {
         n1 = external_medium ? external_medium->refractive_index : 1.0;
@@ -140,11 +174,8 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double, const double)
         data.outgoing_vector = transmitted_vector;
     }
     data.brdf_over_pdf = colors::WHITE;
+    data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
     return data;
-}
-
-bool MicrofacetMaterial::compute_direct_light() const {
-    return true;
 }
 
 double MicrofacetMaterial::chi(const double x) const {
@@ -217,6 +248,10 @@ double MicrofacetMaterial::specular_pdf(const vec3& outgoing_vector, const vec3&
 
 vec3 GlossyMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u, const double v) const {
     // compute fresnel glossy is kind of redundan. New method that returns refractive indices etc.
+    if (sample_transparency_map(u, v)) {
+        return colors::BLACK;
+    }
+
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
     double n1, n2;
@@ -263,6 +298,9 @@ vec3 GlossyMaterial::sample_outgoing(const vec3& incident_vector, const vec3& no
 }
 
 BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     BrdfData brdf_data;
     brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
     brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
@@ -329,6 +367,9 @@ vec3 MetallicMicrofacetMaterial::sample_outgoing(const vec3& incident_vector, co
 }
 
 BrdfData MetallicMicrofacetMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     BrdfData brdf_data;
     brdf_data.outgoing_vector = sample_outgoing(hit.incident_vector, hit.normal_vector, u, v);
     brdf_data.pdf = brdf_pdf(brdf_data.outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
@@ -348,6 +389,9 @@ double MetallicMicrofacetMaterial::brdf_pdf(const vec3& outgoing_vector, const v
 
 vec3 ReflectiveMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vector, const double u,
                                         const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return colors::BLACK;
+    }
     vec3 half_vector = normalize_vector(outgoing_vector - hit.incident_vector);
 
     double alpha = get_alpha(u, v);
@@ -357,9 +401,6 @@ vec3 ReflectiveMicrofacetMaterial::eval(const Hit& hit, const vec3& outgoing_vec
                                   dot_vectors(hit.normal_vector, outgoing_vector));
     vec3 specular = albedo_map->get(u, v) * d_factor * g_factor * denom_factor;
     return specular;
-}
-bool TransparentMicrofacetMaterial::compute_direct_light() const {
-    return false;
 }
 
 vec3 TransparentMicrofacetMaterial::eval(const Hit&, const vec3&, const double, const double) const {
@@ -394,6 +435,9 @@ vec3 TransparentMicrofacetMaterial::sample_outgoing(vec3& half_vector, const vec
 }
 
 BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, const double v) const {
+    if (sample_transparency_map(u, v)) {
+        return sample_transparent_ray(hit, u, v);
+    }
     BrdfData brdf_data;
 
     vec3 half_vector;
