@@ -27,8 +27,9 @@ class Object {
     virtual vec3 min_axis_point() const;
     virtual vec3 compute_centroid() const;
     virtual vec3 get_UV(const vec3& point) const;
-    virtual Material const* get_material(const int primitive_ID) const;
     virtual bool is_light_source() const;
+    virtual bool allow_direct_light(const vec3& intersection_point, const int primitive_ID) const;
+    virtual Material const* get_material(const int primitive_ID) const;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const;
     virtual BrdfData sample(const Hit& hit) const;
     virtual double brdf_pdf(const vec3& outgoing_vector, const Hit& hit) const;

@@ -21,6 +21,7 @@ class ObjectUnion : public Object {
     ~ObjectUnion();
 
     virtual Material const* get_material(const int primitive_ID) const override;
+    bool allow_direct_light(const vec3& intersection_point, const int primitive_ID) const override;
     virtual bool is_light_source() const override;
     virtual vec3 eval(const Hit& hit, const vec3& outgoing_vector) const override;
     virtual BrdfData sample(const Hit& hit) const override;

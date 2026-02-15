@@ -235,6 +235,11 @@ Material const* load_material(const json& data, const SceneStore& store) {
         require_key_exists(store.medium_store, external_medium, "external_medium");
         material_data.external_medium = store.medium_store.find(external_medium)->second;
     }
+    if (parameters.contains("transparency_map")) {
+        std::string transparency_map = parameters["transparency_map"];
+        require_key_exists(store.valuemap1d_store, transparency_map, "ValueMap1D");
+        material_data.transparency_map = store.valuemap1d_store.find(transparency_map)->second;
+    }
 
     require_field(data, "subtype");
     std::string material_type = data["subtype"];
