@@ -286,13 +286,29 @@ double maximum_distance(vec3 const& center, vec3 const* vertex_array, size_t con
     return max_distance;
 }
 
-void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
-                    const size_t number_of_vertices) {
+void change_vectors(const ObjectTransform& transform, vec3* const vertex_array, const size_t number_of_vertices) {
     vec3 current_center = compute_AABB_midpoint(vertex_array, number_of_vertices);
     double max_distance = maximum_distance(current_center, vertex_array, number_of_vertices);
 
     for (size_t i = 0; i < number_of_vertices; i++) {
-        vertex_array[i] = ((vertex_array[i] - current_center) / max_distance) * desired_size + desired_center;
+        vec3 transformed_point = vertex_array[i];
+        if (transform.move_object) {
+            transformed_point = vertex_array[i] - current_center;
+        }
+        if (transform.scale_object) {
+            transformed_point /= max_distance;
+        }
+        if (transform.rotate_object) {
+            transformed_point =
+                rotate(transformed_point, transform.orientation[0], transform.orientation[1], transform.orientation[2]);
+        }
+        if (transform.scale_object) {
+            transformed_point = transformed_point * transform.size;
+        }
+        if (transform.move_object) {
+            transformed_point += transform.center;
+        }
+        vertex_array[i] = transformed_point;
     }
 }
 
@@ -414,7 +430,7 @@ ObjectUnion* load_object_model(std::string file_name, Material const* material, 
 
     populate_vertex_arrays(file_name, vertex_array, vertex_UV_array, vertex_normal_array);
     if (transform.move_object) {
-        change_vectors(transform.center, transform.size, vertex_array, nums.num_vertices);
+        change_vectors(transform, vertex_array, nums.num_vertices);
     }
 
     Object** triangles = new Object*[nums.num_triangles];

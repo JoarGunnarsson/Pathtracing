@@ -1,35 +1,5 @@
 #include "camera.h"
-
-vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma) {
-    // Rotates the given vector using YZX Tait–Bryan angles
-
-    alpha = alpha * M_PI / 180;
-    beta = beta * M_PI / 180;
-    gamma = gamma * M_PI / 180;
-    double x = p1[0];
-    double y = p1[1];
-    double z = p1[2];
-
-    double cos_beta, sin_beta, cos_alpha, sin_alpha, cos_gamma, sin_gamma;
-    double e1, e2, e3;
-
-    cos_alpha = cos(alpha);
-    sin_alpha = sin(alpha);
-
-    cos_beta = cos(beta);
-    sin_beta = sin(beta);
-
-    cos_gamma = cos(gamma);
-    sin_gamma = sin(gamma);
-
-    e1 = x * (cos_alpha * cos_beta) + y * (sin_alpha * sin_gamma - cos_alpha * cos_gamma * sin_beta) +
-         z * (cos_gamma * sin_alpha + cos_alpha * sin_beta * sin_gamma);
-    e2 = x * (sin_beta) + y * (cos_beta * cos_gamma) + z * (-cos_beta * sin_gamma);
-    e3 = x * (-cos_beta * sin_alpha) + y * (cos_alpha * sin_gamma + cos_gamma * sin_alpha * sin_beta) +
-         z * (cos_alpha * cos_gamma - sin_alpha * sin_beta * sin_gamma);
-
-    return vec3(e1, e2, e3);
-}
+#include "utils.h"
 
 Camera::Camera(vec3 const& _position, double X, double Y, double Z) {
     position = _position;
