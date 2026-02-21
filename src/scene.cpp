@@ -122,6 +122,17 @@ vec3 get_vec3_param(const json& data, const std::string& key) {
     return vec3(vector_data[0], vector_data[1], vector_data[2]);
 }
 
+vec3 get_rotation_parameters(const json& data) {
+    require_field(data, "X");
+    require_field(data, "Y");
+    require_field(data, "Z");
+
+    double X = data["X"];
+    double Y = data["Y"];
+    double Z = data["Z"];
+    return vec3(Y, Z, X);
+}
+
 ValueMap1D const* load_valuemap1d(const json& data) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
@@ -324,23 +335,22 @@ Object const* load_object(const json& data, const SceneStore& store) {
     }
     else if (object_type == "ObjectUnion") {
         require_field(parameters, "file");
-        require_field(parameters, "enable_smooth_shading");
-        require_field(parameters, "move_object");
 
         std::string file_name = parameters["file"];
-        bool enable_smooth_shading = parameters["enable_smooth_shading"];
-        bool move_object = parameters["move_object"];
-        vec3 center = vec3(0);
-        double size = 0;
+        bool enable_smooth_shading = parameters.contains("enable_smooth_shading") ?
+                                         static_cast<bool>(parameters["enable_smooth_shading"]) :
+                                         false;
 
-        if (move_object) {
-            require_field(parameters, "center");
-            require_field(parameters, "size");
+        bool move_object = parameters.contains("center") ? true : false;
+        bool scale_object = parameters.contains("size") ? true : false;
+        bool rotate_object = parameters.contains("orientation") ? true : false;
 
-            center = get_vec3_param(parameters, "center");
-            size = parameters["size"];
-        }
-        ObjectTransform transform{move_object, center, size};
+        vec3 center = parameters.contains("center") ? get_vec3_param(parameters, "center") : vec3(0);
+        double size = parameters.contains("size") ? static_cast<double>(parameters["size"]) : 0;
+        vec3 orientation =
+            parameters.contains("orientation") ? get_rotation_parameters(parameters["orientation"]) : vec3(0);
+
+        ObjectTransform transform{move_object, center, scale_object, size, rotate_object, orientation};
         return load_object_model(file_name, material, enable_smooth_shading, transform);
     }
     else {
@@ -356,16 +366,12 @@ Camera load_camera(const json& data) {
     vec3 camera_position = get_vec3_param(camera_data, "camera_position");
 
     require_field(camera_data, "orientation");
-    json orientation_data = camera_data["orientation"];
 
-    require_field(orientation_data, "X");
-    require_field(orientation_data, "Y");
-    require_field(orientation_data, "Z");
+    vec3 YZX = get_rotation_parameters(camera_data["orientation"]);
 
-    double X = orientation_data["X"];
-    double Y = orientation_data["Y"];
-    double Z = orientation_data["Z"];
-
+    double X = YZX[2];
+    double Y = YZX[0];
+    double Z = YZX[1];
     return Camera(camera_position, X, Y, Z);
 }
 

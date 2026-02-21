@@ -74,6 +74,7 @@ vec3 sample_angled_hemisphere(const vec3& normal_vector, const double cos_max);
 vec3 sample_cosine_hemisphere(const vec3& normal_vector);
 vec3 reflect_vector(const vec3& direction_vector, const vec3& normal_vector);
 vec3 refract_vector(const vec3& incident_vector, const vec3& normal_vector, const double eta);
+vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma);
 
 double fresnel_dielectric(const double cos_incident, const double n1, const double n2);
 double fresnel_conductor(double cos_theta_real, const double n1, const double k1, const double n2, const double k2);

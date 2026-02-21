@@ -10,9 +10,12 @@
 #include "bvh.h"
 
 struct ObjectTransform {
-    bool move_object = false;
+    bool move_object;
     vec3 center;
+    bool scale_object;
     double size;
+    bool rotate_object;
+    vec3 orientation;
 };
 
 class ObjectUnion : public Object {
@@ -58,10 +61,8 @@ std::string get_nth_word(const std::string& line, const char delimiter, const in
 DataSizes get_vertex_data_sizes(const std::string& file_name);
 void populate_vertex_arrays(const std::string& file_name, vec3* vertex_array, vec3* vertex_UV_array,
                             vec3* vertex_normal_array);
-vec3 compute_average_position(const vec3* vertex_array, const size_t number_of_vertices);
 double maximum_distance(const vec3& center, const vec3* vertex_array, const size_t number_of_vertices);
-void change_vectors(const vec3& desired_center, const double desired_size, vec3* vertex_array,
-                    const size_t number_of_vertices);
+void change_vectors(const ObjectTransform& transform, vec3* const vertex_array, const size_t number_of_vertices);
 
 struct PopulateVertexVectorData {
     const std::string vertex_data;
