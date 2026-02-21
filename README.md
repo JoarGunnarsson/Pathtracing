@@ -72,15 +72,15 @@ options:
 `get_map.py` is a utility program used for turning images into UV-maps for different kinds of material properties, for example albedo.
 
 ```
-Usage: get_map.py [-h] [-m MODE] in_file out_file
+usage: get_map.py [-h] [-m MODE] in_file out_file
 
 positional arguments:
-  in_file               input file path, relative to maps/
-  out_file              output file path, relative to maps/
+  in_file               input file path, relative to the project directory
+  out_file              output file path, relative to the project directory
 
 options:
   -h, --help            show this help message and exit
-  -m MODE, --mode MODE  which mode to use. Available modes are: 'albedo'
+  -m MODE, --mode MODE  which mode to use, available modes are: 'albedo', 'transparency', and 'opacity'
 ```
 
 
