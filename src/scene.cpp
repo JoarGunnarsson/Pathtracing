@@ -371,13 +371,18 @@ Camera load_camera(const json& data) {
     vec3 camera_position = get_vec3_param(camera_data, "camera_position");
 
     require_field(camera_data, "orientation");
-
     vec3 YZX = get_rotation_parameters(camera_data["orientation"]);
+
+    require_field(camera_data, "camera_width");
+    double camera_width = camera_data["camera_width"];
+
+    require_field(camera_data, "focal_length");
+    double focal_length = camera_data["focal_length"];
 
     double X = YZX[2];
     double Y = YZX[0];
     double Z = YZX[1];
-    return Camera(camera_position, X, Y, Z);
+    return Camera(camera_position, X, Y, Z, camera_width, focal_length);
 }
 
 void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* manager) {
