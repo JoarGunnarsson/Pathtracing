@@ -368,6 +368,7 @@
         }
     ],
     "background_medium": "air_medium",
+    "background_color": [0.0, 0.0, 0.0],
 
     "camera": {
         "camera_position": [-0.3, 1.9, 1],

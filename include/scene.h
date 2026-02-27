@@ -32,6 +32,7 @@ struct Scene {
     Camera camera;
     PointerManager* pointer_manager;
     Medium const* medium;
+    vec3 background_color;
 };
 
 struct SceneStore {

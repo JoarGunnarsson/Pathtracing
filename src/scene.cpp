@@ -495,11 +495,17 @@ Scene load_scene(const std::string& file_path) {
 
     Camera camera = load_camera(scene_data);
 
+    vec3 background_color = vec3(0.0);
+    if (scene_data.contains("background_color")) {
+        background_color = get_vec3_param(scene_data, "background_color");
+    }
+
     Scene scene;
     scene.objects = objects;
     scene.camera = camera;
     scene.number_of_objects = static_cast<int>(number_of_objects);
     scene.pointer_manager = manager;
     scene.medium = background_medium;
+    scene.background_color = background_color;
     return scene;
 }
