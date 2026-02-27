@@ -18,8 +18,17 @@ const vec3 GOLD = vec3(1, 0.84, 0);
 const vec3 CHOCOLATE_BROWN = vec3(0.25490196078, 0.0980392156, 0) * 0.5;
 }
 
-inline vec3 tone_map(vec3& rgb) {
-    return rgb / (rgb.max() + 1.0);
+inline double apply_gamma_correction(const double x) {
+    double threshold = 0.04045;
+    return x <= threshold ? x / 12.92 : std::pow((x + 0.055) / 1.055, 2.4);
+}
+
+inline vec3 apply_gamma_correction(const vec3& rgb) {
+    vec3 out = vec3(0);
+    for (int i = 0; i < 3; i++) {
+        out[i] = apply_gamma_correction(rgb[i]);
+    }
+    return out;
 }
 
 #endif

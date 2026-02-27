@@ -46,16 +46,28 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def gamma_correction(image):
+    threshold = 0.0031308
+    image = np.where(image <= threshold, image * 12.92, 1.055 * image ** (1.0 / 2.4) - 0.055)
+    return image
+
+
 def main():
     args = parse_arguments()
     settings = load_settings_file(PROJECT_PATH / args.settings_file)
-    WIDTH, HEIGHT = settings.get("WIDTH", 1000), settings.get("HEIGHT", 1000)
+    width, height = settings.get("WIDTH", 1000), settings.get("HEIGHT", 1000)
 
-    default_image = load_image_data(TMP_FILES_PATH / "raw.dat", WIDTH, HEIGHT)
-    plt.imsave(IMAGES_FILE_PATH / args.name, default_image)
+    use_gamma_correction = settings.get("use_gamma_correction", False)
+    result_image = load_image_data(TMP_FILES_PATH / "raw.dat", width, height)
+    if use_gamma_correction:
+        result_image = gamma_correction(result_image)
+
+    plt.imsave(IMAGES_FILE_PATH / args.name, result_image)
 
     if settings.get("enable_atrous_filtering", False) or settings.get("enable_median_filtering", False):
-        denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", WIDTH, HEIGHT)
+        denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", width, height)
+        if use_gamma_correction:
+            denoised_image = gamma_correction(denoised_image)
         plt.imsave(IMAGES_FILE_PATH / "denoised" / args.name, denoised_image)
 
 

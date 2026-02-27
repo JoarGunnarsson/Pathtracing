@@ -12,6 +12,7 @@ extern int samples_per_iteration;
 extern int max_recursion_depth;
 extern int min_recursion_steps;
 extern int number_of_threads;
+extern bool use_gamma_correction;
 
 extern bool enable_next_event_estimation;
 extern bool enable_anti_aliasing;

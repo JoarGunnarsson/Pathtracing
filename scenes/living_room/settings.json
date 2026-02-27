@@ -1,11 +1,12 @@
 {
-    "WIDTH": 960,
-    "HEIGHT": 540,
-    "samples_per_pixel": 1,
+    "WIDTH": 1920,
+    "HEIGHT": 1080,
+    "samples_per_pixel": 100,
     "samples_per_iteration": 16,
     "max_recursion_depth": 100,
     "min_recursion_steps": 3,
-    "number_of_threads": 1,
+    "number_of_threads": 16,
+    "use_gamma_correction": true,
 
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true,

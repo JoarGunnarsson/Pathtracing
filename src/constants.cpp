@@ -11,6 +11,7 @@ int samples_per_iteration = 16;
 int max_recursion_depth = 100;
 int min_recursion_steps = 3;
 int number_of_threads = 1;
+bool use_gamma_correction = true;
 
 bool enable_next_event_estimation = true;
 bool enable_anti_aliasing = true;
