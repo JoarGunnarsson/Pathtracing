@@ -36,7 +36,7 @@ struct ThreadContext {
 };
 
 PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects,
-                   Medium const* const background_medium) {
+                   Medium const* const background_medium, const vec3& background_color) {
     PixelData data;
     vec3 color = vec3(0, 0, 0);
     vec3 throughput = vec3(1, 1, 1);
@@ -59,6 +59,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
         Hit ray_hit;
         if (!find_closest_hit(ray_hit, ray, objects, number_of_objects)) {
             if (scatter_distance == constants::max_ray_distance) {
+                color += throughput * background_color;
                 break;
             }
             ray_hit.distance = constants::max_ray_distance;
