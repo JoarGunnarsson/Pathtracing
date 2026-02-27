@@ -2,8 +2,8 @@
 
 echo "Setting up the project environment..."
 
-SOURCE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-cd $SOURCE_DIR
+PROJECT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd $PROJECT_DIR
 
 python -m venv venv
 source venv/bin/activate

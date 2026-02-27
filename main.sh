@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-SOURCE_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-cd $SOURCE_DIR
+PROJECT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd $PROJECT_DIR
 
 if [ ! -d "venv" ]; then
     echo "Virtual environment could not be found. Run 'setup.sh' to set up the project environment first.";
