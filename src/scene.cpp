@@ -10,6 +10,7 @@
 #include "camera.h"
 #include "medium.h"
 #include "valuemap.h"
+#include "colors.h"
 
 using json = nlohmann::json;
 
@@ -59,6 +60,7 @@ void load_settings(const std::string& file_path) {
     if (constants::samples_per_iteration <= 0) {
         throw std::runtime_error("Setting 'samples_per_iteration' must be a positive number!");
     }
+    load_one_setting(data, "use_gamma_correction", constants::use_gamma_correction);
 
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
     load_one_setting(data, "min_recursion_steps", constants::min_recursion_steps);
@@ -147,23 +149,26 @@ ValueMap1D const* load_valuemap1d(const json& data) {
         return new ValueMap1D(value);
     }
     else if (parameters.contains("file")) {
-        return create_value_map_1D(parameters["file"], 1, -1);
+        return create_value_map_1D(parameters["file"]);
     }
     else {
         throw std::runtime_error("ValueMap must contain either 'data' or 'file'");
     }
 }
 
-ValueMap3D const* load_valuemap3d(const json& data) {
+ValueMap3D const* load_valuemap3d(const json& data, const bool gamma_correct) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
     if (parameters.contains("data")) {
         vec3 colour_data = get_vec3_param(parameters, "data");
+        if (gamma_correct) {
+            colour_data = apply_gamma_correction(colour_data);
+        }
         return new ValueMap3D(colour_data);
     }
     else if (parameters.contains("file")) {
-        return create_value_map_3D(parameters["file"], 1, -1);
+        return create_value_map_3D(parameters["file"], constants::use_gamma_correction);
     }
     else {
         throw std::runtime_error("ValueMap must contain either 'data' or 'file'");
@@ -391,8 +396,12 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
             manager->add_valuemap(map);
         }
         else if (type == "ValueMap3D") {
+            // We assume ValueMap3D is only used for color data.
+            // In the future it might also be used for normal maps etc.
+            // But in that case, special handling of each type would probably
+            // be required anyway.
             require_unique_key(store.valuemap3d_store, name, "valuemap");
-            ValueMap3D const* map = load_valuemap3d(element);
+            ValueMap3D const* map = load_valuemap3d(element, constants::use_gamma_correction);
             store.valuemap3d_store[name] = map;
             manager->add_valuemap(map);
         }

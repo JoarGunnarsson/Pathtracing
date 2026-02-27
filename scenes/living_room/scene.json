@@ -27,7 +27,7 @@
         {
             "name": "wood_roughness_map",
             "type": "ValueMap1D", "parameters":{
-                "data": [0.1]
+                "data": [0.3]
             }
         },
         {
@@ -75,7 +75,7 @@
         {
             "name": "light_strength",
             "type": "ValueMap1D", "parameters":{
-                "data": [100]
+                "data": [5000]
             }
         }
     ],
@@ -131,7 +131,7 @@
             "name": "wood_table_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "wood_table_map",
-                "surface_refractive_index": 1.5,
+                "surface_refractive_index": 1.1,
                 "roughness_map": "wood_roughness_map"
 
             }
@@ -153,7 +153,7 @@
             "name": "black_leather_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "almost_black",
-                "surface_refractive_index": 1.47,
+                "surface_refractive_index": 1.27,
                 "roughness_map": "leather_roughness_map"
             }
         },
@@ -161,7 +161,7 @@
             "name": "brown_leather_material",
             "type": "Material", "subtype": "Glossy", "parameters": {
                 "albedo_map": "brown_leather_map",
-                "surface_refractive_index": 1.47,
+                "surface_refractive_index": 1.27,
                 "roughness_map": "leather_roughness_map"
             }
         },
@@ -195,45 +195,35 @@
             "name": "floor",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/floor.obj",
-                "material": "floor_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "floor_material"
             }
         },
         {
             "name": "roof",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/roof.obj",
-                "material": "wall_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "wall_material"
             }
         },
         {
             "name": "left_wall",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/left_wall.obj",
-                "material": "wall_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "wall_material"
             }
         },
         {
             "name": "right_wall",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/right_wall.obj",
-                "material": "wall_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "wall_material"
             }
         },
         {
             "name": "back_wall",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/back_wall.obj",
-                "material": "wall_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "wall_material"
             }
         },
         {
@@ -241,8 +231,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/left_moulding.obj",
                 "material": "white_diffuse_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -250,8 +239,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/right_moulding.obj",
                 "material": "white_diffuse_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -259,35 +247,30 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/back_moulding.obj",
                 "material": "white_diffuse_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
             "name": "roof_lamp",
-            "type": "Object", "subtype": "ObjectUnion", "parameters": {
-                "file": "models/realistic_room/roof_lamp.obj",
-                "material": "light_source_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+            "type": "Object", "subtype": "Sphere", "parameters": {
+                "position": [0, 2.5, 1],
+                "radius": 0.1,
+                "material": "light_source_material"
             }
         },
         {
             "name": "wood_table",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/mini_table.obj",
-                "material": "wood_table_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "wood_table_material"
             }
         },
-        {
+                {
             "name": "glass1",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass4.obj",
                 "material": "glass_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -295,8 +278,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass_contents.obj",
                 "material": "water_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -304,8 +286,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/coaster.obj",
                 "material": "rusted_copper_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "enable_smooth_shading": false
             }
         },
         {
@@ -313,8 +294,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass5.obj",
                 "material": "glass_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -322,8 +302,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/glass_contents1.obj",
                 "material": "water_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -331,8 +310,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/coaster1.obj",
                 "material": "rusted_copper_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "enable_smooth_shading": false
             }
         },
         {
@@ -340,8 +318,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/water_caraffe.obj",
                 "material": "glass_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -349,35 +326,28 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/caraffe_contents.obj",
                 "material": "water_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
             "name": "stack_coaster1",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/coaster2.obj",
-                "material": "rusted_copper_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "rusted_copper_material"
             }
         },
         {
             "name": "stack_coaster2",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/coaster3.obj",
-                "material": "rusted_copper_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "rusted_copper_material"
             }
         },
         {
             "name": "stack_coaster3",
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/coaster4.obj",
-                "material": "rusted_copper_material",
-                "enable_smooth_shading": false,
-                "move_object": false
+                "material": "rusted_copper_material"
             }
         },
         {
@@ -385,8 +355,7 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/sacco.obj",
                 "material": "black_leather_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         },
         {
@@ -394,15 +363,14 @@
             "type": "Object", "subtype": "ObjectUnion", "parameters": {
                 "file": "models/realistic_room/sacco1.obj",
                 "material": "brown_leather_material",
-                "enable_smooth_shading": true,
-                "move_object": false
+                "enable_smooth_shading": true
             }
         }
     ],
     "background_medium": "air_medium",
 
     "camera": {
-        "camera_position": [0.3, 1.5, -0.4],
+        "camera_position": [-0.3, 1.9, 1],
         "orientation": {
             "X": 72,
             "Y": -27,

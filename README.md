@@ -83,7 +83,6 @@ options:
   -m MODE, --mode MODE  which mode to use, available modes are: 'albedo', 'transparency', and 'opacity'
 ```
 
-
 #### to_png.py
 
 `to_png.png`is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
@@ -97,6 +96,7 @@ options:
   --settings_file SETTINGS_FILE
                         the settings file path, relative to main project directory.
 ```
+
 
 ### Dependencies
 
@@ -114,6 +114,7 @@ This project was tested using the following packages. It might work with other v
 This project does not explicitly support transparent objects intersecting eachother, and their inclusion can result in inaccurate results.
 
 Furthermore, this project was tested and compiled on MacOS using the clang compiler, and is not guaranteed to work on other platforms or with other compilers.
+
 
 ### References
 
