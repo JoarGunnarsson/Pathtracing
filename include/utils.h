@@ -65,6 +65,7 @@ double pos_fmod(const double a, const double b);
 double clamp(const double value, const double min, const double max);
 double sign(const double x);
 int ceil_division(const int a, const int b);
+size_t ceil_division(const size_t a, const size_t b);
 bool solve_quadratic(const double b, const double c, double& distance);
 
 vec3 sample_spherical();

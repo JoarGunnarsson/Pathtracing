@@ -2,25 +2,25 @@
 #include "utils.h"
 #include "denoise.h"
 
-void get_image_coordinates(int& x, int& y, const int idx) {
-    x = idx % constants::WIDTH;
-    y = idx / constants::WIDTH;
+void get_image_coordinates(int& x, int& y, const size_t idx) {
+    x = static_cast<int>(idx % constants::WIDTH);
+    y = static_cast<int>(idx / constants::WIDTH);
 }
 
-int idx_from_coordinates(const int x, const int y, const int width) {
+size_t idx_from_coordinates(const size_t x, const size_t y, const size_t width) {
     return width * y + x;
 }
 
 bool is_out_of_bounds(const int x, const int y) {
-    return x < 0 || y < 0 || x > constants::WIDTH - 1 || y > constants::HEIGHT - 1;
+    return x < 0 || y < 0 || x > static_cast<int>(constants::WIDTH) - 1 || y > static_cast<int>(constants::HEIGHT) - 1;
 }
 
 int clamp_x_coordinate(int x) {
     if (x < 0) {
         return -x;
     }
-    else if (x > constants::WIDTH - 1) {
-        return 2 * (constants::WIDTH - 1) - x;
+    else if (x > static_cast<int>(constants::WIDTH) - 1) {
+        return 2 * (static_cast<int>(constants::WIDTH) - 1) - x;
     }
     return x;
 }
@@ -29,13 +29,13 @@ int clamp_y_coordinate(int y) {
     if (y < 0) {
         return -y;
     }
-    else if (y > constants::HEIGHT - 1) {
-        return 2 * (constants::HEIGHT - 1) - y;
+    else if (y > static_cast<int>(constants::HEIGHT) - 1) {
+        return 2 * (static_cast<int>(constants::HEIGHT) - 1) - y;
     }
     return y;
 }
 
-double compute_weight(const int p, const int q, const KernelData& kernel_data, const PixelBuffers& buffers) {
+double compute_weight(const size_t p, const size_t q, const KernelData& kernel_data, const PixelBuffers& buffers) {
     vec3 pixel_p = vec3(buffers.image[3 * p], buffers.image[3 * p + 1], buffers.image[3 * p + 2]);
     vec3 pixel_q = vec3(buffers.image[3 * q], buffers.image[3 * q + 1], buffers.image[3 * q + 2]);
     double w_rt = std::exp(-(pixel_p - pixel_q).length() / (kernel_data.sigma_rt * kernel_data.sigma_rt));
@@ -63,7 +63,7 @@ int expand_kernel_idx(const int idx, const int hole_width) {
     return 0;
 }
 
-vec3 blur_pixel(const int p, const KernelData& kernel_data, PixelBuffers& buffers) {
+vec3 blur_pixel(const size_t p, const KernelData& kernel_data, PixelBuffers& buffers) {
     vec3 new_pixel_value = vec3(0, 0, 0);
     double normalization = 0;
     int global_x;
@@ -73,14 +73,14 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, PixelBuffers& buffer
         for (int dy = -2; dy <= 2; dy++) {
             int expanded_dx = expand_kernel_idx(dx, kernel_data.hole_width);
             int expanded_dy = expand_kernel_idx(dy, kernel_data.hole_width);
-            int kernel_idx = idx_from_coordinates(dx + 2, dy + 2, 5);
+            size_t kernel_idx = idx_from_coordinates(static_cast<size_t>(dx + 2), static_cast<size_t>(dy + 2), 5);
 
             int x = global_x + expanded_dx;
             int y = global_y + expanded_dy;
 
             x = clamp_x_coordinate(x);
             y = clamp_y_coordinate(y);
-            int q = idx_from_coordinates(x, y, constants::WIDTH);
+            size_t q = idx_from_coordinates(static_cast<size_t>(x), static_cast<size_t>(y), constants::WIDTH);
 
             double weight = compute_weight(p, q, kernel_data, buffers);
             double kernel_value = kernel_data.kernel[kernel_idx];
@@ -101,10 +101,10 @@ void one_denoising_iteration(const KernelData& kernel_data, PixelBuffers& buffer
     size_t buffer_size = static_cast<size_t>(constants::WIDTH * constants::HEIGHT * 3);
     double* tmp_image = new double[buffer_size];
 
-    for (int j = 0; j < constants::WIDTH * constants::HEIGHT; j++) {
+    for (size_t j = 0; j < constants::WIDTH * constants::HEIGHT; j++) {
         vec3 blurred_pixel = blur_pixel(j, kernel_data, buffers);
 
-        for (int i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 3; i++) {
             tmp_image[3 * j + i] = blurred_pixel[i];
         }
     }
@@ -134,7 +134,7 @@ void median_filter(PixelBuffers& buffers) {
     double* r = new double[size];
     double* g = new double[size];
     double* b = new double[size];
-    for (int idx = 0; idx < constants::WIDTH * constants::HEIGHT; idx++) {
+    for (size_t idx = 0; idx < constants::WIDTH * constants::HEIGHT; idx++) {
         int x, y;
         get_image_coordinates(x, y, idx);
 
@@ -143,8 +143,11 @@ void median_filter(PixelBuffers& buffers) {
                 int local_x = clamp_x_coordinate(x + dx);
                 int local_y = clamp_y_coordinate(y + dy);
 
-                int neighbor_idx = idx_from_coordinates(local_x, local_y, constants::WIDTH);
-                int local_idx = idx_from_coordinates(dx + offset, dy + offset, constants::median_kernel_size);
+                size_t neighbor_idx =
+                    idx_from_coordinates(static_cast<size_t>(local_x), static_cast<size_t>(local_y), constants::WIDTH);
+                size_t local_idx =
+                    idx_from_coordinates(static_cast<size_t>(dx + offset), static_cast<size_t>(dy + offset),
+                                         static_cast<size_t>(constants::median_kernel_size));
 
                 r[local_idx] = buffers.image[3 * neighbor_idx];
                 g[local_idx] = buffers.image[3 * neighbor_idx + 1];

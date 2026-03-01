@@ -4,13 +4,13 @@
 
 namespace constants {
 // Default value of settings. Is overidden by the provided settings.json, if any.
-int WIDTH = 1000;
-int HEIGHT = 1000;
-int samples_per_pixel = 10;
-int samples_per_iteration = 16;
+size_t WIDTH = 1000;
+size_t HEIGHT = 1000;
+size_t samples_per_pixel = 10;
+size_t samples_per_iteration = 16;
 int max_recursion_depth = 100;
 int min_recursion_steps = 3;
-int number_of_threads = 1;
+size_t number_of_threads = 1;
 bool use_gamma_correction = true;
 
 bool enable_next_event_estimation = true;
@@ -25,7 +25,7 @@ double sigma_n = 0.4;
 bool enable_median_filtering = false;
 int median_kernel_size = 3;
 
-const int max_number_of_threads = static_cast<int>(std::thread::hardware_concurrency()) - 1;
+const size_t max_number_of_threads = std::thread::hardware_concurrency() - 1;
 const double EPSILON = 0.000001;
 const double max_ray_distance = 1.0 / 0.0;
 

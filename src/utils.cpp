@@ -45,6 +45,10 @@ int ceil_division(const int a, const int b) {
     return (a - 1) / b + 1;
 }
 
+size_t ceil_division(const size_t a, const size_t b) {
+    return (a - 1) / b + 1;
+}
+
 bool solve_quadratic(const double b, const double c, double& distance) {
     double discriminant = b * b - 4.0 * c;
     if (discriminant <= 0) {

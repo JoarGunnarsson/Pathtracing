@@ -97,8 +97,15 @@ class vec3 {
     inline double& operator[](int i) {
         return e[i];
     }
+    inline double& operator[](size_t i) {
+        return e[i];
+    }
 
     inline double operator[](int i) const {
+        return e[i];
+    }
+
+    inline double operator[](size_t i) const {
         return e[i];
     }
 

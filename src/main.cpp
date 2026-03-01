@@ -23,16 +23,16 @@ struct PixelData {
 };
 
 struct Job {
-    int start_idx;
-    int number_of_pixels;
-    int number_of_samples;
+    size_t start_idx;
+    size_t number_of_pixels;
+    size_t number_of_samples;
 };
 
 struct ThreadContext {
-    int* thread_progress;
-    int thread_idx;
+    size_t* thread_progress;
+    size_t thread_idx;
     std::mutex* pixel_mutexes;
-    int* pixel_counters;
+    int* pixel_counters; // TODO: size_t?
 };
 
 PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects,
@@ -174,23 +174,23 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
     return data;
 }
 
-PixelData compute_pixel_color(const int x, const int y, const Scene& scene, const int number_of_samples) {
+PixelData compute_pixel_color(const size_t x, const size_t y, const Scene& scene, const size_t number_of_samples) {
     PixelData data;
     vec3 pixel_color = vec3(0, 0, 0);
-    for (int i = 0; i < number_of_samples; i++) {
+    for (size_t i = 0; i < number_of_samples; i++) {
         Ray ray;
         ray.starting_position = scene.camera.position;
         ray.type = TRANSMITTED;
-        double new_x = x;
-        double new_y = y;
+        double new_x = static_cast<double>(x);
+        double new_y = static_cast<double>(y);
 
         if (constants::enable_anti_aliasing) {
             new_x += random_normal() / 3.0;
             new_y += random_normal() / 3.0;
         }
-
-        ray.direction_vector = scene.camera.get_starting_directions(new_x, new_y);
-        PixelData sampled_data = raytrace(ray, scene.objects, scene.number_of_objects, scene.medium);
+        ray.direction_vector = scene.camera.get_starting_directions(new_x, new_y, ray.starting_position);
+        PixelData sampled_data =
+            raytrace(ray, scene.objects, scene.number_of_objects, scene.medium, scene.background_color);
         data.pixel_position += sampled_data.pixel_position;
         data.pixel_normal += sampled_data.pixel_normal;
         pixel_color += sampled_data.pixel_color;
@@ -202,12 +202,12 @@ PixelData compute_pixel_color(const int x, const int y, const Scene& scene, cons
     return data;
 }
 
-void print_progress(double progress) {
-    if (progress <= 1.0) {
+void print_progress(int progress) {
+    if (progress <= 100) {
         int bar_width = 60;
+        int pos = static_cast<int>(bar_width * progress / 100.0);
 
         std::clog << "[";
-        int pos = static_cast<int>(bar_width * progress);
         for (int i = 0; i < bar_width; ++i) {
             if (i < pos)
                 std::clog << "=";
@@ -216,19 +216,19 @@ void print_progress(double progress) {
             else
                 std::clog << " ";
         }
-        std::clog << "] " << int(progress * 100.0) << " %\r";
+        std::clog << "] " << progress << " %\r";
     }
 }
 
-void update_and_report_progress(int* thread_progress) {
-    int progress = 0;
-    for (int i = 0; i < constants::number_of_threads; i++) {
+void update_and_report_progress(size_t* thread_progress) {
+    size_t progress = 0;
+    for (size_t i = 0; i < constants::number_of_threads; i++) {
         progress += thread_progress[i];
     }
-
+    size_t total_pixel_count = (size_t) constants::WIDTH * constants::HEIGHT * constants::samples_per_pixel;
     std::unique_lock<std::mutex> lock(progress_mutex);
-    double total_pixel_count = static_cast<double>(constants::WIDTH * constants::HEIGHT * constants::samples_per_pixel);
-    print_progress(static_cast<double>(progress) / static_cast<double>(total_pixel_count));
+    int progress_percent = static_cast<int>(100 * progress / total_pixel_count);
+    print_progress(progress_percent);
 }
 
 template<typename T>
@@ -237,29 +237,32 @@ T increment_average(const T previous, const T addition, const double samples_pre
 }
 
 void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers, ThreadContext& thread_context) {
-    int log_interval = job.number_of_pixels / 20;
-    for (int i = 0; i < job.number_of_pixels; i++) {
-        int idx = job.start_idx + i;
+    size_t log_interval = job.number_of_pixels / (size_t) 20;
+    // TODO: What should this divide by?
+    // TODO: How big is log_interval, could that cause issues?
+    for (size_t i = 0; i < job.number_of_pixels; i++) {
+        size_t idx = job.start_idx + i;
 
-        int x = idx % constants::WIDTH;
-        int y = constants::HEIGHT - idx / constants::WIDTH;
+        size_t x = idx % constants::WIDTH;
+        size_t y = constants::HEIGHT - idx / constants::WIDTH;
 
         PixelData data = compute_pixel_color(x, y, scene, job.number_of_samples);
 
-        thread_context.pixel_mutexes[static_cast<size_t>(idx)].lock();
-        double prev_samples = static_cast<double>(thread_context.pixel_counters[idx]);
+        std::mutex& pixel_mutex = thread_context.pixel_mutexes[idx];
+        {
+            std::unique_lock<std::mutex> lock(pixel_mutex);
+            double prev_samples = static_cast<double>(thread_context.pixel_counters[idx]);
 
-        for (int j = 0; j < 3; j++) {
-            buffers.image[3 * idx + j] =
-                increment_average(buffers.image[3 * idx + j], data.pixel_color[j], prev_samples, job.number_of_samples);
+            for (size_t j = 0; j < 3; j++) {
+                buffers.image[3 * idx + j] = increment_average(buffers.image[3 * idx + j], data.pixel_color[j],
+                                                               prev_samples, job.number_of_samples);
+            }
+            buffers.position_buffer[idx] = increment_average(buffers.position_buffer[idx], data.pixel_position,
+                                                             prev_samples, job.number_of_samples);
+            buffers.normal_buffer[idx] =
+                increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, job.number_of_samples);
+            thread_context.pixel_counters[idx] += job.number_of_samples;
         }
-        buffers.position_buffer[idx] =
-            increment_average(buffers.position_buffer[idx], data.pixel_position, prev_samples, job.number_of_samples);
-        buffers.normal_buffer[idx] =
-            increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, job.number_of_samples);
-        thread_context.pixel_counters[idx] += job.number_of_samples;
-
-        thread_context.pixel_mutexes[static_cast<size_t>(idx)].unlock();
 
         if (i % log_interval == 0 && i != 0) {
             thread_context.thread_progress[thread_context.thread_idx] += log_interval * job.number_of_samples;
@@ -313,12 +316,12 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     PixelBuffers pixel_buffers;
-    int pixel_count = constants::WIDTH * constants::HEIGHT;
-    size_t array_size = static_cast<size_t>(pixel_count);
+    size_t pixel_count = constants::WIDTH * constants::HEIGHT;
+    size_t array_size = pixel_count;
     pixel_buffers.position_buffer = new vec3[array_size];
     pixel_buffers.normal_buffer = new vec3[array_size];
 
-    size_t FILESIZE = static_cast<size_t>(pixel_count * 3) * sizeof(double);
+    size_t FILESIZE = pixel_count * 3 * sizeof(double);
 
     std::clog << "Running program with number of threads: " << constants::number_of_threads << ".\n";
     std::thread thread_array[constants::number_of_threads];
@@ -327,38 +330,38 @@ int main(int argc, char* argv[]) {
     pixel_buffers.image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
 
     print_progress(0);
-    int pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
-    int* thread_progress = new int[static_cast<size_t>(constants::number_of_threads)];
+    size_t pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
+    size_t* thread_progress = new size_t[static_cast<size_t>(constants::number_of_threads)];
 
     std::vector<Job> job_queue;
 
-    int number_of_iterations = ceil_division(constants::samples_per_pixel, constants::samples_per_iteration);
-    for (int j = 0; j < number_of_iterations; j++) {
-        for (int i = 0; i < constants::number_of_threads; i++) {
-            int start_idx = pixels_per_thread * i;
-            int pixels_remaining = pixel_count - i * pixels_per_thread;
-            int pixels_to_handle = std::min(pixels_per_thread, pixels_remaining);
+    size_t number_of_iterations = ceil_division(constants::samples_per_pixel, constants::samples_per_iteration);
+    for (size_t j = 0; j < number_of_iterations; j++) {
+        for (size_t i = 0; i < constants::number_of_threads; i++) {
+            size_t start_idx = pixels_per_thread * i;
+            size_t pixels_remaining = pixel_count - i * pixels_per_thread;
+            size_t pixels_to_handle = std::min<size_t>(pixels_per_thread, pixels_remaining);
             Job job;
             job.start_idx = start_idx;
             job.number_of_pixels = pixels_to_handle;
-            job.number_of_samples = std::min(constants::samples_per_iteration,
-                                             constants::samples_per_pixel - j * constants::samples_per_iteration);
+            job.number_of_samples = std::min<size_t>(
+                constants::samples_per_iteration, constants::samples_per_pixel - j * constants::samples_per_iteration);
             job_queue.push_back(job);
         }
     }
 
     std::mutex* pixel_mutexes = new std::mutex[static_cast<size_t>(pixel_count)];
-    int* pixel_counters = new int[static_cast<size_t>(pixel_count)];
-    for (int i = 0; i < constants::number_of_threads; i++) {
+    int* pixel_counters = new int[static_cast<size_t>(pixel_count)]{};
+    for (size_t i = 0; i < constants::number_of_threads; i++) {
         ThreadContext thread_context{thread_progress, i, pixel_mutexes, pixel_counters};
         thread_array[i] = std::thread(thread_job, &job_queue, scene, pixel_buffers, thread_context);
     }
 
-    for (int i = 0; i < constants::number_of_threads; i++) {
+    for (size_t i = 0; i < constants::number_of_threads; i++) {
         thread_array[i].join();
     }
 
-    print_progress(1);
+    print_progress(100);
     std::clog << std::endl;
 
     if (constants::enable_atrous_filtering || constants::enable_median_filtering) {

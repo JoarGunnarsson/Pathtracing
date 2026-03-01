@@ -85,7 +85,7 @@ options:
 
 #### to_png.py
 
-`to_png.png`is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
+`to_png.png` is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
 
 ```
 usage: to_png.py [-h] [--name NAME] [--settings_file SETTINGS_FILE]

@@ -19,8 +19,8 @@ struct KernelData {
     int hole_width = 0;
 };
 
-void get_image_coordinates(int& x, int& y, const int idx);
-int idx_from_coordinates(const int x, const int y, const int width);
+void get_image_coordinates(int& x, int& y, const size_t idx);
+size_t idx_from_coordinates(const size_t x, const size_t y, const size_t width);
 bool is_out_of_bounds(const int x, const int y);
 int clamp_x_coordinate(const int x);
 int clamp_y_coordinate(const int y);

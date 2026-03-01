@@ -87,6 +87,8 @@ bool ObjectUnion::find_closest_object_hit(Hit& hit, Ray& ray) const {
 
     bool success = find_closest_hit(hit, ray, objects, number_of_objects);
     hit.primitive_ID = hit.intersected_object_index;
+
+    // Reset intersected_object_index, since we re-used the Hit instance for internal use.
     hit.intersected_object_index = -1;
     return success;
 }

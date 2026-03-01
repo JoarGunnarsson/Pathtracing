@@ -66,7 +66,7 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "min_recursion_steps", constants::min_recursion_steps);
     load_one_setting(data, "number_of_threads", constants::number_of_threads);
     constants::number_of_threads =
-        std::max(std::min(constants::number_of_threads, constants::max_number_of_threads), 1);
+        std::max<size_t>(std::min<size_t>(constants::number_of_threads, constants::max_number_of_threads), 1);
 
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
@@ -85,8 +85,8 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "enable_median_filtering", constants::enable_median_filtering);
     load_one_setting(data, "median_kernel_size", constants::median_kernel_size);
     if (constants::enable_median_filtering &&
-        constants::median_kernel_size >= std::min(constants::WIDTH, constants::HEIGHT)) {
-        throw std::runtime_error("Too many denoising iterations for this image size.");
+        (size_t) constants::median_kernel_size >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
+        throw std::runtime_error("Too large median filter kernel size for this image size.");
     }
 }
 
