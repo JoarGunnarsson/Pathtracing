@@ -442,6 +442,7 @@ BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, c
 
     vec3 half_vector;
     brdf_data.outgoing_vector = sample_outgoing(half_vector, hit.incident_vector, hit.normal_vector, hit.outside, u, v);
+    brdf_data.type = TRANSMITTED;
 
     double cosine_factor =
         dot_vectors(hit.incident_vector, half_vector) /
@@ -449,11 +450,11 @@ BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, c
     brdf_data.brdf_over_pdf =
         G(half_vector, hit.normal_vector, hit.incident_vector, brdf_data.outgoing_vector, get_alpha(u, v)) *
         cosine_factor;
-    brdf_data.type = REFLECTED; // Change to just specular?
+    brdf_data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
     return brdf_data;
 }
 
 double TransparentMicrofacetMaterial::brdf_pdf(const vec3&, const vec3&, const vec3&, const double,
                                                const double) const {
-    return 0.0;
+    return 0.0; // Cannot sample a dirac distribution, so we set it to 0.
 }

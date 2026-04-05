@@ -5,13 +5,13 @@
 
 namespace constants {
 // Configurable constants
-extern int WIDTH;
-extern int HEIGHT;
-extern int samples_per_pixel;
-extern int samples_per_iteration;
+extern size_t WIDTH;
+extern size_t HEIGHT;
+extern size_t samples_per_pixel;
+extern size_t samples_per_iteration;
 extern int max_recursion_depth;
 extern int min_recursion_steps;
-extern int number_of_threads;
+extern size_t number_of_threads;
 extern bool use_gamma_correction;
 
 extern bool enable_next_event_estimation;
@@ -26,7 +26,7 @@ extern bool enable_median_filtering;
 extern int median_kernel_size;
 
 // Fixed constants
-extern const int max_number_of_threads;
+extern const size_t max_number_of_threads;
 extern const double EPSILON;
 extern const double max_ray_distance;
 

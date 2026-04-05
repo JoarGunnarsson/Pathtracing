@@ -87,6 +87,8 @@ bool ObjectUnion::find_closest_object_hit(Hit& hit, Ray& ray) const {
 
     bool success = find_closest_hit(hit, ray, objects, number_of_objects);
     hit.primitive_ID = hit.intersected_object_index;
+
+    // Reset intersected_object_index, since we re-used the Hit instance for internal use.
     hit.intersected_object_index = -1;
     return success;
 }
@@ -99,14 +101,14 @@ int ObjectUnion::sample_random_primitive_index() const {
     double random_area_split = random_uniform(0, area);
     int max = static_cast<int>(number_of_light_sources) - 1;
     int min = 0;
-    int index;
+    int index = min;
 
-    if (cumulative_area[0] >= random_area_split) {
-        return light_source_conversion_indices[0];
+    if (cumulative_area[index] >= random_area_split) {
+        return light_source_conversion_indices[index];
     }
 
     while (min <= max) {
-        index = (max - min) / 2 + min;
+        index = (max + min) / 2;
 
         if (cumulative_area[index] < random_area_split) {
             min = index + 1;

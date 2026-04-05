@@ -65,8 +65,14 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
     load_one_setting(data, "min_recursion_steps", constants::min_recursion_steps);
     load_one_setting(data, "number_of_threads", constants::number_of_threads);
-    constants::number_of_threads =
-        std::max(std::min(constants::number_of_threads, constants::max_number_of_threads), 1);
+    if (constants::number_of_threads <= 0) {
+        throw std::runtime_error("'number_of_threads' must be 1 or greater.");
+    }
+    if (constants::number_of_threads > constants::max_number_of_threads) {
+        std::clog << "Warning: Requested number of threads was greater than maximum concurrency available. Capping at "
+                  << constants::max_number_of_threads << ".\n";
+    }
+    constants::number_of_threads = std::min<size_t>(constants::number_of_threads, constants::max_number_of_threads);
 
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
@@ -74,7 +80,7 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "enable_atrous_filtering", constants::enable_atrous_filtering);
     load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
     if (constants::enable_atrous_filtering &&
-        pow(2, constants::denoising_iterations) >= std::min(constants::WIDTH, constants::HEIGHT)) {
+        pow(2, constants::denoising_iterations) >= static_cast<double>(std::min(constants::WIDTH, constants::HEIGHT))) {
         throw std::runtime_error("Too many denoising iterations for this image size.");
     }
 
@@ -85,8 +91,8 @@ void load_settings(const std::string& file_path) {
     load_one_setting(data, "enable_median_filtering", constants::enable_median_filtering);
     load_one_setting(data, "median_kernel_size", constants::median_kernel_size);
     if (constants::enable_median_filtering &&
-        constants::median_kernel_size >= std::min(constants::WIDTH, constants::HEIGHT)) {
-        throw std::runtime_error("Too many denoising iterations for this image size.");
+        static_cast<size_t>(constants::median_kernel_size) >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
+        throw std::runtime_error("Too large median filter kernel size for this image size.");
     }
 }
 

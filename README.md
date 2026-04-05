@@ -93,7 +93,7 @@ options:
 
 #### to_png.py
 
-`to_png.png`is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
+`to_png.png` is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
 
 ```
 usage: to_png.py [-h] [--name NAME] [--settings_file SETTINGS_FILE]
@@ -104,17 +104,6 @@ options:
   --settings_file SETTINGS_FILE
                         the settings file path, relative to main project directory.
 ```
-
-
-### Dependencies
-
-This project was tested using the following packages. It might work with other version, but this is not guaranteed.
-
-`cmake version 4.1.2`
-`GNU Make 3.81`
-`python 3.11.5`
-`numpy 2.4.0`
-`matplotlib 3.10.8`
 
 
 ### Limitations
