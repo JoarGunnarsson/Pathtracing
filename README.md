@@ -106,17 +106,6 @@ options:
 ```
 
 
-### Dependencies
-
-This project was tested using the following packages. It might work with other version, but this is not guaranteed.
-
-`cmake version 4.1.2`
-`GNU Make 3.81`
-`python 3.11.5`
-`numpy 2.4.0`
-`matplotlib 3.10.8`
-
-
 ### Limitations
 
 This project does not explicitly support transparent objects intersecting eachother, and their inclusion can result in inaccurate results.
