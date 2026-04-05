@@ -51,7 +51,7 @@ while test "$#" -gt 0; do
     shift
 done
 
-if [[ "$IMAGE_NAME" != *.png ]]; then
+if test "${IMAGE_NAME: -4}" != ".png"; then
         echo "$IMAGE_NAME is not a valid image name. Image name must end in '.png'. "
         exit 1
 fi
