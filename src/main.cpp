@@ -240,8 +240,6 @@ T increment_average(const T previous, const T addition, const double samples_pre
 
 void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers, ThreadContext& thread_context) {
     size_t log_interval = job.number_of_pixels / 20;
-    // TODO: What should this divide by?
-    // TODO: How big is log_interval, could that cause issues?
     for (size_t i = 0; i < job.number_of_pixels; i++) {
         size_t idx = job.start_idx + i;
 

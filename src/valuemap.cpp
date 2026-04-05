@@ -35,9 +35,9 @@ double ValueMap1D::get(const double u, const double v) const {
     if (std::isnan(u) || std::isnan(v)) {
         return 0;
     }
-    int u_idx = static_cast<int>(static_cast<double>(width) * pos_fmod(u, 1.0));
-    int v_idx = static_cast<int>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
-    int index = (v_idx * width + u_idx);
+    size_t u_idx = static_cast<size_t>(static_cast<double>(width) * pos_fmod(u, 1.0));
+    size_t v_idx = static_cast<size_t>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
+    size_t index = (v_idx * width + u_idx);
     return data[index];
 }
 
@@ -45,9 +45,9 @@ vec3 ValueMap3D::get(const double u, const double v) const {
     if (std::isnan(u) || std::isnan(v)) {
         return vec3(0, 0, 0);
     }
-    int u_idx = static_cast<int>(static_cast<double>(width) * pos_fmod(u, 1.0));
-    int v_idx = static_cast<int>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
-    int start_index = 3 * (v_idx * width + u_idx);
+    size_t u_idx = static_cast<size_t>(static_cast<double>(width) * pos_fmod(u, 1.0));
+    size_t v_idx = static_cast<size_t>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
+    size_t start_index = 3 * (v_idx * width + u_idx);
     return vec3(data[start_index], data[start_index + 1], data[start_index + 2]);
 }
 
@@ -69,11 +69,15 @@ ValueMapType* create_value_map(const std::string& file_name, const bool gamma_co
         throw std::runtime_error("Error reading file '" + file_name + "'");
     }
 
+    if (data[0] < 0 || data[1] < 0 || data[2] < 0) {
+        throw std::runtime_error("File '" + file_name + "' does not follow the expected format and cannot be loaded");
+    }
+
     int width = static_cast<int>(data[0]);
     int height = static_cast<int>(data[1]);
-    int dimension = static_cast<int>(data[2]);
-    // TODO: should cast before, in case the map is very large.
-    size_t num_values = static_cast<size_t>(width * height * dimension);
+    size_t dimension = static_cast<size_t>(data[2]);
+
+    size_t num_values = static_cast<size_t>(width) * static_cast<size_t>(height) * dimension;
     if (num_values != N - 3) {
         throw std::runtime_error("File '" + file_name + "' does not follow the expected format and cannot be loaded");
     }
