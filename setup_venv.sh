@@ -1,6 +1,7 @@
 #!/bin/bash
+set -e
 
-echo "Setting up the project environment..."
+echo "Setting up the python environment..."
 
 PROJECT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $PROJECT_DIR
@@ -10,7 +11,3 @@ source venv/bin/activate
 
 pip install --upgrade pip
 pip install -r requirements.txt
-
-echo "Building project..."
-
-./build.sh

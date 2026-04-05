@@ -1,4 +1,5 @@
 #include "bvh.h"
+#include <algorithm>
 
 namespace BVH {
 vec3 get_max_point(Object const* const* triangles, int number_of_triangles) {

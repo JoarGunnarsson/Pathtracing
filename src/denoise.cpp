@@ -1,6 +1,8 @@
 
 #include "utils.h"
 #include "denoise.h"
+#include <cstring>
+#include <algorithm>
 
 void get_image_coordinates(int& x, int& y, const int idx) {
     x = idx % constants::WIDTH;
@@ -86,7 +88,7 @@ vec3 blur_pixel(const int p, const KernelData& kernel_data, PixelBuffers& buffer
             double kernel_value = kernel_data.kernel[kernel_idx];
             vec3 pixel_color = vec3(buffers.image[3 * q], buffers.image[3 * q + 1], buffers.image[3 * q + 2]);
             vec3 pixel_contribution = kernel_value * pixel_color * weight;
-            if (isnan(pixel_contribution.length_squared())) {
+            if (std::isnan(pixel_contribution.length_squared())) {
                 pixel_contribution = vec3(0.0);
                 weight = 0.0;
             }
