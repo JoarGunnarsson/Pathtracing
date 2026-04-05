@@ -1,15 +1,15 @@
-#!/bin/bash
+#! /bin/bash
 set -e
 
 PROJECT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $PROJECT_DIR
 
-if [ ! -d "venv" ]; then
+if test ! -d "venv" ; then
     echo "Virtual environment could not be found. Run 'setup.sh' to set up the project environment first.";
     exit;
 fi
 
-if [ ! -f "main" ]; then
+if test ! -f "main" ; then
     echo "Main executable could not be found. Run 'setup.sh' to set up the project environment first.";
     exit;
 fi
@@ -17,31 +17,25 @@ fi
 source venv/bin/activate
 
 show_help() {
-    echo "usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]"
+    echo "usage: main.sh [-h] [--name NAME] [--scene_directory DIRECTORY]"
     echo ""
     echo "options:"
     echo "  -h, --help                            show this message"
     echo "  -n, --name <name>                     the name of the generated image, default 'result.png'"
-    echo "  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'"
-    echo "  -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'"
+    echo "  -c, --scene_directory <directory>     path to the scene directory, default scenes/example"
 }
 
 IMAGE_NAME="result.png"
-SCENE_FILE="scenes/example/scene.json"
-SETTINGS_FILE="scenes/example/settings.json"
+SCENE_DIR="scenes/example"
 
-while [[ "$#" -gt 0 ]]; do
+while test "$#" -gt 0; do
     case "$1" in
         -n|--name)
             IMAGE_NAME="$2"
             shift
             ;;
-        -c|--scene_file)
-            SCENE_FILE="$2"
-            shift
-            ;;
-        -s|--settings_file)
-            SETTINGS_FILE="$2"
+        -s|--scene_directory)
+            SCENE_DIR="$2"
             shift
             ;;
         -h|--help)
@@ -50,7 +44,8 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         *)
             echo "Unknown option: $1"
-            exit 0
+            show_help
+            exit 1
             ;;
     esac
     shift
@@ -61,7 +56,7 @@ if [[ "$IMAGE_NAME" != *.png ]]; then
         exit 1
 fi
 
-echo "Rendering scene '$SCENE_FILE', using settings file '$SETTINGS_FILE'. The result can be found in images/$IMAGE_NAME"
+echo "Rendering scene '$SCENE_DIR'. The result can be found in images/$IMAGE_NAME"
 
-./main $SCENE_FILE $SETTINGS_FILE
-python python_utils/to_png.py --name $IMAGE_NAME --settings_file $SETTINGS_FILE
+./main $SCENE_DIR
+python python_utils/to_png.py --name $IMAGE_NAME --scene_dir $SCENE_DIR

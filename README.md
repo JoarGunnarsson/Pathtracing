@@ -41,16 +41,15 @@ The directory `scenes/example/` defines a simple scene, showcasing some differen
 ## Usage
 
 #### Main program
-To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
+To run the ray tracing simulation and generate an image, execute the shell script `main.sh` file:
 
 ```
-usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]
+usage: main.sh [-h] [--name NAME] [--scene_directory DIRECTORY]
 
 options:
   -h, --help                            show this message
   -n, --name <name>                     the name of the generated image, default 'result.png'
-  -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'
-  -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'
+  -c, --scene_directory <directory>     path to the scene directory, default scenes/example
 ```
 
 ##### Building
@@ -96,13 +95,13 @@ options:
 `to_png.png` is a utility program used to convert the raw image data from the Pathtracing program into a proper image format. Can be used while the Patracing program is running in order to view progress.
 
 ```
-usage: to_png.py [-h] [--name NAME] [--settings_file SETTINGS_FILE]
+usage: to_png.py [-h] --name NAME --scene_directory SCENE_DIRECTORY
 
 options:
   -h, --help            show this help message and exit
   --name NAME           name of the resulting image.
-  --settings_file SETTINGS_FILE
-                        the settings file path, relative to main project directory.
+  --scene_directory SCENE_DIRECTORY
+                        path to the scene directory, relative to the main project directory.
 ```
 
 
