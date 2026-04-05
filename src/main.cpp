@@ -33,8 +33,8 @@ struct Job {
 struct ThreadContext {
     size_t* thread_progress;
     size_t thread_idx;
-    std::mutex* pixel_mutexes;
-    int* pixel_counters; // TODO: size_t?
+    std::mutex* pixel_section_mutexes;
+    size_t* pixel_counters;
 };
 
 PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_objects,
@@ -47,7 +47,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
     bool has_hit_surface = false;
 
     vec3 saved_point;
-    double scatter_pdf;
+    double scatter_pdf = 0;
 
     Medium const* medium = background_medium;
 
@@ -227,7 +227,7 @@ void update_and_report_progress(size_t* thread_progress) {
     for (size_t i = 0; i < constants::number_of_threads; i++) {
         progress += thread_progress[i];
     }
-    size_t total_pixel_count = (size_t) constants::WIDTH * constants::HEIGHT * constants::samples_per_pixel;
+    size_t total_pixel_count = constants::WIDTH * constants::HEIGHT * constants::samples_per_pixel;
     std::unique_lock<std::mutex> lock(progress_mutex);
     int progress_percent = static_cast<int>(100 * progress / total_pixel_count);
     print_progress(progress_percent);
@@ -239,7 +239,7 @@ T increment_average(const T previous, const T addition, const double samples_pre
 }
 
 void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers, ThreadContext& thread_context) {
-    size_t log_interval = job.number_of_pixels / (size_t) 20;
+    size_t log_interval = job.number_of_pixels / 20;
     // TODO: What should this divide by?
     // TODO: How big is log_interval, could that cause issues?
     for (size_t i = 0; i < job.number_of_pixels; i++) {
@@ -250,19 +250,22 @@ void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers,
 
         PixelData data = compute_pixel_color(x, y, scene, job.number_of_samples);
 
-        std::mutex& pixel_mutex = thread_context.pixel_mutexes[idx];
+        size_t scaled_idx = idx * (constants::number_of_threads / (constants::WIDTH * constants::HEIGHT));
+        std::mutex& section_mutex = thread_context.pixel_section_mutexes[scaled_idx];
         {
-            std::unique_lock<std::mutex> lock(pixel_mutex);
+            std::unique_lock<std::mutex> lock(section_mutex);
+
             double prev_samples = static_cast<double>(thread_context.pixel_counters[idx]);
+            double this_samples = static_cast<double>(job.number_of_samples);
 
             for (size_t j = 0; j < 3; j++) {
-                buffers.image[3 * idx + j] = increment_average(buffers.image[3 * idx + j], data.pixel_color[j],
-                                                               prev_samples, job.number_of_samples);
+                buffers.image[3 * idx + j] =
+                    increment_average(buffers.image[3 * idx + j], data.pixel_color[j], prev_samples, this_samples);
             }
-            buffers.position_buffer[idx] = increment_average(buffers.position_buffer[idx], data.pixel_position,
-                                                             prev_samples, job.number_of_samples);
+            buffers.position_buffer[idx] =
+                increment_average(buffers.position_buffer[idx], data.pixel_position, prev_samples, this_samples);
             buffers.normal_buffer[idx] =
-                increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, job.number_of_samples);
+                increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, this_samples);
             thread_context.pixel_counters[idx] += job.number_of_samples;
         }
 
@@ -333,15 +336,14 @@ int main(int argc, char* argv[]) {
 
     print_progress(0);
     size_t pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
-    size_t* thread_progress = new size_t[static_cast<size_t>(constants::number_of_threads)];
+    size_t* thread_progress = new size_t[constants::number_of_threads];
 
     std::vector<Job> job_queue;
-
     size_t number_of_iterations = ceil_division(constants::samples_per_pixel, constants::samples_per_iteration);
     for (size_t j = 0; j < number_of_iterations; j++) {
         for (size_t i = 0; i < constants::number_of_threads; i++) {
             size_t start_idx = pixels_per_thread * i;
-            size_t pixels_remaining = pixel_count - i * pixels_per_thread;
+            size_t pixels_remaining = (pixel_count - start_idx);
             size_t pixels_to_handle = std::min<size_t>(pixels_per_thread, pixels_remaining);
             Job job;
             job.start_idx = start_idx;
@@ -352,10 +354,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::mutex* pixel_mutexes = new std::mutex[static_cast<size_t>(pixel_count)];
-    int* pixel_counters = new int[static_cast<size_t>(pixel_count)]{};
+    std::mutex* pixel_section_mutexes = new std::mutex[constants::number_of_threads];
+    size_t* pixel_counters = new size_t[pixel_count]{};
     for (size_t i = 0; i < constants::number_of_threads; i++) {
-        ThreadContext thread_context{thread_progress, i, pixel_mutexes, pixel_counters};
+        ThreadContext thread_context{thread_progress, i, pixel_section_mutexes, pixel_counters};
         thread_array[i] = std::thread(thread_job, &job_queue, scene, pixel_buffers, thread_context);
     }
 
@@ -367,6 +369,7 @@ int main(int argc, char* argv[]) {
     std::clog << std::endl;
 
     if (constants::enable_atrous_filtering || constants::enable_median_filtering) {
+        std::clog << "Denoising..." << std::endl;
         PixelBuffers denoising_buffers;
         int denoised_image_fd;
         denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
@@ -378,10 +381,9 @@ int main(int argc, char* argv[]) {
         denoise(denoising_buffers);
         close_mmap(denoising_buffers.image, FILESIZE, denoised_image_fd);
     }
-
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::clog << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"
-              << std::endl;
+    std::clog << "Program complete. Time taken: "
+              << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     close_mmap(pixel_buffers.image, FILESIZE, image_fd);
 

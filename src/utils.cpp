@@ -22,7 +22,7 @@ double random_uniform(const double low, const double high) {
 
 int random_int(const int low, const int high) {
     // Returns a random int between low (inclusive) and high (exclusive).
-    return (int) random_uniform(low, high);
+    return static_cast<int>(random_uniform(low, high));
 }
 
 double random_normal() {

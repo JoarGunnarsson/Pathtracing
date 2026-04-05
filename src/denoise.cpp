@@ -100,7 +100,7 @@ vec3 blur_pixel(const size_t p, const KernelData& kernel_data, PixelBuffers& buf
 }
 
 void one_denoising_iteration(const KernelData& kernel_data, PixelBuffers& buffers) {
-    size_t buffer_size = static_cast<size_t>(constants::WIDTH * constants::HEIGHT * 3);
+    size_t buffer_size = constants::WIDTH * constants::HEIGHT * 3;
     double* tmp_image = new double[buffer_size];
 
     for (size_t j = 0; j < constants::WIDTH * constants::HEIGHT; j++) {
@@ -128,7 +128,7 @@ void atrous_filter(PixelBuffers& buffers) {
 }
 
 void median_filter(PixelBuffers& buffers) {
-    size_t buffer_size = static_cast<size_t>(constants::WIDTH * constants::HEIGHT * 3);
+    size_t buffer_size = constants::WIDTH * constants::HEIGHT * 3;
     double* tmp_image = new double[buffer_size];
 
     int offset = (constants::median_kernel_size - 1) / 2;
