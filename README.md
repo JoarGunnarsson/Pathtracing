@@ -44,18 +44,6 @@ The directory `scenes/example/` defines a simple scene, showcasing some differen
 To run the ray tracing simulation and generate an image, simply execute the shell script `main.sh` file:
 
 ```
-usage: main.sh [-h] [--name NAME]
-
-options:
-  -h, --help              show this message
-  -n, --name <name>       the filename of the generated image, default 'result.png'
-```
-
-##### Building
-
-Before running the program, it needs to be built. This is done using CMake, and can be performed by simply executing the `build.sh` script:
-
-```
 usage: main.sh [-h] [--name NAME] [--scene_file FILE_NAME] [--settings_file FILE_NAME]
 
 options:
@@ -64,6 +52,26 @@ options:
   -c, --scene_file <file name>          the path to the scene file, default 'scenes/example/scene.json'
   -s, --settings_file <file name>       the path to the scene file, default 'scenes/example/settings.json'
 ```
+
+##### Building
+
+Before running the program, it needs to be built. This is done using CMake, and can be performed by simply executing the `build.sh` script:
+
+```
+usage: build.sh [-h] [--clean]
+
+options:
+  -h, --help              show this message
+  -c, --clean             cleans the build directory before building
+```
+
+This project can also be built in a Docker container, which includes all required dependencies. It can be built using the following command:
+
+```
+docker build -t pathtracing .
+```
+
+The recommended way of running the container is executing the `run_in_docker.sh` script, which passes all command-line arguments to the `main.sh` script inside the docker container. The `images/` directory is mounted with read-write permissions inside the container, so files in this directory **can** get overwritten. Other directories are mounted as read-only.
 
 #### Utilities
 

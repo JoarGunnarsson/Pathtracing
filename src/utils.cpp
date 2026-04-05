@@ -175,7 +175,7 @@ double fresnel_dielectric(const double cos_incident, const double n1, const doub
     // Can result in nans - seems to be caused by rays entering through the surface of concave models.
     double sin_incident = sqrt(1 - cos_incident * cos_incident);
     double cos_transmitted = sqrt(1 - pow(n1 / n2 * sin_incident, 2));
-    if (isnan(cos_transmitted)) {
+    if (std::isnan(cos_transmitted)) {
         return 0.0;
     }
     double n1_cos_incident = n1 * cos_incident;
@@ -226,7 +226,7 @@ double schlick_fresnel(const double cos_incident, const double n1, const double,
     double R_0 = R_0_sqrt * R_0_sqrt;
     double x = 1 - cos_incident;
     double fresnel = R_0 + (1 - R_0) * (x * x * x * x * x);
-    if (isnan(fresnel) || fresnel < 0 || fresnel > 1) {
+    if (std::isnan(fresnel) || fresnel < 0 || fresnel > 1) {
         return 0;
     }
     return fresnel;
