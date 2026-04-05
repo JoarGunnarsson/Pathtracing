@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <mutex>
+#include <cstring>
 #include <chrono>
 #include <stdexcept>
 #include <thread>
