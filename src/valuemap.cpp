@@ -37,7 +37,7 @@ double ValueMap1D::get(const double u, const double v) const {
     }
     size_t u_idx = static_cast<size_t>(static_cast<double>(width) * pos_fmod(u, 1.0));
     size_t v_idx = static_cast<size_t>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
-    size_t index = (v_idx * width + u_idx);
+    size_t index = (v_idx * static_cast<size_t>(width) + u_idx);
     return data[index];
 }
 
@@ -47,7 +47,7 @@ vec3 ValueMap3D::get(const double u, const double v) const {
     }
     size_t u_idx = static_cast<size_t>(static_cast<double>(width) * pos_fmod(u, 1.0));
     size_t v_idx = static_cast<size_t>(static_cast<double>(height) * pos_fmod(1 - v, 1.0));
-    size_t start_index = 3 * (v_idx * width + u_idx);
+    size_t start_index = 3 * (v_idx * static_cast<size_t>(width) + u_idx);
     return vec3(data[start_index], data[start_index + 1], data[start_index + 2]);
 }
 
