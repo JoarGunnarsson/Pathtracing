@@ -59,4 +59,4 @@ fi
 echo "Rendering scene '$SCENE_DIR'. The result can be found in images/$IMAGE_NAME"
 
 ./main $SCENE_DIR
-python python_utils/to_png.py --name $IMAGE_NAME --scene_dir $SCENE_DIR
+python python_utils/to_png.py --name $IMAGE_NAME --scene_directory $SCENE_DIR

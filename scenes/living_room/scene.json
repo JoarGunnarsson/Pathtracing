@@ -75,7 +75,7 @@
         {
             "name": "light_strength",
             "type": "ValueMap1D", "parameters":{
-                "data": [5000]
+                "data": [4000]
             }
         }
     ],

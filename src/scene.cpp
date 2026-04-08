@@ -385,10 +385,24 @@ Camera load_camera(const json& data) {
     require_field(camera_data, "focal_length");
     double focal_length = camera_data["focal_length"];
 
+    std::string depth_of_field_mode = "none";
+    double focus_distance = 0;
+    double aperture_size = 0;
+    if (camera_data.contains("depth_of_field_mode")) {
+        depth_of_field_mode = camera_data["depth_of_field_mode"];
+
+        require_field(camera_data, "focus_distance");
+        require_field(camera_data, "aperture_size");
+
+        focus_distance = camera_data["focus_distance"];
+        aperture_size = camera_data["aperture_size"];
+    }
+
     double X = YZX[2];
     double Y = YZX[0];
     double Z = YZX[1];
-    return Camera(camera_position, X, Y, Z, camera_width, focal_length);
+    return Camera(camera_position, X, Y, Z, camera_width, focal_length, depth_of_field_mode, aperture_size,
+                  focus_distance);
 }
 
 void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* manager) {
