@@ -180,9 +180,6 @@ PixelData compute_pixel_color(const size_t x, const size_t y, const Scene& scene
     PixelData data;
     vec3 pixel_color = vec3(0, 0, 0);
     for (size_t i = 0; i < number_of_samples; i++) {
-        Ray ray;
-        ray.starting_position = scene.camera.position;
-        ray.type = TRANSMITTED;
         double new_x = static_cast<double>(x);
         double new_y = static_cast<double>(y);
 
@@ -190,7 +187,7 @@ PixelData compute_pixel_color(const size_t x, const size_t y, const Scene& scene
             new_x += random_normal() / 3.0;
             new_y += random_normal() / 3.0;
         }
-        ray.direction_vector = scene.camera.get_starting_directions(new_x, new_y, ray.starting_position);
+        Ray ray = scene.camera.make_ray(new_x, new_y);
         PixelData sampled_data =
             raytrace(ray, scene.objects, scene.number_of_objects, scene.medium, scene.background_color);
         data.pixel_position += sampled_data.pixel_position;

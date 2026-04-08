@@ -36,12 +36,13 @@ def load_image_data(file_name, width, height):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", type=str, default="result.png", help="name of the resulting image.")
+    parser.add_argument("--name", type=str, default="result.png", help="name of the resulting image.", required=True)
     parser.add_argument(
-        "--settings_file",
+        "--scene_directory",
         type=str,
-        default="scenes/settings.json",
-        help="the settings file path, relative to main project directory.",
+        default="scenes/example",
+        help="path to the scene directory, relative to the main project directory.",
+        required=True,
     )
     return parser.parse_args()
 
@@ -54,7 +55,7 @@ def gamma_correction(image):
 
 def main():
     args = parse_arguments()
-    settings = load_settings_file(PROJECT_PATH / args.settings_file)
+    settings = load_settings_file(PROJECT_PATH / args.scene_directory / "settings.json")
     width, height = settings.get("WIDTH", 1000), settings.get("HEIGHT", 1000)
 
     use_gamma_correction = settings.get("use_gamma_correction", False)

@@ -2,6 +2,7 @@
 #define CAMERA_H
 #include "vec3.h"
 #include "constants.h"
+#include "utils.h"
 
 class Camera {
   public:
@@ -9,10 +10,12 @@ class Camera {
 
     Camera() {}
     Camera(vec3 const& _position, const double X, const double Y, const double Z, const double _camera_width,
-           const double _focal_length);
+           const double _focal_length, const std::string& _depth_of_field_mode, const double _aperture_size,
+           const double _focus_distance);
 
     vec3 index_to_position(const double x, const double y) const;
-    vec3 get_starting_directions(const double x, const double y) const;
+    void adjust_depth_of_field(Ray& ray) const;
+    Ray make_ray(const double x, const double y) const;
 
   private:
     vec3 viewing_direction;
@@ -22,6 +25,9 @@ class Camera {
     double camera_width;
     double screen_height;
     double focal_length;
+    std::string depth_of_field_mode;
+    double aperture_size;
+    double focus_distance;
 };
 
 #endif
