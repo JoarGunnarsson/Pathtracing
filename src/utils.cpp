@@ -241,17 +241,19 @@ double fresnel_multiplier(const double cos_incident, const double n1, const doub
     return fresnel_conductor(cos_incident, n1, k1, n2, k2);
 }
 
-double* create_mmap(const std::string& filepath, const size_t file_size, int& fd) {
+double* create_mmap(const std::string& filepath, const size_t file_size, const bool clear_content, int& fd) {
     fd = open(filepath.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1) {
         perror("Error opening file");
         exit(EXIT_FAILURE);
     }
 
-    if (ftruncate(fd, 0) == -1) {
-        perror("Error clearing temporary file");
-        close(fd);
-        exit(EXIT_FAILURE);
+    if (clear_content) {
+        if (ftruncate(fd, 0) == -1) {
+            perror("Error clearing temporary file");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (ftruncate(fd, static_cast<off_t>(file_size)) == -1) {

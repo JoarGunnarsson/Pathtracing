@@ -59,7 +59,7 @@ def main():
     width, height = settings.get("WIDTH", 1000), settings.get("HEIGHT", 1000)
 
     use_gamma_correction = settings.get("use_gamma_correction", False)
-    result_image = load_image_data(TMP_FILES_PATH / "raw.dat", width, height)
+    result_image = load_image_data(TMP_FILES_PATH / "raw_pixel.dat", width, height)
     if use_gamma_correction:
         result_image = gamma_correction(result_image)
 

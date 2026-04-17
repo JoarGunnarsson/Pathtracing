@@ -230,8 +230,8 @@ void update_and_report_progress(size_t* thread_progress) {
     print_progress(progress_percent);
 }
 
-template<typename T>
-T increment_average(const T previous, const T addition, const double samples_prev, const double samples_add) {
+double increment_average(const double previous, const double addition, const double samples_prev,
+                         const double samples_add) {
     return (previous * samples_prev + addition * samples_add) / (samples_prev + samples_add);
 }
 
@@ -256,11 +256,14 @@ void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers,
             for (size_t j = 0; j < 3; j++) {
                 buffers.image[3 * idx + j] =
                     increment_average(buffers.image[3 * idx + j], data.pixel_color[j], prev_samples, this_samples);
+
+                buffers.position_buffer[3 * idx + j] = increment_average(
+                    buffers.position_buffer[3 * idx + j], data.pixel_position[j], prev_samples, this_samples);
+
+                buffers.normal_buffer[3 * idx + j] = increment_average(
+                    buffers.normal_buffer[3 * idx + j], data.pixel_normal[j], prev_samples, this_samples);
             }
-            buffers.position_buffer[idx] =
-                increment_average(buffers.position_buffer[idx], data.pixel_position, prev_samples, this_samples);
-            buffers.normal_buffer[idx] =
-                increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, this_samples);
+
             thread_context.pixel_counters[idx] += job.number_of_samples;
         }
 
@@ -314,19 +317,18 @@ int main(int argc, char* argv[]) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    PixelBuffers pixel_buffers;
     size_t pixel_count = constants::WIDTH * constants::HEIGHT;
-    size_t array_size = pixel_count;
-    pixel_buffers.position_buffer = new vec3[array_size];
-    pixel_buffers.normal_buffer = new vec3[array_size];
 
     size_t FILESIZE = pixel_count * 3 * sizeof(double);
 
     std::clog << "Running program with number of threads: " << constants::number_of_threads << ".\n";
     std::thread thread_array[constants::number_of_threads];
 
-    int image_fd;
-    pixel_buffers.image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
+    PixelBuffers pixel_buffers;
+    int image_fd, position_fd, normal_fd;
+    pixel_buffers.image = create_mmap(constants::raw_pixeldata_file, FILESIZE, true, image_fd);
+    pixel_buffers.position_buffer = create_mmap(constants::raw_positiondata_file, FILESIZE, true, position_fd);
+    pixel_buffers.normal_buffer = create_mmap(constants::raw_normaldata_file, FILESIZE, true, normal_fd);
 
     print_progress(0);
     size_t pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
@@ -366,7 +368,7 @@ int main(int argc, char* argv[]) {
         std::clog << "Denoising..." << std::endl;
         PixelBuffers denoising_buffers;
         int denoised_image_fd;
-        denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
+        denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, true, denoised_image_fd);
 
         std::memcpy(denoising_buffers.image, pixel_buffers.image, FILESIZE);
         denoising_buffers.position_buffer = pixel_buffers.position_buffer;
@@ -380,10 +382,9 @@ int main(int argc, char* argv[]) {
               << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     close_mmap(pixel_buffers.image, FILESIZE, image_fd);
+    close_mmap(pixel_buffers.position_buffer, FILESIZE, position_fd);
+    close_mmap(pixel_buffers.normal_buffer, FILESIZE, normal_fd);
 
     clear_scene(scene);
-
-    delete[] pixel_buffers.position_buffer;
-    delete[] pixel_buffers.normal_buffer;
     return 0;
 }

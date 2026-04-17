@@ -29,6 +29,8 @@ const size_t max_number_of_threads = std::thread::hardware_concurrency() - 1; //
 const double EPSILON = 0.000001;
 const double max_ray_distance = 1.0 / 0.0;
 
-const std::string raw_file_name = "./temp/raw.dat";
+const std::string raw_pixeldata_file = "./temp/raw_pixel.dat";
+const std::string raw_positiondata_file = "./temp/raw_position.dat";
+const std::string raw_normaldata_file = "./temp/raw_normal.dat";
 const std::string raw_denoised_file_name = "./temp/raw_denoised.dat";
 }

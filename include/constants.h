@@ -30,7 +30,9 @@ extern const size_t max_number_of_threads;
 extern const double EPSILON;
 extern const double max_ray_distance;
 
-extern const std::string raw_file_name;
+extern const std::string raw_pixeldata_file;
+extern const std::string raw_positiondata_file;
+extern const std::string raw_normaldata_file;
 extern const std::string raw_denoised_file_name;
 }
 

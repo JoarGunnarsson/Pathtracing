@@ -14,8 +14,8 @@ enum reflection_type { DIFFUSE = 0, REFLECTED = 1, TRANSMITTED = 2 };
 
 struct PixelBuffers {
     double* image;
-    vec3* position_buffer;
-    vec3* normal_buffer;
+    double* position_buffer;
+    double* normal_buffer;
 };
 
 struct Hit {
@@ -83,7 +83,7 @@ double schlick_fresnel(const double cos_incident, const double n1, const double 
 double fresnel_multiplier(const double cos_incident, const double n1, const double k1, const double n2, const double k2,
                           const bool is_dielectric);
 
-double* create_mmap(const std::string& filepath, const size_t file_size, int& fd);
+double* create_mmap(const std::string& filepath, const size_t file_size, const bool clear_content, int& fd);
 void close_mmap(double* mmap_file, const size_t file_size, const int fd);
 
 #endif

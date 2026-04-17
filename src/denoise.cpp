@@ -38,13 +38,22 @@ int clamp_y_coordinate(int y) {
 }
 
 double compute_weight(const size_t p, const size_t q, const KernelData& kernel_data, const PixelBuffers& buffers) {
-    vec3 pixel_p = vec3(buffers.image[3 * p], buffers.image[3 * p + 1], buffers.image[3 * p + 2]);
-    vec3 pixel_q = vec3(buffers.image[3 * q], buffers.image[3 * q + 1], buffers.image[3 * q + 2]);
+    vec3 pixel_p, pixel_q;
+    vec3 pos_p, pos_q;
+    vec3 normal_p, normal_q;
+    for (size_t j = 0; j < 3; j++) {
+        pixel_p[j] = buffers.image[3 * p + j];
+        pixel_q[j] = buffers.image[3 * q + j];
+
+        pos_p[j] = buffers.position_buffer[3 * p + j];
+        pos_q[j] = buffers.position_buffer[3 * q + j];
+
+        normal_p[j] = buffers.normal_buffer[3 * p + j];
+        normal_q[j] = buffers.normal_buffer[3 * q + j];
+    }
     double w_rt = std::exp(-(pixel_p - pixel_q).length() / (kernel_data.sigma_rt * kernel_data.sigma_rt));
-    double w_x = std::exp(-(buffers.position_buffer[p] - buffers.position_buffer[q]).length() /
-                          (kernel_data.sigma_x * kernel_data.sigma_x));
-    double w_n = std::exp(-(buffers.normal_buffer[p] - buffers.normal_buffer[q]).length() /
-                          (kernel_data.sigma_n * kernel_data.sigma_n));
+    double w_x = std::exp(-(pos_p - pos_q).length() / (kernel_data.sigma_x * kernel_data.sigma_x));
+    double w_n = std::exp(-(normal_p - normal_q).length() / (kernel_data.sigma_n * kernel_data.sigma_n));
 
     return w_rt * w_x * w_n;
 }
