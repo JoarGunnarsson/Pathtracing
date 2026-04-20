@@ -24,8 +24,9 @@ double sigma_n = 0.4;
 
 bool enable_median_filtering = false;
 int median_kernel_size = 3;
+double median_filter_threshold = 0;
 
-const size_t max_number_of_threads = std::thread::hardware_concurrency() - 1; //FIXME: What if there is only 1 core?
+const size_t max_number_of_threads = std::max(std::thread::hardware_concurrency() - 1, static_cast<unsigned int>(1));
 const double EPSILON = 0.000001;
 const double max_ray_distance = 1.0 / 0.0;
 

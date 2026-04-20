@@ -170,9 +170,18 @@ void median_filter(PixelBuffers& buffers) {
         std::nth_element(g, g + size / 2, g + size);
         std::nth_element(b, b + size / 2, b + size);
 
-        tmp_image[3 * idx] = r[size / 2];
-        tmp_image[3 * idx + 1] = g[size / 2];
-        tmp_image[3 * idx + 2] = b[size / 2];
+        vec3 median = vec3(0);
+        median[0] = r[size / 2];
+        median[1] = g[size / 2];
+        median[2] = b[size / 2];
+
+        vec3 pixel_colour = vec3(buffers.image[3 * idx], buffers.image[3 * idx + 1], buffers.image[3 * idx + 2]);
+        if ((pixel_colour - median).length() > constants::median_filter_threshold) {
+            pixel_colour = median;
+        }
+        for (size_t j = 0; j < 3; j++) {
+            tmp_image[3 * idx + j] = pixel_colour[j];
+        }
     }
     std::memcpy(buffers.image, tmp_image, buffer_size * sizeof(double));
     delete[] r;

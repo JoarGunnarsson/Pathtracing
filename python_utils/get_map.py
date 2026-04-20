@@ -41,7 +41,7 @@ def create_albedo_map(input_file, output_file):
     img = normalize_image(img)
     img = np.hstack((np.array([width, height, dim]), img))
 
-    img.tofile(PROJECT_PATH / output_file, sep="")
+    img.tofile(output_file, sep="")
 
 
 def create_1D_map(input_file, output_file, invert):
@@ -59,7 +59,7 @@ def create_1D_map(input_file, output_file, invert):
 
     img = np.hstack((np.array([width, height, dim]), img))
 
-    img.tofile(PROJECT_PATH / output_file, sep="")
+    img.tofile(output_file, sep="")
 
 
 def parse_arguments():
@@ -77,12 +77,14 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+    out_path = PROJECT_PATH / args.out_file
+    pathlib.Path(out_path.parent).mkdir(exist_ok=True)
     if args.mode == Modes.ALBEDO:
-        create_albedo_map(args.in_file, args.out_file)
+        create_albedo_map(args.in_file, out_path)
     elif args.mode == Modes.TRANSPARENCY:
-        create_1D_map(args.in_file, args.out_file, invert=False)
+        create_1D_map(args.in_file, out_path, invert=False)
     elif args.mode == Modes.OPACITY:
-        create_1D_map(args.in_file, args.out_file, invert=True)
+        create_1D_map(args.in_file, out_path, invert=True)
     else:
         raise ValueError(f"{args.mode} is not a valid mode!")
 

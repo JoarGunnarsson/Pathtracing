@@ -6,8 +6,13 @@ include(FetchContent)
 file(GLOB sources src/*.cpp)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ..)
 
-add_executable(main ${sources})
-target_compile_options(main PUBLIC -std=c++17 -Wall -Wextra -Wconversion -Werror -O3)
+add_executable(pathtracer ${sources} app/pathtracer.cpp)
+target_compile_options(pathtracer PUBLIC -std=c++17 -Wall -Wextra -Wconversion -Werror -O3)
+
+add_executable(denoiser ${sources} app/denoiser.cpp)
+target_compile_options(denoiser PUBLIC -std=c++17 -Wall -Wextra -Wconversion -Werror -O3)
+
+
 include_directories(include)
 
 FetchContent_Declare(
@@ -18,4 +23,5 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(json)
 
-target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(pathtracer PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(denoiser PRIVATE nlohmann_json::nlohmann_json)

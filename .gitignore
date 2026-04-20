@@ -1,5 +1,6 @@
 .vscode
-main
+pathtracer
+denoiser
 *.DS_Store
 *.ppm
 *.png

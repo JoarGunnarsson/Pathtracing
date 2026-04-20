@@ -63,13 +63,18 @@ def main():
     if use_gamma_correction:
         result_image = gamma_correction(result_image)
 
-    plt.imsave(IMAGES_FILE_PATH / args.name, result_image)
+    image_path = IMAGES_FILE_PATH / args.name
+    pathlib.Path(image_path.parent).mkdir(exist_ok=True)
+    plt.imsave(image_path, result_image)
 
     if settings.get("enable_atrous_filtering", False) or settings.get("enable_median_filtering", False):
         denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", width, height)
         if use_gamma_correction:
             denoised_image = gamma_correction(denoised_image)
-        plt.imsave(IMAGES_FILE_PATH / "denoised" / args.name, denoised_image)
+
+        denoised_image_path = IMAGES_FILE_PATH / "denoised" / args.name
+        pathlib.Path(denoised_image_path.parent).mkdir(exist_ok=True)
+        plt.imsave(denoised_image_path, denoised_image)
 
 
 if __name__ == "__main__":

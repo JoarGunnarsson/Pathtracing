@@ -94,6 +94,10 @@ void load_settings(const std::string& file_path) {
         static_cast<size_t>(constants::median_kernel_size) >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
         throw std::runtime_error("Too large median filter kernel size for this image size.");
     }
+    load_one_setting(data, "median_filter_threshold", constants::median_filter_threshold);
+    if (constants::median_filter_threshold < 0) {
+        throw std::runtime_error("Median filter threshold cannot be negative.");
+    }
 }
 
 void require_field(const json& data, const std::string& key) {

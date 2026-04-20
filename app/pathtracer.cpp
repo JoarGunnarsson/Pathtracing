@@ -7,7 +7,6 @@
 #include <thread>
 #include "vec3.h"
 #include "colors.h"
-#include "denoise.h"
 #include "objects.h"
 #include "camera.h"
 #include "utils.h"
@@ -246,6 +245,7 @@ void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers,
         PixelData data = compute_pixel_color(x, y, scene, job.number_of_samples);
 
         size_t scaled_idx = idx * (constants::number_of_threads / (constants::WIDTH * constants::HEIGHT));
+        // TODO: Does it use the same pixels as the job?
         std::mutex& section_mutex = thread_context.pixel_section_mutexes[scaled_idx];
         {
             std::unique_lock<std::mutex> lock(section_mutex);
@@ -298,7 +298,6 @@ void clear_scene(Scene& scene) {
 }
 
 int main(int argc, char* argv[]) {
-    std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
     if (argc != 2) {
         throw std::runtime_error(
             "Invalid arguments provided.\n"
@@ -307,6 +306,7 @@ int main(int argc, char* argv[]) {
             "positional arguments:\n"
             "   scene_directory                  path to the scene directory (relative to main project directory)");
     }
+    std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
     load_settings(std::string(argv[1]) + "/settings.json");
     Scene scene = load_scene(std::string(argv[1]) + "/scene.json");
 
@@ -364,19 +364,6 @@ int main(int argc, char* argv[]) {
     print_progress(100);
     std::clog << std::endl;
 
-    if (constants::enable_atrous_filtering || constants::enable_median_filtering) {
-        std::clog << "Denoising..." << std::endl;
-        PixelBuffers denoising_buffers;
-        int denoised_image_fd;
-        denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, true, denoised_image_fd);
-
-        std::memcpy(denoising_buffers.image, pixel_buffers.image, FILESIZE);
-        denoising_buffers.position_buffer = pixel_buffers.position_buffer;
-        denoising_buffers.normal_buffer = pixel_buffers.normal_buffer;
-
-        denoise(denoising_buffers);
-        close_mmap(denoising_buffers.image, FILESIZE, denoised_image_fd);
-    }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::clog << "Program complete. Time taken: "
               << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;

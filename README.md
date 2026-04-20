@@ -49,7 +49,7 @@ usage: main.sh [-h] [--name NAME] [--scene_directory DIRECTORY]
 options:
   -h, --help                            show this message
   -n, --name <name>                     the name of the generated image, default 'result.png'
-  -c, --scene_directory <directory>     path to the scene directory, default scenes/example
+  -s, --scene_directory <directory>     path to the scene directory, default scenes/example
 ```
 
 ##### Building
