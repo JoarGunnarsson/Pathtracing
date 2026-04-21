@@ -22,6 +22,9 @@ def tone_map(image):
 def load_image_data(file_name, width, height):
     image = np.fromfile(file_name, dtype=np.float64, sep="")
     image = np.reshape(image, (height, width, 3))
+    if image[np.isnan(image)].size > 0:
+        print(f"Found NaN pixels in file: {file_name}")
+
     image = tone_map(image)
 
     image_min = np.min(image)
