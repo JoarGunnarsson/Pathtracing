@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
     if (argc != 2) {
         throw std::runtime_error(
             "Invalid arguments provided.\n"
-            "Usage: main scene_directory\n\n"
+            "Usage: pathtracer <scene_directory>\n\n"
 
             "positional arguments:\n"
             "   scene_directory                  path to the scene directory (relative to main project directory)");
