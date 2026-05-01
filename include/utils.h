@@ -1,21 +1,22 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "vec3.h"
-#include "constants.h"
 #include <random>
 #include <complex>
+
+#include "vec3.h"
+#include "constants.h"
 
 double random_uniform(const double low, const double high);
 int random_int(const int low, const int high);
 double random_normal();
 
-enum reflection_type { DIFFUSE = 0, REFLECTED = 1, TRANSMITTED = 2 };
+enum struct ReflectionType { DIFFUSE = 0, REFLECTED = 1, TRANSMITTED = 2 };
 
 struct PixelBuffers {
     double* image;
-    vec3* position_buffer;
-    vec3* normal_buffer;
+    double* position_buffer;
+    double* normal_buffer;
 };
 
 struct Hit {
@@ -31,7 +32,7 @@ struct Hit {
 struct Ray {
     vec3 starting_position;
     vec3 direction_vector;
-    int type = DIFFUSE;
+    ReflectionType type = ReflectionType::DIFFUSE;
     double t_max = constants::max_ray_distance;
     int kx;
     int ky;
@@ -83,7 +84,7 @@ double schlick_fresnel(const double cos_incident, const double n1, const double 
 double fresnel_multiplier(const double cos_incident, const double n1, const double k1, const double n2, const double k2,
                           const bool is_dielectric);
 
-double* create_mmap(const std::string& filepath, const size_t file_size, int& fd);
+double* create_mmap(const std::string& filepath, const size_t file_size, const bool clear_content, int& fd);
 void close_mmap(double* mmap_file, const size_t file_size, const int fd);
 
 #endif

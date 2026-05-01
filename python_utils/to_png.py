@@ -10,7 +10,7 @@ IMAGES_FILE_PATH = PROJECT_PATH / "images"
 TMP_FILES_PATH = PROJECT_PATH / "temp"
 
 
-def load_settings_file(file_name):
+def load_json_file(file_name):
     with open(file_name) as f:
         return json.load(f)
 
@@ -22,6 +22,9 @@ def tone_map(image):
 def load_image_data(file_name, width, height):
     image = np.fromfile(file_name, dtype=np.float64, sep="")
     image = np.reshape(image, (height, width, 3))
+    if image[np.isnan(image)].size > 0:
+        print(f"Found NaN pixels in file: {file_name}")
+
     image = tone_map(image)
 
     image_min = np.min(image)
@@ -53,23 +56,39 @@ def gamma_correction(image):
     return image
 
 
+def check_denoising_enabled(denoising_settings):
+    if not "pipeline" in denoising_settings:
+        return False
+
+    for task in denoising_settings["pipeline"]:
+        if task.get("mode", "skip") != "skip":
+            return True
+    return False
+
+
 def main():
     args = parse_arguments()
-    settings = load_settings_file(PROJECT_PATH / args.scene_directory / "settings.json")
+    settings = load_json_file(PROJECT_PATH / args.scene_directory / "settings.json")
     width, height = settings.get("WIDTH", 1000), settings.get("HEIGHT", 1000)
 
     use_gamma_correction = settings.get("use_gamma_correction", False)
-    result_image = load_image_data(TMP_FILES_PATH / "raw.dat", width, height)
+    result_image = load_image_data(TMP_FILES_PATH / "raw_pixel.dat", width, height)
     if use_gamma_correction:
         result_image = gamma_correction(result_image)
 
-    plt.imsave(IMAGES_FILE_PATH / args.name, result_image)
+    image_path = IMAGES_FILE_PATH / args.name
+    pathlib.Path(image_path.parent).mkdir(exist_ok=True)
+    plt.imsave(image_path, result_image)
 
-    if settings.get("enable_atrous_filtering", False) or settings.get("enable_median_filtering", False):
+    denoising_settings = load_json_file(PROJECT_PATH / args.scene_directory / "denoising.json")
+    if check_denoising_enabled(denoising_settings):
         denoised_image = load_image_data(TMP_FILES_PATH / "raw_denoised.dat", width, height)
         if use_gamma_correction:
             denoised_image = gamma_correction(denoised_image)
-        plt.imsave(IMAGES_FILE_PATH / "denoised" / args.name, denoised_image)
+
+        denoised_image_path = IMAGES_FILE_PATH / "denoised" / args.name
+        pathlib.Path(denoised_image_path.parent).mkdir(exist_ok=True)
+        plt.imsave(denoised_image_path, denoised_image)
 
 
 if __name__ == "__main__":

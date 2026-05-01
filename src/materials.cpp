@@ -44,7 +44,7 @@ Material::Material(MaterialData data) {
 
 BrdfData sample_transparent_ray(const Hit& hit, const double, const double) {
     BrdfData data;
-    data.type = TRANSMITTED;
+    data.type = ReflectionType::TRANSMITTED;
     data.outgoing_vector = hit.incident_vector;
     data.brdf_over_pdf = colors::WHITE;
     data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
@@ -96,7 +96,7 @@ BrdfData DiffuseMaterial::sample(const Hit& hit, const double u, const double v)
     data.outgoing_vector = outgoing_vector;
     data.brdf_over_pdf = albedo_map->get(u, v);
     data.pdf = brdf_pdf(outgoing_vector, hit.incident_vector, hit.normal_vector, u, v);
-    data.type = DIFFUSE;
+    data.type = ReflectionType::DIFFUSE;
     return data;
 }
 
@@ -118,7 +118,7 @@ BrdfData ReflectiveMaterial::sample(const Hit& hit, const double u, const double
     data.outgoing_vector = outgoing_vector;
     data.brdf_over_pdf = is_dielectric ? colors::WHITE : albedo_map->get(u, v);
     data.pdf = 0; // Cannot sample a dirac distribution, so we set it to 0.
-    data.type = REFLECTED;
+    data.type = ReflectionType::REFLECTED;
     return data;
 }
 
@@ -166,11 +166,11 @@ BrdfData TransparentMaterial::sample(const Hit& hit, const double u, const doubl
 
     BrdfData data;
     if (is_reflected) {
-        data.type = REFLECTED;
+        data.type = ReflectionType::REFLECTED;
         data.outgoing_vector = reflect_vector(hit.incident_vector, hit.normal_vector);
     }
     else {
-        data.type = TRANSMITTED;
+        data.type = ReflectionType::TRANSMITTED;
         data.outgoing_vector = transmitted_vector;
     }
     data.brdf_over_pdf = colors::WHITE;
@@ -308,7 +308,7 @@ BrdfData GlossyMaterial::sample(const Hit& hit, const double u, const double v) 
                                   0 :
                                   eval(hit, brdf_data.outgoing_vector, u, v) *
                                       dot_vectors(brdf_data.outgoing_vector, hit.normal_vector) / brdf_data.pdf;
-    brdf_data.type = DIFFUSE;
+    brdf_data.type = ReflectionType::DIFFUSE;
     // TODO: The above cos term, should it be normal vector or half vector? I think maybe it was half vector before but I changed it? But test anyways.
     return brdf_data;
 }
@@ -377,7 +377,7 @@ BrdfData MetallicMicrofacetMaterial::sample(const Hit& hit, const double u, cons
                                   0 :
                                   eval(hit, brdf_data.outgoing_vector, u, v) *
                                       dot_vectors(brdf_data.outgoing_vector, hit.normal_vector) / brdf_data.pdf;
-    brdf_data.type = DIFFUSE;
+    brdf_data.type = ReflectionType::DIFFUSE;
     // TODO: The above cos term, should it be normal vector or half vector? I think maybe it was half vector before but I changed it? But test anyways.
     return brdf_data;
 }
@@ -442,7 +442,7 @@ BrdfData TransparentMicrofacetMaterial::sample(const Hit& hit, const double u, c
 
     vec3 half_vector;
     brdf_data.outgoing_vector = sample_outgoing(half_vector, hit.incident_vector, hit.normal_vector, hit.outside, u, v);
-    brdf_data.type = TRANSMITTED;
+    brdf_data.type = ReflectionType::TRANSMITTED;
 
     double cosine_factor =
         dot_vectors(hit.incident_vector, half_vector) /

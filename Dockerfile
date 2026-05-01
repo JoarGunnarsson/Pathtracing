@@ -11,6 +11,7 @@ RUN cd /pathtracing && ./setup_venv.sh
 
 COPY ./include /pathtracing/include
 COPY ./src /pathtracing/src
+COPY ./app /pathtracing/app
 COPY ./python_utils /pathtracing/python_utils
 
 RUN ./build.sh

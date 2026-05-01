@@ -22,15 +22,19 @@ extern int denoising_iterations;
 extern double sigma_rt;
 extern double sigma_x;
 extern double sigma_n;
+
 extern bool enable_median_filtering;
 extern int median_kernel_size;
+extern double median_filter_threshold;
 
 // Fixed constants
 extern const size_t max_number_of_threads;
 extern const double EPSILON;
 extern const double max_ray_distance;
 
-extern const std::string raw_file_name;
+extern const std::string raw_pixeldata_file;
+extern const std::string raw_positiondata_file;
+extern const std::string raw_normaldata_file;
 extern const std::string raw_denoised_file_name;
 }
 

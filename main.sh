@@ -5,14 +5,20 @@ PROJECT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd $PROJECT_DIR
 
 if test ! -d "venv" ; then
-    echo "Virtual environment could not be found. Run 'setup.sh' to set up the project environment first.";
+    echo "Virtual environment could not be found. Run 'setup_venv.sh' to set up the project environment first.";
     exit;
 fi
 
-if test ! -f "main" ; then
-    echo "Main executable could not be found. Run 'setup.sh' to set up the project environment first.";
+if test ! -f "pathtracer" ; then
+    echo "Pathtracer executable could not be found. Run 'build.sh' to build all required executables first.";
     exit;
 fi
+
+if test ! -f "denoiser" ; then
+    echo "Denoiser executable could not be found. Run 'build.sh' to build all required executables first.";
+    exit;
+fi
+
 
 source venv/bin/activate
 
@@ -22,7 +28,7 @@ show_help() {
     echo "options:"
     echo "  -h, --help                            show this message"
     echo "  -n, --name <name>                     the name of the generated image, default 'result.png'"
-    echo "  -c, --scene_directory <directory>     path to the scene directory, default scenes/example"
+    echo "  -s, --scene_directory <directory>     path to the scene directory, default scenes/example"
 }
 
 IMAGE_NAME="result.png"
@@ -58,5 +64,6 @@ fi
 
 echo "Rendering scene '$SCENE_DIR'. The result can be found in images/$IMAGE_NAME"
 
-./main $SCENE_DIR
+./pathtracer $SCENE_DIR
+./denoiser $SCENE_DIR
 python python_utils/to_png.py --name $IMAGE_NAME --scene_directory $SCENE_DIR

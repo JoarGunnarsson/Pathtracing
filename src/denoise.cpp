@@ -1,8 +1,8 @@
+#include <cstring>
+#include <algorithm>
 
 #include "utils.h"
 #include "denoise.h"
-#include <cstring>
-#include <algorithm>
 
 void get_image_coordinates(int& x, int& y, const size_t idx) {
     x = static_cast<int>(idx % constants::WIDTH);
@@ -37,14 +37,30 @@ int clamp_y_coordinate(int y) {
     return y;
 }
 
+double compute_weight_component(const vec3& vec_p, const vec3& vec_q, const double standard_deviation) {
+    if (standard_deviation == 0) {
+        return 0;
+    }
+    return std::exp(-(vec_p - vec_q).length() / (standard_deviation * standard_deviation));
+}
+
 double compute_weight(const size_t p, const size_t q, const KernelData& kernel_data, const PixelBuffers& buffers) {
-    vec3 pixel_p = vec3(buffers.image[3 * p], buffers.image[3 * p + 1], buffers.image[3 * p + 2]);
-    vec3 pixel_q = vec3(buffers.image[3 * q], buffers.image[3 * q + 1], buffers.image[3 * q + 2]);
-    double w_rt = std::exp(-(pixel_p - pixel_q).length() / (kernel_data.sigma_rt * kernel_data.sigma_rt));
-    double w_x = std::exp(-(buffers.position_buffer[p] - buffers.position_buffer[q]).length() /
-                          (kernel_data.sigma_x * kernel_data.sigma_x));
-    double w_n = std::exp(-(buffers.normal_buffer[p] - buffers.normal_buffer[q]).length() /
-                          (kernel_data.sigma_n * kernel_data.sigma_n));
+    vec3 pixel_p, pixel_q;
+    vec3 pos_p, pos_q;
+    vec3 normal_p, normal_q;
+    for (size_t j = 0; j < 3; j++) {
+        pixel_p[j] = buffers.image[3 * p + j];
+        pixel_q[j] = buffers.image[3 * q + j];
+
+        pos_p[j] = buffers.position_buffer[3 * p + j];
+        pos_q[j] = buffers.position_buffer[3 * q + j];
+
+        normal_p[j] = buffers.normal_buffer[3 * p + j];
+        normal_q[j] = buffers.normal_buffer[3 * q + j];
+    }
+    double w_rt = compute_weight_component(pixel_p, pixel_q, kernel_data.sigma_rt);
+    double w_x = compute_weight_component(pos_p, pos_q, kernel_data.sigma_x);
+    double w_n = compute_weight_component(normal_p, normal_q, kernel_data.sigma_n);
 
     return w_rt * w_x * w_n;
 }
@@ -116,9 +132,12 @@ void one_denoising_iteration(const KernelData& kernel_data, PixelBuffers& buffer
     delete[] tmp_image;
 }
 
-void atrous_filter(PixelBuffers& buffers) {
+void atrous_filter(PixelBuffers& buffers, AtrousParamters parameters) {
     KernelData kernel_data;
-    for (int iteration = 0; iteration < constants::denoising_iterations; iteration++) {
+    kernel_data.sigma_rt = parameters.sigma_rt;
+    kernel_data.sigma_x = parameters.sigma_x;
+    kernel_data.sigma_n = parameters.sigma_n;
+    for (int iteration = 0; iteration < parameters.iterations; iteration++) {
         one_denoising_iteration(kernel_data, buffers);
         kernel_data.sigma_rt /= 2.0;
         kernel_data.sigma_x /= 2.0;
@@ -127,12 +146,12 @@ void atrous_filter(PixelBuffers& buffers) {
     }
 }
 
-void median_filter(PixelBuffers& buffers) {
+void median_filter(PixelBuffers& buffers, MedianFilterParamters parameters) {
     size_t buffer_size = constants::WIDTH * constants::HEIGHT * 3;
     double* tmp_image = new double[buffer_size];
 
-    int offset = (constants::median_kernel_size - 1) / 2;
-    size_t size = static_cast<size_t>(constants::median_kernel_size * constants::median_kernel_size);
+    int offset = (parameters.kernel_size - 1) / 2;
+    size_t size = static_cast<size_t>(parameters.kernel_size * parameters.kernel_size);
     double* r = new double[size];
     double* g = new double[size];
     double* b = new double[size];
@@ -161,9 +180,18 @@ void median_filter(PixelBuffers& buffers) {
         std::nth_element(g, g + size / 2, g + size);
         std::nth_element(b, b + size / 2, b + size);
 
-        tmp_image[3 * idx] = r[size / 2];
-        tmp_image[3 * idx + 1] = g[size / 2];
-        tmp_image[3 * idx + 2] = b[size / 2];
+        vec3 median = vec3(0);
+        median[0] = r[size / 2];
+        median[1] = g[size / 2];
+        median[2] = b[size / 2];
+
+        vec3 pixel_colour = vec3(buffers.image[3 * idx], buffers.image[3 * idx + 1], buffers.image[3 * idx + 2]);
+        if ((pixel_colour - median).length() > parameters.threshold) {
+            pixel_colour = median;
+        }
+        for (size_t j = 0; j < 3; j++) {
+            tmp_image[3 * idx + j] = pixel_colour[j];
+        }
     }
     std::memcpy(buffers.image, tmp_image, buffer_size * sizeof(double));
     delete[] r;
@@ -172,12 +200,13 @@ void median_filter(PixelBuffers& buffers) {
     delete[] tmp_image;
 }
 
-void denoise(PixelBuffers& buffers) {
-    if (constants::enable_median_filtering) {
-        median_filter(buffers);
-    }
-
-    if (constants::enable_atrous_filtering) {
-        atrous_filter(buffers);
+void denoise(PixelBuffers& buffers, std::vector<DenoisingTask> pipeline) {
+    for (DenoisingTask& task : pipeline) {
+        if (task.mode == "atrous") {
+            atrous_filter(buffers, std::get<AtrousParamters>(task.params));
+        }
+        else if (task.mode == "median") {
+            median_filter(buffers, std::get<MedianFilterParamters>(task.params));
+        }
     }
 }

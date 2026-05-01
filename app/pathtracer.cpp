@@ -7,7 +7,6 @@
 #include <thread>
 #include "vec3.h"
 #include "colors.h"
-#include "denoise.h"
 #include "objects.h"
 #include "camera.h"
 #include "utils.h"
@@ -84,7 +83,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
                 color +=
                     sample_light(ray_hit, objects, number_of_objects, background_medium, medium, true) * throughput;
 
-                ray.type = DIFFUSE;
+                ray.type = ReflectionType::DIFFUSE;
                 scatter_pdf = medium->phase_function(ray.direction_vector, scattered_direction);
                 saved_point = scatter_point;
             }
@@ -99,7 +98,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
                 has_hit_surface = true;
             }
 
-            bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
+            bool is_specular_ray = ray.type == ReflectionType::REFLECTED || ray.type == ReflectionType::TRANSMITTED;
             Object const* hit_object = objects[ray_hit.intersected_object_index];
 
             // If a light source is hit, compute the light_pdf based on the saved_point (previous hitpoint) and use MIS to add the light.
@@ -230,8 +229,8 @@ void update_and_report_progress(size_t* thread_progress) {
     print_progress(progress_percent);
 }
 
-template<typename T>
-T increment_average(const T previous, const T addition, const double samples_prev, const double samples_add) {
+double increment_average(const double previous, const double addition, const double samples_prev,
+                         const double samples_add) {
     return (previous * samples_prev + addition * samples_add) / (samples_prev + samples_add);
 }
 
@@ -246,6 +245,7 @@ void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers,
         PixelData data = compute_pixel_color(x, y, scene, job.number_of_samples);
 
         size_t scaled_idx = idx * (constants::number_of_threads / (constants::WIDTH * constants::HEIGHT));
+        // TODO: Does it use the same pixels as the job?
         std::mutex& section_mutex = thread_context.pixel_section_mutexes[scaled_idx];
         {
             std::unique_lock<std::mutex> lock(section_mutex);
@@ -256,11 +256,14 @@ void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers,
             for (size_t j = 0; j < 3; j++) {
                 buffers.image[3 * idx + j] =
                     increment_average(buffers.image[3 * idx + j], data.pixel_color[j], prev_samples, this_samples);
+
+                buffers.position_buffer[3 * idx + j] = increment_average(
+                    buffers.position_buffer[3 * idx + j], data.pixel_position[j], prev_samples, this_samples);
+
+                buffers.normal_buffer[3 * idx + j] = increment_average(
+                    buffers.normal_buffer[3 * idx + j], data.pixel_normal[j], prev_samples, this_samples);
             }
-            buffers.position_buffer[idx] =
-                increment_average(buffers.position_buffer[idx], data.pixel_position, prev_samples, this_samples);
-            buffers.normal_buffer[idx] =
-                increment_average(buffers.normal_buffer[idx], data.pixel_normal, prev_samples, this_samples);
+
             thread_context.pixel_counters[idx] += job.number_of_samples;
         }
 
@@ -295,15 +298,15 @@ void clear_scene(Scene& scene) {
 }
 
 int main(int argc, char* argv[]) {
-    std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
     if (argc != 2) {
         throw std::runtime_error(
             "Invalid arguments provided.\n"
-            "Usage: main scene_directory\n\n"
+            "Usage: pathtracer <scene_directory>\n\n"
 
             "positional arguments:\n"
             "   scene_directory                  path to the scene directory (relative to main project directory)");
     }
+    std::chrono::steady_clock::time_point begin_build = std::chrono::steady_clock::now();
     load_settings(std::string(argv[1]) + "/settings.json");
     Scene scene = load_scene(std::string(argv[1]) + "/scene.json");
 
@@ -314,19 +317,18 @@ int main(int argc, char* argv[]) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-    PixelBuffers pixel_buffers;
     size_t pixel_count = constants::WIDTH * constants::HEIGHT;
-    size_t array_size = pixel_count;
-    pixel_buffers.position_buffer = new vec3[array_size];
-    pixel_buffers.normal_buffer = new vec3[array_size];
 
     size_t FILESIZE = pixel_count * 3 * sizeof(double);
 
     std::clog << "Running program with number of threads: " << constants::number_of_threads << ".\n";
     std::thread thread_array[constants::number_of_threads];
 
-    int image_fd;
-    pixel_buffers.image = create_mmap(constants::raw_file_name, FILESIZE, image_fd);
+    PixelBuffers pixel_buffers;
+    int image_fd, position_fd, normal_fd;
+    pixel_buffers.image = create_mmap(constants::raw_pixeldata_file, FILESIZE, true, image_fd);
+    pixel_buffers.position_buffer = create_mmap(constants::raw_positiondata_file, FILESIZE, true, position_fd);
+    pixel_buffers.normal_buffer = create_mmap(constants::raw_normaldata_file, FILESIZE, true, normal_fd);
 
     print_progress(0);
     size_t pixels_per_thread = ceil_division(pixel_count, constants::number_of_threads);
@@ -362,28 +364,14 @@ int main(int argc, char* argv[]) {
     print_progress(100);
     std::clog << std::endl;
 
-    if (constants::enable_atrous_filtering || constants::enable_median_filtering) {
-        std::clog << "Denoising..." << std::endl;
-        PixelBuffers denoising_buffers;
-        int denoised_image_fd;
-        denoising_buffers.image = create_mmap(constants::raw_denoised_file_name, FILESIZE, denoised_image_fd);
-
-        std::memcpy(denoising_buffers.image, pixel_buffers.image, FILESIZE);
-        denoising_buffers.position_buffer = pixel_buffers.position_buffer;
-        denoising_buffers.normal_buffer = pixel_buffers.normal_buffer;
-
-        denoise(denoising_buffers);
-        close_mmap(denoising_buffers.image, FILESIZE, denoised_image_fd);
-    }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::clog << "Program complete. Time taken: "
               << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
 
     close_mmap(pixel_buffers.image, FILESIZE, image_fd);
+    close_mmap(pixel_buffers.position_buffer, FILESIZE, position_fd);
+    close_mmap(pixel_buffers.normal_buffer, FILESIZE, normal_fd);
 
     clear_scene(scene);
-
-    delete[] pixel_buffers.position_buffer;
-    delete[] pixel_buffers.normal_buffer;
     return 0;
 }

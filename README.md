@@ -15,7 +15,7 @@ This project includes multiple different material models, including but not limi
 
 ### Denoising
 
-In order to reduce the noise level of the resulting image, À-trous wavelet denoising has been implemented, with configurable parameters.
+In order to reduce the noise level of the resulting image, two different denoising algorithms with configurable parameters are available: À-trous wavelet denoising, as well as median filtering.The former is more suitable for gaussian noise, while the latter is better at reducing fireflies. Both methods introduce bias in the final image.
 
 
 ### Example scenes
@@ -41,7 +41,7 @@ The directory `scenes/example/` defines a simple scene, showcasing some differen
 ## Usage
 
 #### Main program
-To run the ray tracing simulation and generate an image, execute the shell script `main.sh` file:
+To run the raytracing program and generate an image, execute the shell script `main.sh` file:
 
 ```
 usage: main.sh [-h] [--name NAME] [--scene_directory DIRECTORY]
@@ -49,7 +49,36 @@ usage: main.sh [-h] [--name NAME] [--scene_directory DIRECTORY]
 options:
   -h, --help                            show this message
   -n, --name <name>                     the name of the generated image, default 'result.png'
-  -c, --scene_directory <directory>     path to the scene directory, default scenes/example
+  -s, --scene_directory <directory>     path to the scene directory, default scenes/example
+```
+
+This scripts wraps two separate binaries, `pathtracer` and `denoiser`. While they can be executed on their own,
+the intended entrypoint is this `main.sh` script.
+
+##### Pathtracer
+Program that reads the settings/scene files in the scene directory and performs the raytracing.
+This program writes data to files in `temp` continuously, which can be converted to image data by the
+provided `to_png.py` python utility.
+
+```
+Usage: pathtracer <scene_directory>
+
+positional arguments:
+   scene_directory                  path to the scene directory (relative to main project directory)
+```
+
+
+##### Denoiser
+Program that reads the settings file in the scene directory, as well as the data in the `temp` directory,
+and denoises the image data.
+This program writes the denoised image data to a file in `temp`, which can be converted to image data by the
+provided `to_png.py` python utilty.
+
+```
+Usage: denoiser <scene_directory>
+
+positional arguments:
+   scene_directory                  path to the scene directory (relative to main project directory)
 ```
 
 ##### Building
