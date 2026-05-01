@@ -1,7 +1,7 @@
 #include "camera.h"
 #include "utils.h"
 
-Camera::Camera(vec3 const& _position, double X, double Y, double Z, const double _camera_width,
+Camera::Camera(vec3 const& _position, const double X, const double Y, const double Z, const double _camera_width,
                const double _focal_length, const std::string& _depth_of_field_mode, const double _aperture_size,
                const double _focus_distance) {
     position = _position;
@@ -21,7 +21,7 @@ Camera::Camera(vec3 const& _position, double X, double Y, double Z, const double
     screen_position = position + viewing_direction;
 }
 
-vec3 Camera::index_to_position(double x, double y) const {
+vec3 Camera::index_to_position(const double x, const double y) const {
     double local_x_coordinate = x * camera_width / (double) constants::WIDTH - (double) camera_width / 2.0;
     vec3 local_x = screen_x_vector * local_x_coordinate;
 

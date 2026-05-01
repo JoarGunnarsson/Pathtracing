@@ -2,7 +2,7 @@
 
 // ****** Object base class implementation ******
 
-Object::Object(Material const* _material) : material(_material), area(0.0), primitive_ID(0) {}
+Object::Object(Material const* _material) : primitive_ID(0), area(0.0), material(_material) {}
 
 vec3 Object::max_axis_point() const {
     return vec3();

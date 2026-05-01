@@ -10,8 +10,8 @@ class vec3 {
 
     vec3() : e{0, 0, 0} {}
 
-    vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
-    vec3(double e) : e{e, e, e} {}
+    vec3(const double e0, const double e1, const double e2) : e{e0, e1, e2} {}
+    vec3(const double e) : e{e, e, e} {}
 
     inline vec3 operator-() const {
         return vec3(-e[0], -e[1], -e[2]);
