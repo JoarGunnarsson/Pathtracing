@@ -9,15 +9,5 @@
     "use_gamma_correction": true,
 
     "enable_next_event_estimation": true,
-    "enable_anti_aliasing": true,
-
-    "enable_atrous_filtering": false,
-    "denoising_iterations": 4,
-    "sigma_rt": 2,
-    "sigma_x": 2,
-    "sigma_n": 2,
-
-    "enable_median_filtering": true,
-    "median_kernel_size": 3,
-    "median_filter_threshold": 0.5
+    "enable_anti_aliasing": true
 }

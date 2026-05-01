@@ -83,7 +83,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
                 color +=
                     sample_light(ray_hit, objects, number_of_objects, background_medium, medium, true) * throughput;
 
-                ray.type = DIFFUSE;
+                ray.type = ReflectionType::DIFFUSE;
                 scatter_pdf = medium->phase_function(ray.direction_vector, scattered_direction);
                 saved_point = scatter_point;
             }
@@ -98,7 +98,7 @@ PixelData raytrace(Ray ray, Object const* const* objects, const int number_of_ob
                 has_hit_surface = true;
             }
 
-            bool is_specular_ray = ray.type == REFLECTED || ray.type == TRANSMITTED;
+            bool is_specular_ray = ray.type == ReflectionType::REFLECTED || ray.type == ReflectionType::TRANSMITTED;
             Object const* hit_object = objects[ray_hit.intersected_object_index];
 
             // If a light source is hit, compute the light_pdf based on the saved_point (previous hitpoint) and use MIS to add the light.

@@ -65,6 +65,6 @@ Ray Camera::make_ray(const double x, const double y) const {
         adjust_depth_of_field(ray);
     }
 
-    ray.type = TRANSMITTED;
+    ray.type = ReflectionType::TRANSMITTED;
     return ray;
 }

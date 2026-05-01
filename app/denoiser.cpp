@@ -18,9 +18,10 @@ int main(int argc, char* argv[]) {
     }
 
     load_settings(std::string(argv[1]) + "/settings.json");
+    std::vector<DenoisingTask> pipeline = load_denoising_settings(std::string(argv[1]) + "/denoising.json");
 
-    if (!constants::enable_atrous_filtering && !constants::enable_median_filtering) {
-        std::clog << "No denoising mode set in scene settings, exiting..." << std::endl;
+    if (pipeline.empty()) {
+        std::clog << "No denoising mode set in denoising settings, exiting..." << std::endl;
         return 0;
     }
 
@@ -42,7 +43,7 @@ int main(int argc, char* argv[]) {
     denoising_buffers.position_buffer = pixel_buffers.position_buffer;
     denoising_buffers.normal_buffer = pixel_buffers.normal_buffer;
 
-    denoise(denoising_buffers);
+    denoise(denoising_buffers, pipeline);
 
     close_mmap(denoising_buffers.image, FILESIZE, denoised_image_fd);
     close_mmap(pixel_buffers.image, FILESIZE, image_fd);

@@ -2,7 +2,9 @@
 #define SCENE_H
 
 #include <unordered_map>
+#include <variant>
 
+#include "utils.h"
 #include "objects.h"
 #include "materials.h"
 #include "medium.h"
@@ -26,6 +28,23 @@ class PointerManager {
     void add_material(Material const* const material);
 };
 
+struct AtrousParamters {
+    int iterations;
+    double sigma_rt;
+    double sigma_x;
+    double sigma_n;
+};
+
+struct MedianFilterParamters {
+    int kernel_size;
+    double threshold;
+};
+
+struct DenoisingTask {
+    std::string mode;
+    std::variant<AtrousParamters, MedianFilterParamters> params;
+};
+
 struct Scene {
     Object const* const* objects;
     int number_of_objects;
@@ -44,7 +63,7 @@ struct SceneStore {
 };
 
 void load_settings(const std::string& file_path);
+std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path);
 Scene load_scene(const std::string& file_path);
-Scene create_scene();
 
 #endif

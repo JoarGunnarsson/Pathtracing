@@ -39,6 +39,40 @@ void PointerManager::add_material(Material const* const material) {
     materials.push_back(material);
 };
 
+void require_field(const json& data, const std::string& key) {
+    if (!data.contains(key)) {
+        throw std::runtime_error("JSON structure missing key '" + key + "'");
+    }
+}
+
+template<typename T>
+bool key_in_map(const T& map, const std::string& key) {
+    return map.find(key) != map.end();
+}
+
+template<typename T>
+void require_unique_key(const T& map, const std::string& key, const std::string& key_type) {
+    if (key_in_map(map, key)) {
+        throw std::runtime_error("Duplicate " + key_type + " entry '" + key + "' found");
+    }
+}
+
+template<typename T>
+void require_key_exists(const T& map, const std::string& key, const std::string& key_type) {
+    if (!key_in_map(map, key)) {
+        throw std::runtime_error(key_type + " entry '" + key + "' does not exist");
+    }
+}
+
+vec3 get_vec3_param(const json& data, const std::string& key) {
+    json vector_data = data[key];
+    if (vector_data.size() != 3) {
+        throw std::runtime_error("Data array'" + vector_data.dump() + "' should contain 3 elements, but contains " +
+                                 std::to_string(vector_data.size()));
+    }
+    return vec3(vector_data[0], vector_data[1], vector_data[2]);
+}
+
 template<typename T>
 void load_one_setting(const json& data, const std::string& key, T& setting) {
     if (data.contains(key)) {
@@ -100,38 +134,53 @@ void load_settings(const std::string& file_path) {
     }
 }
 
-void require_field(const json& data, const std::string& key) {
-    if (!data.contains(key)) {
-        throw std::runtime_error("JSON structure missing key '" + key + "'");
-    }
-}
+std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path) {
+    std::vector<DenoisingTask> denoising_pipeline;
 
-template<typename T>
-bool key_in_map(const T& map, const std::string& key) {
-    return map.find(key) != map.end();
-}
-
-template<typename T>
-void require_unique_key(const T& map, const std::string& key, const std::string& key_type) {
-    if (key_in_map(map, key)) {
-        throw std::runtime_error("Duplicate " + key_type + " entry '" + key + "' found");
+    std::ifstream denoising_settings_file(file_path);
+    if (!denoising_settings_file.is_open()) {
+        throw std::runtime_error("Could not open file '" + file_path + "'");
     }
-}
+    json data = json::parse(denoising_settings_file);
 
-template<typename T>
-void require_key_exists(const T& map, const std::string& key, const std::string& key_type) {
-    if (!key_in_map(map, key)) {
-        throw std::runtime_error(key_type + " entry '" + key + "' does not exist");
-    }
-}
+    require_field(data, "pipeline");
+    for (json& element : data["pipeline"]) {
+        DenoisingTask task;
 
-vec3 get_vec3_param(const json& data, const std::string& key) {
-    json vector_data = data[key];
-    if (vector_data.size() != 3) {
-        throw std::runtime_error("Data array'" + vector_data.dump() + "' should contain 3 elements, but contains " +
-                                 std::to_string(vector_data.size()));
+        require_field(element, "mode");
+        require_field(element, "parameters");
+        task.mode = element["mode"];
+        json parameters = element["parameters"];
+        if (task.mode == "skip") {
+            continue;
+        }
+
+        if (task.mode == "atrous") {
+            AtrousParamters params;
+            require_field(parameters, "iterations");
+            require_field(parameters, "sigma_rt");
+            require_field(parameters, "sigma_x");
+            require_field(parameters, "sigma_n");
+            params.iterations = parameters["iterations"];
+            params.sigma_rt = parameters["sigma_rt"];
+            params.sigma_x = parameters["sigma_x"];
+            params.sigma_n = parameters["sigma_n"];
+            task.params = params;
+        }
+        else if (task.mode == "median") {
+            MedianFilterParamters params;
+            require_field(parameters, "kernel_size");
+            require_field(parameters, "threshold");
+            params.kernel_size = parameters["kernel_size"];
+            params.threshold = parameters["threshold"];
+            task.params = params;
+        }
+        else {
+            throw std::runtime_error("'" + task.mode + "' is not a valid denoising mode.");
+        }
+        denoising_pipeline.push_back(task);
     }
-    return vec3(vector_data[0], vector_data[1], vector_data[2]);
+    return denoising_pipeline;
 }
 
 vec3 get_rotation_parameters(const json& data) {
