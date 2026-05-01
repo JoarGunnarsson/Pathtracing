@@ -168,7 +168,7 @@ void median_filter(PixelBuffers& buffers, MedianFilterParamters parameters) {
                     idx_from_coordinates(static_cast<size_t>(local_x), static_cast<size_t>(local_y), constants::WIDTH);
                 size_t local_idx =
                     idx_from_coordinates(static_cast<size_t>(dx + offset), static_cast<size_t>(dy + offset),
-                                         static_cast<size_t>(constants::median_kernel_size));
+                                         static_cast<size_t>(parameters.kernel_size));
 
                 r[local_idx] = buffers.image[3 * neighbor_idx];
                 g[local_idx] = buffers.image[3 * neighbor_idx + 1];

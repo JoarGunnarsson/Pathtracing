@@ -140,12 +140,13 @@ vec3 refract_vector(const vec3& incident_vector, const vec3& normal_vector, cons
     return normal_vector * sqrt(length_in_normal_direction_squared) + perpendicular_vectors * eta;
 }
 
-vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma) {
+vec3 rotate(vec3 const& p1, const double alpha, const double beta, const double gamma) {
     // Rotates the given vector using YZX Tait–Bryan angles
 
-    alpha = alpha * M_PI / 180;
-    beta = beta * M_PI / 180;
-    gamma = gamma * M_PI / 180;
+    double alpha_rad = alpha * M_PI / 180;
+    double beta_rad = beta * M_PI / 180;
+    double gamma_rad = gamma * M_PI / 180;
+
     double x = p1[0];
     double y = p1[1];
     double z = p1[2];
@@ -153,14 +154,14 @@ vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma) {
     double cos_beta, sin_beta, cos_alpha, sin_alpha, cos_gamma, sin_gamma;
     double e1, e2, e3;
 
-    cos_alpha = cos(alpha);
-    sin_alpha = sin(alpha);
+    cos_alpha = cos(alpha_rad);
+    sin_alpha = sin(alpha_rad);
 
-    cos_beta = cos(beta);
-    sin_beta = sin(beta);
+    cos_beta = cos(beta_rad);
+    sin_beta = sin(beta_rad);
 
-    cos_gamma = cos(gamma);
-    sin_gamma = sin(gamma);
+    cos_gamma = cos(gamma_rad);
+    sin_gamma = sin(gamma_rad);
 
     e1 = x * (cos_alpha * cos_beta) + y * (sin_alpha * sin_gamma - cos_alpha * cos_gamma * sin_beta) +
          z * (cos_gamma * sin_alpha + cos_alpha * sin_beta * sin_gamma);

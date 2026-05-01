@@ -22,25 +22,25 @@ struct PixelBuffers {
 struct Hit {
     int intersected_object_index = -1;
     int primitive_ID = -1;
+    bool outside;
     double distance = constants::max_ray_distance;
     vec3 intersection_point;
     vec3 incident_vector;
     vec3 normal_vector; // Points out from intersection.
-    bool outside;
 };
 
 struct Ray {
-    vec3 starting_position;
-    vec3 direction_vector;
-    ReflectionType type = ReflectionType::DIFFUSE;
     double t_max = constants::max_ray_distance;
-    int kx;
-    int ky;
-    int kz;
-    vec3 d;
     double Sx;
     double Sy;
     double Sz;
+    int kx;
+    int ky;
+    int kz;
+    ReflectionType type = ReflectionType::DIFFUSE;
+    vec3 starting_position;
+    vec3 direction_vector;
+    vec3 d;
 
     void prepare() {
         kz = argmax(abs(direction_vector));
@@ -76,7 +76,7 @@ vec3 sample_angled_hemisphere(const vec3& normal_vector, const double cos_max);
 vec3 sample_cosine_hemisphere(const vec3& normal_vector);
 vec3 reflect_vector(const vec3& direction_vector, const vec3& normal_vector);
 vec3 refract_vector(const vec3& incident_vector, const vec3& normal_vector, const double eta);
-vec3 rotate(vec3 const& p1, double alpha, double beta, double gamma);
+vec3 rotate(vec3 const& p1, const double alpha, const double beta, const double gamma);
 
 double fresnel_dielectric(const double cos_incident, const double n1, const double n2);
 double fresnel_conductor(double cos_theta_real, const double n1, const double k1, const double n2, const double k2);

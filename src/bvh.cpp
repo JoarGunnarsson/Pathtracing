@@ -2,7 +2,7 @@
 #include <algorithm>
 
 namespace BVH {
-vec3 get_max_point(Object const* const* triangles, int number_of_triangles) {
+vec3 get_max_point(Object const* const* triangles, const int number_of_triangles) {
     if (number_of_triangles == 0) {
         return vec3(0, 0, 0);
     }
@@ -16,7 +16,7 @@ vec3 get_max_point(Object const* const* triangles, int number_of_triangles) {
     return max_point + vec3(constants::EPSILON);
 }
 
-vec3 get_min_point(Object const* const* triangles, int number_of_triangles) {
+vec3 get_min_point(Object const* const* triangles, const int number_of_triangles) {
     if (number_of_triangles == 0) {
         return vec3(0, 0, 0);
     }
@@ -30,7 +30,7 @@ vec3 get_min_point(Object const* const* triangles, int number_of_triangles) {
     return min_point - vec3(constants::EPSILON);
 }
 
-BoundingBox::BoundingBox(Object const* const* _triangles, int number_of_triangles) {
+BoundingBox::BoundingBox(Object const* const* _triangles, const int number_of_triangles) {
     p1 = get_min_point(_triangles, number_of_triangles);
     p2 = get_max_point(_triangles, number_of_triangles);
     x_interval = Interval(p1[0], p2[0]);
@@ -47,13 +47,14 @@ BoundingBox::BoundingBox(Object const* const* _triangles, int number_of_triangle
 }
 
 Interval BoundingBox::get_interval(const int axis) const {
-    if (axis == 0) {
-        return x_interval;
+    switch (axis) {
+        case 0:
+            return x_interval;
+        case 1:
+            return y_interval;
+        default:
+            return z_interval;
     }
-    else if (axis == 1) {
-        return y_interval;
-    }
-    return z_interval;
 }
 
 bool BoundingBox::intersect(Ray& ray, double& distance) const {
@@ -61,46 +62,33 @@ bool BoundingBox::intersect(Ray& ray, double& distance) const {
 
     for (int axis = 0; axis < 3; axis++) {
         Interval ax = get_interval(axis);
-        double d_inv = 1.0 / ray.direction_vector[axis];
+        const double d_inv = 1.0 / ray.direction_vector[axis];
 
-        double t0 = (ax.min - ray.starting_position[axis]) * d_inv;
-        double t1 = (ax.max - ray.starting_position[axis]) * d_inv;
+        const double t0 = (ax.min - ray.starting_position[axis]) * d_inv;
+        const double t1 = (ax.max - ray.starting_position[axis]) * d_inv;
 
-        if (t0 < t1) {
-            if (t0 > ray_interval.min) {
-                ray_interval.min = t0;
-            }
+        const double t_min = std::min(t0, t1);
+        const double t_max = std::max(t0, t1);
 
-            if (t1 < ray_interval.max) {
-                ray_interval.max = t1;
-            }
-        }
-        else {
-            if (t1 > ray_interval.min) {
-                ray_interval.min = t1;
-            }
-
-            if (t0 < ray_interval.max) {
-                ray_interval.max = t0;
-            }
-        }
+        ray_interval.min = std::max(ray_interval.min, t_min);
+        ray_interval.max = std::min(ray_interval.max, t_max);
 
         if (ray_interval.max <= ray_interval.min) {
             return false;
         }
     }
 
-    distance = std::fmax(ray_interval.min, constants::EPSILON);
+    distance = std::max(ray_interval.min, constants::EPSILON);
     return true;
 }
 
-void sort_by_axis(Object** triangles, int number_of_triangles, int axis) {
+void sort_by_axis(Object** triangles, const int number_of_triangles, const int axis) {
     std::sort(triangles, triangles + number_of_triangles, [axis](Object const* obj1, Object const* obj2) {
         return (obj1->compute_centroid())[axis] < (obj2->compute_centroid())[axis];
     });
 }
 
-Node::Node(Object** _triangles, int _number_of_triangles, int _leaf_size) {
+Node::Node(Object** _triangles, const int _number_of_triangles, const int _leaf_size) {
     leaf_size = _leaf_size;
     bounding_box = BoundingBox(_triangles, _number_of_triangles);
     if (_number_of_triangles <= leaf_size) {
@@ -151,36 +139,32 @@ bool Node::intersect(Ray& ray, Hit& hit) {
         Hit triangle_hit;
         bool hits_triangles = find_closest_hit(triangle_hit, ray, triangles, number_of_triangles);
         if (hits_triangles && triangle_hit.distance < hit.distance && triangle_hit.distance > constants::EPSILON) {
-            hit.distance = triangle_hit.distance;
-            hit.primitive_ID = triangle_hit.primitive_ID;
+            hit = triangle_hit;
             return true;
         }
         return false;
     }
 
-    double d1;
+    double d1, d2;
     bool bvh1_hit = node1->bounding_box.intersect(ray, d1);
-
-    double d2;
     bool bvh2_hit = node2->bounding_box.intersect(ray, d2);
 
+    bool node1_success = false;
+    bool node2_success = false;
     if (bvh1_hit && bvh2_hit) {
-        if (d1 > d2) {
-            bool node1_success = node1->intersect(ray, hit);
-            bool node2_success = false;
+        if (d1 < d2) {
+            node1_success = node1->intersect(ray, hit);
             if (d2 < hit.distance || hit.distance == -1) {
                 node2_success = node2->intersect(ray, hit);
             }
-            return node1_success || node2_success;
         }
         else {
-            bool node1_success = false;
-            bool node2_success = node2->intersect(ray, hit);
+            node2_success = node2->intersect(ray, hit);
             if (d1 < hit.distance || hit.distance == -1) {
                 node1_success = node1->intersect(ray, hit);
             }
-            return node1_success || node2_success;
         }
+        return node1_success || node2_success;
     }
     else if (bvh1_hit) {
         return node1->intersect(ray, hit);
@@ -192,7 +176,8 @@ bool Node::intersect(Ray& ray, Hit& hit) {
     return false;
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Object** triangles, int number_of_triangles, int leaf_size) {
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Object** triangles, const int number_of_triangles,
+                                                 const int leaf_size) {
     root_node = new Node(triangles, number_of_triangles, leaf_size);
 }
 

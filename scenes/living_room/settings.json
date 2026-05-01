@@ -7,6 +7,7 @@
     "min_recursion_steps": 3,
     "number_of_threads": 15,
     "use_gamma_correction": true,
+    "bvh_leaf_size": 6,
 
     "enable_next_event_estimation": true,
     "enable_anti_aliasing": true

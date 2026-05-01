@@ -11,62 +11,62 @@
 class Medium;
 
 struct BrdfData {
-    vec3 outgoing_vector;
-    vec3 brdf_over_pdf;
     ReflectionType type = ReflectionType::DIFFUSE;
     double pdf;
+    vec3 outgoing_vector;
+    vec3 brdf_over_pdf;
 };
 
 struct MicrofacetSampleArgs {
-    vec3 sampled_half_vector;
-    vec3 normal_vector;
-    vec3 incident_vector;
     double cosine_factor;
     double eta;
     double u;
     double v;
     double alpha;
     bool outside;
+    vec3 sampled_half_vector;
+    vec3 normal_vector;
+    vec3 incident_vector;
 };
 
 struct MicrofacetData {
     bool outside;
     double alpha;
     double eta;
+    double F_r;
     vec3 normal_into_interface;
     vec3 half_vector;
-    double F_r;
 };
 
 struct MaterialData {
-    ValueMap3D const* albedo_map = nullptr;
+    bool is_light_source = false;
+    bool is_dielectric = true;
     double surface_refractive_index = 1.0;
     double extinction_coefficient = 2.0;
-    ValueMap3D const* emission_color_map = nullptr;
     ValueMap1D const* light_intensity_map = nullptr;
-    bool is_dielectric = true;
     ValueMap1D const* roughness_map = nullptr;
-    bool is_light_source = false;
+    ValueMap1D const* transparency_map = nullptr;
+    ValueMap3D const* albedo_map = nullptr;
+    ValueMap3D const* emission_color_map = nullptr;
     Medium const* internal_medium = nullptr;
     Medium const* external_medium = nullptr;
-    ValueMap1D const* transparency_map = nullptr;
 };
 
 class Material {
   public:
-    ValueMap3D const* albedo_map;
+    bool is_light_source;
+    bool is_dielectric;
     double surface_refractive_index;
+    double extinction_coefficient;
     double attenuation_coefficient;
     vec3 absorption_albedo;
-    ValueMap3D const* emission_color_map;
     ValueMap1D const* light_intensity_map;
-    bool is_dielectric;
-    double extinction_coefficient;
-    bool is_light_source;
     ValueMap1D const* roughness_map;
+    ValueMap1D const* transparency_map;
+    ValueMap3D const* albedo_map;
+    ValueMap3D const* emission_color_map;
     Medium const* internal_medium;
     Medium const* external_medium;
-    ValueMap1D const* transparency_map;
 
     Material() {}
     Material(MaterialData data);

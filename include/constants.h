@@ -13,19 +13,10 @@ extern int max_recursion_depth;
 extern int min_recursion_steps;
 extern size_t number_of_threads;
 extern bool use_gamma_correction;
+extern int bvh_leaf_size;
 
 extern bool enable_next_event_estimation;
 extern bool enable_anti_aliasing;
-
-extern bool enable_atrous_filtering;
-extern int denoising_iterations;
-extern double sigma_rt;
-extern double sigma_x;
-extern double sigma_n;
-
-extern bool enable_median_filtering;
-extern int median_kernel_size;
-extern double median_filter_threshold;
 
 // Fixed constants
 extern const size_t max_number_of_threads;

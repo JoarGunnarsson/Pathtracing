@@ -12,19 +12,10 @@ int max_recursion_depth = 100;
 int min_recursion_steps = 3;
 size_t number_of_threads = 1;
 bool use_gamma_correction = true;
+int bvh_leaf_size = 6;
 
 bool enable_next_event_estimation = true;
 bool enable_anti_aliasing = true;
-
-bool enable_atrous_filtering = false;
-int denoising_iterations = 5;
-double sigma_rt = 0.7;
-double sigma_x = 0.5;
-double sigma_n = 0.4;
-
-bool enable_median_filtering = false;
-int median_kernel_size = 3;
-double median_filter_threshold = 0;
 
 const size_t max_number_of_threads = std::max(std::thread::hardware_concurrency() - 1, static_cast<unsigned int>(1));
 const double EPSILON = 0.000001;

@@ -18,16 +18,16 @@ class Camera {
     Ray make_ray(const double x, const double y) const;
 
   private:
+    double camera_width;
+    double screen_height;
+    double focal_length;
+    double aperture_size;
+    double focus_distance;
     vec3 viewing_direction;
     vec3 screen_x_vector;
     vec3 screen_y_vector;
     vec3 screen_position;
-    double camera_width;
-    double screen_height;
-    double focal_length;
     std::string depth_of_field_mode;
-    double aperture_size;
-    double focus_distance;
 };
 
 #endif

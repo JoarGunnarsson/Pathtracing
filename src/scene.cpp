@@ -94,7 +94,6 @@ void load_settings(const std::string& file_path) {
     if (constants::samples_per_iteration <= 0) {
         throw std::runtime_error("Setting 'samples_per_iteration' must be a positive number!");
     }
-    load_one_setting(data, "use_gamma_correction", constants::use_gamma_correction);
 
     load_one_setting(data, "max_recursion_depth", constants::max_recursion_depth);
     load_one_setting(data, "min_recursion_steps", constants::min_recursion_steps);
@@ -108,30 +107,11 @@ void load_settings(const std::string& file_path) {
     }
     constants::number_of_threads = std::min<size_t>(constants::number_of_threads, constants::max_number_of_threads);
 
+    load_one_setting(data, "use_gamma_correction", constants::use_gamma_correction);
+    load_one_setting(data, "bvh_leaf_size", constants::bvh_leaf_size);
+
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);
-
-    load_one_setting(data, "enable_atrous_filtering", constants::enable_atrous_filtering);
-    load_one_setting(data, "denoising_iterations", constants::denoising_iterations);
-    if (constants::enable_atrous_filtering &&
-        pow(2, constants::denoising_iterations) >= static_cast<double>(std::min(constants::WIDTH, constants::HEIGHT))) {
-        throw std::runtime_error("Too many denoising iterations for this image size.");
-    }
-
-    load_one_setting(data, "sigma_rt", constants::sigma_rt);
-    load_one_setting(data, "sigma_x", constants::sigma_x);
-    load_one_setting(data, "sigma_n", constants::sigma_n);
-
-    load_one_setting(data, "enable_median_filtering", constants::enable_median_filtering);
-    load_one_setting(data, "median_kernel_size", constants::median_kernel_size);
-    if (constants::enable_median_filtering &&
-        static_cast<size_t>(constants::median_kernel_size) >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
-        throw std::runtime_error("Too large median filter kernel size for this image size.");
-    }
-    load_one_setting(data, "median_filter_threshold", constants::median_filter_threshold);
-    if (constants::median_filter_threshold < 0) {
-        throw std::runtime_error("Median filter threshold cannot be negative.");
-    }
 }
 
 std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path) {
@@ -165,6 +145,10 @@ std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path)
             params.sigma_rt = parameters["sigma_rt"];
             params.sigma_x = parameters["sigma_x"];
             params.sigma_n = parameters["sigma_n"];
+
+            if (std::pow(2, params.iterations) >= static_cast<double>(std::min(constants::WIDTH, constants::HEIGHT))) {
+                throw std::runtime_error("Too many denoising iterations for this image size.");
+            }
             task.params = params;
         }
         else if (task.mode == "median") {
@@ -173,6 +157,13 @@ std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path)
             require_field(parameters, "threshold");
             params.kernel_size = parameters["kernel_size"];
             params.threshold = parameters["threshold"];
+
+            if (static_cast<size_t>(params.kernel_size) >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
+                throw std::runtime_error("Too large median filter kernel size for this image size.");
+            }
+            if (params.threshold < 0) {
+                throw std::runtime_error("Median filter threshold cannot be negative.");
+            }
             task.params = params;
         }
         else {
@@ -234,7 +225,7 @@ ValueMap3D const* load_valuemap3d(const json& data, const bool gamma_correct) {
     }
 }
 
-Medium const* load_medium(const json& data, const SceneStore&) {
+Medium const* load_medium(const json& data) {
     require_field(data, "parameters");
     json parameters = data["parameters"];
 
@@ -414,7 +405,7 @@ Object const* load_object(const json& data, const SceneStore& store) {
         vec3 orientation =
             parameters.contains("orientation") ? get_rotation_parameters(parameters["orientation"]) : vec3(0);
 
-        ObjectTransform transform{move_object, center, scale_object, size, rotate_object, orientation};
+        ObjectTransform transform{move_object, rotate_object, scale_object, center, orientation, size};
         return load_object_model(file_name, material, enable_smooth_shading, transform);
     }
     else {
@@ -498,7 +489,7 @@ void populate_scene_store(json& scene_data, SceneStore& store, PointerManager* m
 
         if (type == "Medium") {
             require_unique_key(store.medium_store, name, "medium");
-            Medium const* medium = load_medium(element, store);
+            Medium const* medium = load_medium(element);
             store.medium_store[name] = medium;
             manager->add_medium(medium);
         }

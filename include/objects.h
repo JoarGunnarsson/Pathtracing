@@ -16,9 +16,9 @@ struct BrdfData;
 
 class Object {
   public:
-    Material const* material;
-    double area;
     int primitive_ID; // Used when object belongs to an ObjectUnion.
+    double area;
+    Material const* material;
     Object() {}
     Object(Material const* _material);
     virtual ~Object() {}
@@ -56,8 +56,8 @@ class Sphere : public Object {
     vec3 random_light_point(const vec3& intersection_point, double& inverse_PDF) const override;
 
   private:
-    vec3 position;
     double radius;
+    vec3 position;
 };
 
 class Plane : public Object {
@@ -112,13 +112,8 @@ class Triangle : public Object {
     vec3 generate_random_surface_point() const override;
 
   private:
-    vec3 position;
-    vec3 normal_vector;
-    vec3 p1;
-    vec3 p2;
-    vec3 p3;
-    vec3 v1;
-    vec3 v2;
+    bool smooth_shaded = false;
+
     double x1;
     double y1;
     double x2;
@@ -127,14 +122,20 @@ class Triangle : public Object {
     double y3;
     double det_T;
 
+    vec3 position;
+    vec3 normal_vector;
+    vec3 p1;
+    vec3 p2;
+    vec3 p3;
+    vec3 v1;
+    vec3 v2;
+
     vec3 uv1;
     vec3 uv2;
     vec3 uv3;
     vec3 n1;
     vec3 n2;
     vec3 n3;
-
-    bool smooth_shaded = false;
 };
 
 bool find_closest_hit(Hit& closest_hit, Ray& ray, Object const* const* objects, const int number_of_objects);

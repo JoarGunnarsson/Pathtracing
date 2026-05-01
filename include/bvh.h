@@ -5,8 +5,8 @@
 #include <chrono>
 
 namespace BVH {
-vec3 get_max_point(Object const* const* triangles, int number_of_triangles);
-vec3 get_min_point(Object const* const* triangles, int number_of_triangles);
+vec3 get_max_point(Object const* const* triangles, const int number_of_triangles);
+vec3 get_min_point(Object const* const* triangles, const int number_of_triangles);
 
 struct Interval {
     double min;
@@ -21,7 +21,7 @@ class BoundingBox {
     double axis_length[3];
 
     BoundingBox() {}
-    BoundingBox(Object const* const* _triangles, int number_of_triangles);
+    BoundingBox(Object const* const* _triangles, const int number_of_triangles);
 
     inline bool is_within_bounds(const double x, const double lower, const double higher) const {
         return lower <= x && x <= higher;
@@ -41,14 +41,14 @@ class BoundingBox {
     double length;
 };
 
-void sort_by_axis(Object const** triangles, int number_of_triangles, int axis);
+void sort_by_axis(Object const** triangles, const int number_of_triangles, const int axis);
 
 class Node {
   public:
     BoundingBox bounding_box;
 
     Node() {}
-    Node(Object** _triangles, int _number_of_triangles, int _leaf_size = 12);
+    Node(Object** _triangles, const int _number_of_triangles, const int _leaf_size);
 
     int get_split_axis();
     bool intersect(Ray& ray, Hit& hit);
@@ -65,7 +65,7 @@ class Node {
 class BoundingVolumeHierarchy {
   public:
     BoundingVolumeHierarchy() {}
-    BoundingVolumeHierarchy(Object** triangles, int number_of_triangles, int leaf_size);
+    BoundingVolumeHierarchy(Object** triangles, const int number_of_triangles, const int leaf_size);
 
     bool intersect(Hit& hit, Ray& ray) const;
 
