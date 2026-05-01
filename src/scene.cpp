@@ -109,6 +109,14 @@ void load_settings(const std::string& file_path) {
 
     load_one_setting(data, "use_gamma_correction", constants::use_gamma_correction);
     load_one_setting(data, "bvh_leaf_size", constants::bvh_leaf_size);
+    if (constants::bvh_leaf_size < 1) {
+        throw std::runtime_error("'bvh_leaf_size' must be 1 or greater.");
+    }
+
+    load_one_setting(data, "bvh_n_axis_splits", constants::bvh_n_axis_splits);
+    if (constants::bvh_n_axis_splits < 1) {
+        throw std::runtime_error("'bvh_n_axis_splits' must be 1 or greater.");
+    }
 
     load_one_setting(data, "enable_next_event_estimation", constants::enable_next_event_estimation);
     load_one_setting(data, "enable_anti_aliasing", constants::enable_anti_aliasing);

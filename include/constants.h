@@ -14,6 +14,7 @@ extern int min_recursion_steps;
 extern size_t number_of_threads;
 extern bool use_gamma_correction;
 extern int bvh_leaf_size;
+extern int bvh_n_axis_splits;
 
 extern bool enable_next_event_estimation;
 extern bool enable_anti_aliasing;

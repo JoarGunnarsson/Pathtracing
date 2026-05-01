@@ -88,35 +88,80 @@ void sort_by_axis(Object** triangles, const int number_of_triangles, const int a
     });
 }
 
+int surface_area_heuristic(Object** triangles, const int number_of_triangles) {
+    // 'triangles' must be sorted with respect to some axis beforehand.
+
+    if (number_of_triangles <= 1) {
+        throw std::runtime_error("Cannot split triangle array of size 1 or less!");
+    }
+    int split_index = 0;
+    int bucket_width =
+        ceil_division(number_of_triangles - (constants::bvh_n_axis_splits - 1), constants::bvh_n_axis_splits);
+
+    double LSA, RSA;
+    double best_metric = -1;
+    double metric;
+    for (int i = bucket_width; i < number_of_triangles - bucket_width; i += bucket_width + 1) {
+        vec3 left_max_point = get_max_point(triangles, i + 1);
+        vec3 left_min_point = get_min_point(triangles, i + 1);
+        double lw = left_max_point[0] - left_min_point[0];
+        double ld = left_max_point[1] - left_min_point[1];
+        double lh = left_max_point[2] - left_min_point[2];
+
+        vec3 right_max_point = get_max_point(triangles + i, number_of_triangles - (i + 1));
+        vec3 right_min_point = get_min_point(triangles + i, number_of_triangles - (i + 1));
+        double rw = right_max_point[0] - right_min_point[0];
+        double rd = right_max_point[1] - right_min_point[1];
+        double rh = right_max_point[2] - right_min_point[2];
+
+        LSA = 2 * lw * ld + 2 * lw * lh + 2 * ld * lh;
+        RSA = 2 * rw * rd + 2 * rw * rh + 2 * rd * rh;
+        metric = LSA * (i + 1) + RSA * (number_of_triangles - (i + 1));
+
+        if (metric < best_metric || best_metric == -1) {
+            best_metric = metric;
+            split_index = i;
+        }
+    }
+    return split_index;
+}
+
 Node::Node(Object** _triangles, const int _number_of_triangles, const int _leaf_size) {
     leaf_size = _leaf_size;
     bounding_box = BoundingBox(_triangles, _number_of_triangles);
+
     if (_number_of_triangles <= leaf_size) {
         triangles = _triangles;
         number_of_triangles = _number_of_triangles;
         is_leaf_node = true;
         return;
     }
+
     is_leaf_node = false;
     int axis = get_split_axis();
 
     sort_by_axis(_triangles, _number_of_triangles, axis);
-    int split_index = _number_of_triangles / 2;
 
-    size_t left_split_size = static_cast<size_t>(split_index);
-    size_t right_split_size = static_cast<size_t>(_number_of_triangles - split_index);
+    int split_index = surface_area_heuristic(_triangles, _number_of_triangles);
+
+    size_t left_split_size = static_cast<size_t>(split_index + 1);
+    size_t right_split_size = static_cast<size_t>(_number_of_triangles - split_index - 1);
+
     Object** node1_triangles = new Object*[left_split_size];
     Object** node2_triangles = new Object*[right_split_size];
 
-    for (int i = 0; i < split_index; i++) {
+    // Triangle with index 'split_index' will be included in the left node.
+    for (size_t i = 0; i < left_split_size; i++) {
         node1_triangles[i] = _triangles[i];
     }
-    for (int i = split_index; i < _number_of_triangles; i++) {
-        node2_triangles[i - split_index] = _triangles[i];
+    for (size_t i = 0; i < right_split_size; i++) {
+        node2_triangles[i] = _triangles[i + left_split_size];
     }
 
-    node1 = new Node(node1_triangles, split_index, _leaf_size);
-    node2 = new Node(node2_triangles, _number_of_triangles - split_index, _leaf_size);
+    // TODO: This should be a size_t, but it's too much work fixing it right now.
+    // Might break for really large 3D models.
+    node1 = new Node(node1_triangles, static_cast<int>(left_split_size), _leaf_size);
+    node2 = new Node(node2_triangles, static_cast<int>(right_split_size), _leaf_size);
 }
 
 int Node::get_split_axis() {
