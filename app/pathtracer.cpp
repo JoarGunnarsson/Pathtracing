@@ -235,7 +235,7 @@ double increment_average(const double previous, const double addition, const dou
 }
 
 void raytrace_section(const Job& job, const Scene& scene, PixelBuffers& buffers, ThreadContext& thread_context) {
-    size_t log_interval = job.number_of_pixels / 20;
+    size_t log_interval = std::max<size_t>(job.number_of_pixels / 20, 1);
     for (size_t i = 0; i < job.number_of_pixels; i++) {
         size_t idx = job.start_idx + i;
 
@@ -339,6 +339,9 @@ int main(int argc, char* argv[]) {
     for (size_t j = 0; j < number_of_iterations; j++) {
         for (size_t i = 0; i < constants::number_of_threads; i++) {
             size_t start_idx = pixels_per_thread * i;
+            if (start_idx > pixel_count) {
+                break;
+            }
             size_t pixels_remaining = (pixel_count - start_idx);
             size_t pixels_to_handle = std::min<size_t>(pixels_per_thread, pixels_remaining);
             Job job;

@@ -102,7 +102,8 @@ void load_settings(const std::string& file_path) {
         throw std::runtime_error("'number_of_threads' must be 1 or greater.");
     }
     if (constants::number_of_threads > constants::max_number_of_threads) {
-        std::clog << "Warning: Requested number of threads was greater than maximum concurrency available. Capping at "
+        std::clog << "Warning: The requested number of threads was greater than the maximum concurrency available. "
+                     "Capping at "
                   << constants::max_number_of_threads << ".\n";
     }
     constants::number_of_threads = std::min<size_t>(constants::number_of_threads, constants::max_number_of_threads);
@@ -166,8 +167,8 @@ std::vector<DenoisingTask> load_denoising_settings(const std::string& file_path)
             params.kernel_size = parameters["kernel_size"];
             params.threshold = parameters["threshold"];
 
-            if (static_cast<size_t>(params.kernel_size) >= std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
-                throw std::runtime_error("Too large median filter kernel size for this image size.");
+            if (static_cast<size_t>(params.kernel_size) > std::min<size_t>(constants::WIDTH, constants::HEIGHT)) {
+                throw std::runtime_error("Median filter kernel size is too large for this image size.");
             }
             if (params.threshold < 0) {
                 throw std::runtime_error("Median filter threshold cannot be negative.");
